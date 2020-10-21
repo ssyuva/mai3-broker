@@ -10,7 +10,7 @@ require (
 	github.com/gorilla/websocket v1.4.1
 	github.com/jinzhu/gorm v1.9.12
 	github.com/labstack/echo v3.3.10+incompatible
-	github.com/mcarloai/dex-be-common v0.1.31
+	github.com/labstack/gommon v0.3.0 // indirect
 	github.com/micro/go-micro/v2 v2.3.0
 	github.com/petar/GoLLRB v0.0.0-20190514000832-33fb24c13b99
 	github.com/satori/go.uuid v1.2.0
@@ -18,5 +18,6 @@ require (
 	github.com/ulule/limiter/v3 v3.5.0
 	github.com/valyala/fasttemplate v1.2.1 // indirect
 	golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897
+	golang.org/x/net v0.0.0-20200301022130-244492dfa37a // indirect
 	gopkg.in/go-playground/validator.v9 v9.31.0
 )

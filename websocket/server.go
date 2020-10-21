@@ -15,6 +15,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/mcarloai/mai-v3-broker/common/auth"
+	"github.com/mcarloai/mai-v3-broker/common/message"
 	"github.com/micro/go-micro/v2/logger"
 )
 
@@ -211,7 +212,7 @@ func (s *Server) startConsumer() {
 			if !ok {
 				return
 			}
-			wsMsg := msg.(WebSocketMessage)
+			wsMsg := msg.(message.WebSocketMessage)
 			channel := findChannel(wsMsg.ChannelID)
 			if channel == nil {
 				var err error

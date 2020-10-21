@@ -8,23 +8,11 @@ import (
 
 	"github.com/cevaris/ordered_map"
 	"github.com/mcarloai/mai-v3-broker/common/model"
-	"github.com/micro/go-micro/v2/logger"
 	"github.com/petar/GoLLRB/llrb"
 	"github.com/shopspring/decimal"
 )
 
 type (
-	MatchResult struct {
-		TakerOrder              *MemoryOrder // NOTE: mutable! should only be modified where execute match
-		TakerOrderOriginAmount  decimal.Decimal
-		TakerOrderCancelAmounts []decimal.Decimal
-		TakerOrderCancelReasons []model.CancelReasonType
-		TakerOrderTotalCancel   decimal.Decimal
-		TotalMatched            decimal.Decimal
-
-		MatchItems []*MatchItem
-	}
-
 	MatchItem struct {
 		MakerOrder              *MemoryOrder // NOTE: mutable! should only be modified where execute match
 		MakerOrderOriginAmount  decimal.Decimal
@@ -36,11 +24,10 @@ type (
 		IsMakerForceCanceled bool
 	}
 
-	OrderContext interface{}
-
 	MemoryOrder struct {
 		ID               string          `json:"id"`
-		perpetualAddress string          `json:"perpetualAddress"`
+		PerpetualAddress string          `json:"perpetualAddress"`
+		ComparePrice     decimal.Decimal `json:"-"`
 		Price            decimal.Decimal `json:"price"`
 		StopPrice        decimal.Decimal `json:"stopPrice"`
 		Amount           decimal.Decimal `json:"amount"`
@@ -50,94 +37,6 @@ type (
 		GasFeeAmount     decimal.Decimal `json:"gasFeeAmount"`
 	}
 )
-
-func (m *MatchItem) MakerOrderConsumeAmount() decimal.Decimal {
-	return m.MakerOrderTotalCancel.Add(m.MatchedAmount)
-}
-
-func (m *MatchItem) IsMakerOrderDone() bool {
-	consume := m.MakerOrderConsumeAmount()
-	if consume.GreaterThan(m.MakerOrderOriginAmount) {
-		logger.Errorf("TakerOrderIsDone: BUG!")
-	}
-	return consume.GreaterThanOrEqual(m.MakerOrderOriginAmount)
-}
-
-func (m *MatchItem) CancelMakerOrder(amount decimal.Decimal, reason model.CancelReasonType) {
-	if amount.IsPositive() {
-		m.MakerOrderCancelAmounts = append(m.MakerOrderCancelAmounts, amount)
-		m.MakerOrderCancelReasons = append(m.MakerOrderCancelReasons, reason)
-		m.MakerOrderTotalCancel = m.MakerOrderTotalCancel.Add(amount)
-	}
-}
-
-func (m *MatchResult) HasMatch() bool {
-	return len(m.MatchItems) > 0
-}
-
-func (m *MatchResult) TakerOrderConsumeAmount() decimal.Decimal {
-	return m.TakerOrderTotalCancel.Add(m.TotalMatched)
-}
-
-func (m *MatchResult) TakerOrderRemainAmount() decimal.Decimal {
-	reamin := m.TakerOrderOriginAmount.Sub(m.TakerOrderConsumeAmount())
-	if reamin.IsNegative() {
-		logger.Errorf("BUG: TakerOrderRemainAmount[%s] is negative. cancel[%s] match[%s]", reamin, m.TakerOrderTotalCancel, m.TotalMatched)
-		return decimal.Zero
-	}
-	return reamin
-}
-
-func (m *MatchResult) IsTakerOrderDone() bool {
-	return m.TakerOrderRemainAmount().IsZero()
-}
-
-func (m *MatchResult) CancelTakerOrder(amount decimal.Decimal, reason model.CancelReasonType) {
-	if amount.IsPositive() {
-		m.TakerOrderCancelAmounts = append(m.TakerOrderCancelAmounts, amount)
-		m.TakerOrderCancelReasons = append(m.TakerOrderCancelReasons, reason)
-		m.TakerOrderTotalCancel = m.TakerOrderTotalCancel.Add(amount)
-	}
-}
-
-func (matchResult *MatchResult) AddMatch(makerOrder *MemoryOrder, amount decimal.Decimal) *MatchItem {
-	m := &MatchItem{
-		MakerOrder:             makerOrder,
-		MatchedAmount:          amount,
-		MakerOrderOriginAmount: makerOrder.Amount,
-	}
-	matchResult.MatchItems = append(matchResult.MatchItems, m)
-	matchResult.TotalMatched = matchResult.TotalMatched.Add(amount)
-	return m
-}
-
-func (matchResult *MatchResult) CancelMatch(m *MatchItem, reason model.CancelReasonType) {
-	m.CancelMakerOrder(m.MatchedAmount, reason)
-	matchResult.CancelTakerOrder(m.MatchedAmount, reason)
-	matchResult.TotalMatched = matchResult.TotalMatched.Sub(m.MatchedAmount)
-	m.MatchedAmount = decimal.Zero
-}
-
-// ForceCancelMaker is used to force the maker order to be canceled from the order book
-func (matchResult *MatchResult) ForceCancelMaker(m *MatchItem) {
-	matchResult.CancelTakerOrder(m.MatchedAmount, model.CancelReasonAdminCancel)
-	matchResult.TotalMatched = matchResult.TotalMatched.Sub(m.MatchedAmount)
-	m.MatchedAmount = decimal.Zero
-
-	m.MakerOrderCancelAmounts = []decimal.Decimal{m.MakerOrderOriginAmount}
-	m.MakerOrderCancelReasons = []model.CancelReasonType{model.CancelReasonAdminCancel}
-	m.MakerOrderTotalCancel = m.MakerOrderOriginAmount
-
-	m.IsMakerForceCanceled = true
-}
-
-func NewMatchResult(takerOrder *MemoryOrder) *MatchResult {
-	return &MatchResult{
-		TakerOrder:             takerOrder,
-		TakerOrderOriginAmount: takerOrder.Amount,
-		MatchItems:             make([]*MatchItem, 0),
-	}
-}
 
 type priceLevel struct {
 	price       decimal.Decimal
@@ -219,18 +118,8 @@ func (p *priceLevel) Less(item llrb.Item) bool {
 	return p.price.LessThan(another.price)
 }
 
-type OrderMatcher func(*MemoryOrder) bool
-
-type OrderBookMarket interface {
-	ID() string
-	LotSize() decimal.Decimal
-	Symbol() string
-	GetMarketOrderMatcher(takerOrder *MemoryOrder, orderContext OrderContext, result *MatchResult) (OrderMatcher, error)
-}
-
 // Orderbook ...
 type Orderbook struct {
-	market   OrderBookMarket
 	bidsTree *llrb.LLRB
 	asksTree *llrb.LLRB
 
@@ -241,18 +130,13 @@ type Orderbook struct {
 }
 
 // NewOrderbook return a new book
-func NewOrderbook(market OrderBookMarket) *Orderbook {
+func NewOrderbook() *Orderbook {
 	book := &Orderbook{
-		market:   market,
 		bidsTree: llrb.New(),
 		asksTree: llrb.New(),
 	}
 
 	return book
-}
-
-func (book *Orderbook) UpdateMarket(market OrderBookMarket) {
-	book.market = market
 }
 
 func (book *Orderbook) InsertOrder(order *MemoryOrder) error {
@@ -269,10 +153,10 @@ func (book *Orderbook) InsertOrder(order *MemoryOrder) error {
 		tree = book.bidsTree
 	}
 
-	price := tree.Get(newPriceLevel(order.Price))
+	price := tree.Get(newPriceLevel(order.ComparePrice))
 
 	if price == nil {
-		price = newPriceLevel(order.Price)
+		price = newPriceLevel(order.ComparePrice)
 		tree.InsertNoReplace(price)
 	}
 
@@ -300,15 +184,15 @@ func (book *Orderbook) RemoveOrder(order *MemoryOrder) error {
 		tree = book.bidsTree
 	}
 
-	plItem := tree.Get(newPriceLevel(order.Price))
+	plItem := tree.Get(newPriceLevel(order.ComparePrice))
 	if plItem == nil {
-		return fmt.Errorf("remove order: find price level fail, price=%s:%w", order.Price, OrderNotFoundError)
+		return fmt.Errorf("remove order: find price level fail, price=%s:%w", order.ComparePrice, OrderNotFoundError)
 	}
 
 	price := plItem.(*priceLevel)
 
 	if price == nil {
-		return fmt.Errorf("price is nil when RemoveOrder, book: %s, order: %+v", book.market.Symbol(), order)
+		return fmt.Errorf("price is nil when RemoveOrder, order: %+v", order)
 	}
 
 	_, err := price.RemoveOrder(order.ID)
@@ -337,15 +221,15 @@ func (book *Orderbook) ChangeOrder(order *MemoryOrder, changeAmount decimal.Deci
 		tree = book.bidsTree
 	}
 
-	plItem := tree.Get(newPriceLevel(order.Price))
+	plItem := tree.Get(newPriceLevel(order.ComparePrice))
 
 	if plItem == nil {
-		return fmt.Errorf("can't change order which is not in this orderbook. book: %s, order: %+v:%w", book.market.Symbol(), order, OrderNotFoundError)
+		return fmt.Errorf("can't change order which is not in this orderbook. order: %+v:%w", order, OrderNotFoundError)
 	}
 
 	price := plItem.(*priceLevel)
 	if price == nil {
-		return fmt.Errorf("pl is nil when ChangeOrder, book: %s, order: %+v", book.market.Symbol(), order)
+		return fmt.Errorf("pl is nil when ChangeOrder, order: %+v", order)
 	}
 
 	if err := price.ChangeOrder(order.ID, changeAmount); err != nil {
@@ -408,16 +292,13 @@ func (book *Orderbook) MinAsk() *decimal.Decimal {
 }
 
 func (book *Orderbook) CanMatch(order *MemoryOrder) bool {
-	if order.Type == "market" {
-		return true
-	}
 	if order.Side == model.SideBuy {
 		minItem := book.asksTree.Min()
 		if minItem == nil {
 			return false
 		}
 
-		if order.Price.GreaterThanOrEqual(minItem.(*priceLevel).price) {
+		if order.ComparePrice.GreaterThanOrEqual(minItem.(*priceLevel).price) {
 			return true
 		}
 
@@ -428,45 +309,10 @@ func (book *Orderbook) CanMatch(order *MemoryOrder) bool {
 			return false
 		}
 
-		if order.Price.LessThanOrEqual(maxItem.(*priceLevel).price) {
+		if order.ComparePrice.LessThanOrEqual(maxItem.(*priceLevel).price) {
 			return true
 		}
 
 		return false
-	}
-}
-
-func (book *Orderbook) getLimitOrderIterator(result *MatchResult) func(i llrb.Item) bool {
-	// This function will be called multi times
-	// Return false to break the loop
-	takerOrder := result.TakerOrder
-	leftAmount := result.TakerOrderRemainAmount()
-	lotSize := book.market.LotSize()
-	return func(i llrb.Item) bool {
-		pl := i.(*priceLevel)
-
-		if takerOrder.Side == "buy" && pl.price.GreaterThan(takerOrder.Price) {
-			return false
-		} else if takerOrder.Side == "sell" && pl.price.LessThan(takerOrder.Price) {
-			return false
-		}
-
-		iter := pl.orderMap.IterFunc()
-		for kv, ok := iter(); ok; kv, ok = iter() {
-			if leftAmount.LessThanOrEqual(decimal.Zero) {
-				break
-			}
-
-			bookOrder := kv.Value.(*MemoryOrder)
-			matchedAmount := decimal.Min(leftAmount, bookOrder.Amount).Div(lotSize).Truncate(0).Mul(lotSize)
-			matchItem := result.AddMatch(bookOrder, matchedAmount)
-			makerRemain := bookOrder.Amount.Sub(matchedAmount)
-			if makerRemain.LessThan(lotSize) {
-				matchItem.CancelMakerOrder(makerRemain, model.CancelReasonRemainTooSmall)
-			}
-			leftAmount = leftAmount.Sub(matchedAmount)
-		}
-
-		return leftAmount.IsPositive()
 	}
 }

@@ -10,6 +10,8 @@ import (
 	"time"
 )
 
+const TIMESTAMP_RANGE = 5 * 60
+
 func (s *Server) GetOrders(p Param) (interface{}, error) {
 	params := p.(*QueryOrderReq)
 	var beforeOrderID, afterOrderID int64
@@ -54,7 +56,11 @@ func (s *Server) GetOrders(p Param) (interface{}, error) {
 		}
 	}
 
-	orders, err := s.dao.QueryOrder(params.Address, params.PerpetualAddress, queryStatus, beforeOrderID, afterOrderID, params.Limit)
+	limit := 20
+	if params.Limit > 0 {
+		limit = params.Limit
+	}
+	orders, err := s.dao.QueryOrder(params.Address, params.PerpetualAddress, queryStatus, beforeOrderID, afterOrderID, limit)
 	if err != nil {
 		return nil, InternalError(err)
 	}
@@ -148,6 +154,12 @@ func validatePlaceOrder(req *PlaceOrderReq) error {
 
 	if price.LessThanOrEqual(decimal.Zero) {
 		return InvalidPriceAmountError("price <= 0")
+	}
+
+	// order sign timestamp
+	now := time.Now().UTC().Unix()
+	if (now-TIMESTAMP_RANGE) > req.Timestamp || (now+TIMESTAMP_RANGE) < req.Timestamp {
+		return InternalError(errors.New("timestamp over time"))
 	}
 
 	// Price OrderType

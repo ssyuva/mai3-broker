@@ -1,18 +1,20 @@
 package websocket
 
+import "github.com/mcarloai/mai-v3-broker/common/message"
+
 type IChannel interface {
 	GetID() string
 
 	// Thread safe calls
 	AddSubscriber(*Client)
 	RemoveSubscriber(string)
-	AddMessage(message *WebSocketMessage)
+	AddMessage(message *message.WebSocketMessage)
 
 	UnsubscribeChan() chan string
 	SubScribeChan() chan *Client
-	MessagesChan() chan *WebSocketMessage
+	MessagesChan() chan *message.WebSocketMessage
 
-	handleMessage(*WebSocketMessage)
+	handleMessage(*message.WebSocketMessage)
 	handleSubscriber(*Client)
 	handleUnsubscriber(string)
 }

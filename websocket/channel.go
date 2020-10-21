@@ -2,6 +2,7 @@ package websocket
 
 import (
 	"fmt"
+	"github.com/mcarloai/mai-v3-broker/common/message"
 	"github.com/micro/go-micro/v2/logger"
 	"strings"
 	"sync"
@@ -14,7 +15,7 @@ type Channel struct {
 
 	Subscribe   chan *Client
 	Unsubscribe chan string
-	Messages    chan *WebSocketMessage
+	Messages    chan *message.WebSocketMessage
 }
 
 func (c *Channel) GetID() string {
@@ -30,7 +31,7 @@ func (c *Channel) RemoveSubscriber(ID string) {
 	c.Unsubscribe <- ID
 }
 
-func (c *Channel) AddMessage(msg *WebSocketMessage) {
+func (c *Channel) AddMessage(msg *message.WebSocketMessage) {
 	c.Messages <- msg
 }
 
@@ -42,11 +43,11 @@ func (c *Channel) SubScribeChan() chan *Client {
 	return c.Subscribe
 }
 
-func (c *Channel) MessagesChan() chan *WebSocketMessage {
+func (c *Channel) MessagesChan() chan *message.WebSocketMessage {
 	return c.Messages
 }
 
-func (c *Channel) handleMessage(msg *WebSocketMessage) {
+func (c *Channel) handleMessage(msg *message.WebSocketMessage) {
 	c.Clients.Range(func(k, v interface{}) bool {
 		client := v.(*Client)
 		client.SendMsg(msg.Payload)
@@ -78,6 +79,12 @@ func runChannel(c IChannel) {
 			c.handleUnsubscriber(ID)
 		}
 	}
+}
+
+const AccountChannelPrefix = "TraderAddress"
+
+func GetAccountChannelID(address string) string {
+	return fmt.Sprintf("%s#%s", AccountChannelPrefix, address)
 }
 
 var allChannels = make(map[string]IChannel, 10)
@@ -135,6 +142,6 @@ func createBaseChannel(channelID string) *Channel {
 		ID:          channelID,
 		Subscribe:   make(chan *Client),
 		Unsubscribe: make(chan string),
-		Messages:    make(chan *WebSocketMessage),
+		Messages:    make(chan *message.WebSocketMessage),
 	}
 }

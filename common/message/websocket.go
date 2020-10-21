@@ -1,8 +1,4 @@
-package websocket
-
-import (
-	"fmt"
-)
+package message
 
 const WsTypeOrderChange = "orderChange"
 
@@ -14,10 +10,4 @@ type WebSocketMessage struct {
 type WebSocketOrderChangePayload struct {
 	Type  string      `json:"type"`
 	Order interface{} `json:"order"`
-}
-
-const AccountChannelPrefix = "TraderAddress"
-
-func GetAccountChannelID(address string) string {
-	return fmt.Sprintf("%s#%s", AccountChannelPrefix, address)
 }

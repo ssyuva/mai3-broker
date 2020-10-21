@@ -27,7 +27,8 @@ type (
 		StopPrice        string `json:"stopPrice"`
 		Amount           string `json:"amount"    validate:"required"`
 		Expires          int64  `json:"expires"`
-		Salt             int    `json:"salt" validate:"required"`
+		Salt             int64  `json:"salt" validate:"required"`
+		Timestamp        int64  `json:"timestamp" validate:"timestamp"`
 		Signature        string `json:"Signature" validate:"required"`
 	}
 

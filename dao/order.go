@@ -118,11 +118,9 @@ func (o *orderDAO) QueryOrder(traderAddress string, perpetualAddress string, sta
 		where = where.Where("id > ?", afterOrderID)
 	}
 
+	where = where.Order("id desc")
 	if limit > 0 {
-		where = where.Order("created_at desc")
-		if limit > 0 {
-			where = where.Limit(limit)
-		}
+		where = where.Limit(limit)
 	}
 
 	if err = where.Find(&dbOrders).Error; err != nil {

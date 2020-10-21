@@ -3,26 +3,27 @@ package watcher
 import (
 	"context"
 	"github.com/mcarloai/mai-v3-broker/dao"
-	"sync"
 )
 
 type Server struct {
 	ctx            context.Context
 	factoryAddress string
-	perpetuals     *sync.Map
+	wsChan         chan interface{}
+	matchChan      chan interface{}
 	dao            dao.DAO
 }
 
-func New(ctx context.Context, factoryAddress string, perpetuals *sync.Map) *Server {
+func New(ctx context.Context, dao dao.DAO, factoryAddress string, wsChan, matchChan chan interface{}) *Server {
 	return &Server{
 		ctx:            ctx,
 		factoryAddress: factoryAddress,
-		perpetuals:     perpetuals,
-		dao:            dao.New(),
+		wsChan:         wsChan,
+		matchChan:      matchChan,
+		dao:            dao,
 	}
 }
 
-func Start() error {
+func (s *Server) Start() error {
 	// sync block
 	// check match transactions
 	// check createPerpetual event, add new perpetual to database, update perpetuals map

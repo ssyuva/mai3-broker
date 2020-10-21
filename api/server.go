@@ -10,19 +10,18 @@ import (
 	limiter_redis "github.com/ulule/limiter/v3/drivers/store/redis"
 	"net/http"
 	"os"
-	"sync"
 	"time"
 )
 
 type Server struct {
-	ctx        context.Context
-	e          *echo.Echo
-	wsChan     chan interface{}
-	matchChans *sync.Map
-	dao        dao.DAO
+	ctx       context.Context
+	e         *echo.Echo
+	wsChan    chan interface{}
+	matchChan chan interface{}
+	dao       dao.DAO
 }
 
-func New(ctx context.Context, wsChan chan interface{}, matchChans *sync.Map) (*Server, error) {
+func New(ctx context.Context, dao dao.DAO, wsChan, matchChan chan interface{}) (*Server, error) {
 	e := echo.New()
 	e.HideBanner = true
 
@@ -52,11 +51,11 @@ func New(ctx context.Context, wsChan chan interface{}, matchChans *sync.Map) (*S
 	}))
 
 	s := &Server{
-		ctx:        ctx,
-		e:          e,
-		wsChan:     wsChan,
-		matchChans: matchChans,
-		dao:        dao.New(),
+		ctx:       ctx,
+		e:         e,
+		wsChan:    wsChan,
+		matchChan: matchChan,
+		dao:       dao,
 	}
 	s.initRouter()
 	return s, nil

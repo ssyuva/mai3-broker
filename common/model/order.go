@@ -27,10 +27,8 @@ const (
 type OrderType string
 
 const (
-	LimitOrder      OrderType = "limit"
-	MarketOrder     OrderType = "market"
-	StopLimitOrder  OrderType = "stop-limit"
-	StopMarketOrder OrderType = "stop-market"
+	LimitOrder     OrderType = "limit"
+	StopLimitOrder OrderType = "stop-limit"
 )
 
 type OrderStatus string

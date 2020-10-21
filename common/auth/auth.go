@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/mcarloai/dex-be-common/mai2"
+	"github.com/mcarloai/mai-v3-broker/common/mai2"
 )
 
 var (
