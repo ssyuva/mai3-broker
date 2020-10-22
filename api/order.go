@@ -3,6 +3,7 @@ package api
 import (
 	"errors"
 	"fmt"
+	"github.com/mcarloai/mai-v3-broker/common/message"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/mcarloai/mai-v3-broker/dao"
 	"github.com/shopspring/decimal"
@@ -108,7 +109,7 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 	}
 
 	if params.PerpetualAddress != "" {
-		_, err := s.dao.GetPerpetualByAddress(params.PerpetualAddress)
+		_, err := s.dao.GetPerpetualByAddress(strings.ToLower(params.PerpetualAddress))
 		if err != nil {
 			if dao.IsRecordNotFound(err) {
 				return nil, PerpetualNotFoundError(params.PerpetualAddress)
@@ -127,9 +128,67 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 	//TODO Place Order
 	//1. check signature
 	//2. check margin balance
-	//3. insert into order tables
-	//4. insert into orderbook
-	return nil, nil
+	order := &model.Order{}
+	order.OrderParam.TraderAddress = strings.ToLower(params.Address)
+	if params.OrderType == string(model.LimitOrder) {
+		order.OrderParam.Type = model.LimitOrder
+		order.Status = model.OrderPending
+	} else {
+		order.OrderParam.Type = model.StopLimitOrder
+		order.Status = model.OrderStop
+	}
+
+	if params.Side == string(model.SideBuy) {
+		order.OrderParam.Side = model.SideBuy
+	} else {
+		order.OrderParam.Side = model.SideSell
+	}
+
+	order.OrderParam.Price, _ = decimal.NewFromString(params.Price)
+	order.OrderParam.Amount, _ = decimal.NewFromString(params.Amount)
+	order.OrderParam.StopPrice, _ = decimal.NewFromString(params.StopPrice)
+	expiresAt := getExpiresAt(params.Expires)
+	order.OrderParam.ExpiresAt = time.Unix(expiresAt, 0).UTC()
+	order.OrderParam.Salt = params.Salt
+	order.PerpetualAddress = strings.ToLower(params.PerpetualAddress)
+	order.AvailableAmount = order.OrderParam.Amount
+	order.ConfirmedAmount = decimal.Zero
+	order.CanceledAmount = decimal.Zero
+	order.PendingAmount = decimal.Zero
+	now := time.Now().UTC()
+	order.CreatedAt = now
+	order.UpdatedAt = now
+
+	if err := s.dao.CreateOrder(order); err != nil {
+		return nil, InternalError(err)
+	}
+
+	// notice websocket for new order
+	wsMsg := message.WebSocketMessage{
+		ChannelID: message.GetAccountChannelID(order.TraderAddress),
+		Payload: message.WebSocketOrderChangePayload{
+			Type:  message.WsTypeOrderChange,
+			Order: order,
+		},
+	}
+	s.wsChan <- wsMsg
+	// notice match for new order
+	message := message.MatchMessage{
+		PerpetualAddress: order.PerpetualAddress,
+		Type:             message.MatchTypeNewOrder,
+		Payload: message.MatchNewOrderPayload{
+			OrderHash: order.OrderHash,
+		},
+	}
+	s.matchChan <- message
+	return PlaceOrderResp{ID: order.OrderHash}, nil
+}
+
+func getExpiresAt(expiresInSeconds int64) int64 {
+	now := time.Now().UTC()
+	expire := time.Second * time.Duration(expiresInSeconds)
+
+	return now.Add(expire).Unix()
 }
 
 func validatePlaceOrder(req *PlaceOrderReq) error {
@@ -159,7 +218,7 @@ func validatePlaceOrder(req *PlaceOrderReq) error {
 	// order sign timestamp
 	now := time.Now().UTC().Unix()
 	if (now-TIMESTAMP_RANGE) > req.Timestamp || (now+TIMESTAMP_RANGE) < req.Timestamp {
-		return InternalError(errors.New("timestamp over time"))
+		return InternalError(errors.New("timestamp must in 5 min"))
 	}
 
 	// Price OrderType

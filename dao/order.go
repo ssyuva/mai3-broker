@@ -17,7 +17,6 @@ const ordersTableName = "orders"
 
 type OrderDAO interface {
 	CreateOrder(order *model.Order) error
-	CreateStopOrder(order *model.Order) error
 	GetOrder(orderID string, forUpdate bool) (*model.Order, error)
 	QueryOrder(traderAddress string, perpetualAddress string, status []model.OrderStatus, beforeOrderID, afterOrderID int64, limit int) ([]*model.Order, error)
 	GetOrderByIDs(ids []string) ([]*model.Order, error)
@@ -118,8 +117,8 @@ func (o *orderDAO) QueryOrder(traderAddress string, perpetualAddress string, sta
 		where = where.Where("id > ?", afterOrderID)
 	}
 
-	where = where.Order("id desc")
 	if limit > 0 {
+		where = where.Order("id desc")
 		where = where.Limit(limit)
 	}
 
@@ -162,22 +161,6 @@ func (o *orderDAO) CreateOrder(order *model.Order) error {
 
 	t.CreatedAt = time.Now().UTC()
 	t.setStatusByAmounts()
-	order.OldStatus = order.Status
-	order.Status = t.Status
-	if err := o.db.Save(&t).Error; err != nil {
-		return fmt.Errorf("CreateOrder:%w", err)
-	}
-	return nil
-}
-
-func (o *orderDAO) CreateStopOrder(order *model.Order) error {
-	var t = &dbOrder{Order: *order}
-	if err := t.marshalCancelReason(); err != nil {
-		return fmt.Errorf("CreateOrder:%w", err)
-	}
-
-	t.CreatedAt = time.Now().UTC()
-	t.Status = model.OrderStop
 	order.OldStatus = order.Status
 	order.Status = t.Status
 	if err := o.db.Save(&t).Error; err != nil {

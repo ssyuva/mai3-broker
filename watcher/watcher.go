@@ -24,8 +24,9 @@ func New(ctx context.Context, dao dao.DAO, factoryAddress string, wsChan, matchC
 }
 
 func (s *Server) Start() error {
-	// sync block
-	// check match transactions
-	// check createPerpetual event, add new perpetual to database, update perpetuals map
+	// TODO
+	// 1.sync block
+	// 2.check match transactions
+	// 3.check createPerpetual event, add new perpetual to database, update perpetuals map
 	return nil
 }

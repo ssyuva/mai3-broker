@@ -2,16 +2,12 @@ create table perpetuals
 (
   id SERIAL PRIMARY KEY,
   perpetual_address text not null,
+  oracle_address text not null,
   symbol text not null,
   collateral_token_symbol text not null,
-  price_tick numeric(32,18) not null,
-  price_decimals integer not null,
-  price_symbol text not null,
-  contract_size_symbol text not null,
-  amount_decimals integer not null,
+  collateral_address text not null,
   contract_type text not null,
-  is_published boolean not null default false,
-  perpetual_type text not null,
+  is_published boolean not null default true,
   broker_address text not null
 );
 

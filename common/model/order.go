@@ -61,8 +61,8 @@ type OrderParam struct {
 }
 
 type Order struct {
-	ID int64 `json:"id"               db:"id"               primaryKey:"true" gorm:"primary_key"`
 	OrderParam
+	ID               int64                `json:"-" db:"id" primaryKey:"true" gorm:"primary_key"`
 	OrderHash        string               `json:"orderHash" db:"order_hash"`
 	PerpetualAddress string               `json:"perpetualAddress" db:"perpetual_address"`
 	OldStatus        OrderStatus          `json:"oldStatus" sql:"-"`

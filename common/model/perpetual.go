@@ -1,14 +1,12 @@
 package model
 
 type Perpetual struct {
-	ID                    int64  `json:"id"               db:"id"               primaryKey:"true" gorm:"primary_key"`
+	ID                    int64  `json:"-"               db:"id"   primaryKey:"true" gorm:"primary_key"`
 	PerpetualAddress      string `json:"perpetualAddress"  db:"perpetual_address"`
+	OracleAddress         string `json:"oracleAddress" db:"oracle_address"`
 	Symbol                string `json:"symbol"            db:"symbol"`
 	CollateralTokenSymbol string `json:"collateralTokenSymbol"   db:"collateral_token_symbol"`
-	ContractSizeSymbol    string `json:"contractSizeSymbol" db:"contract_size_symbol"`
-	PriceDecimals         int    `json:"priceDecimals"     db:"price_decimals"`
-	PriceSymbol           string `json:"priceSymbol"       db:"price_symbol"`
-	AmountDecimals        int    `json:"amountDecimals"    db:"amount_decimals"`
+	CollateralAddress     string `json:"collateralAddress" db:"collateral_address"`
 	IsPublished           bool   `json:"isPublished"       db:"is_published"`
 	BrokerAddress         string `json:"brokerAddress"     db:"broker_address"`
 }

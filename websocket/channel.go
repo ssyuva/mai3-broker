@@ -81,12 +81,6 @@ func runChannel(c IChannel) {
 	}
 }
 
-const AccountChannelPrefix = "TraderAddress"
-
-func GetAccountChannelID(address string) string {
-	return fmt.Sprintf("%s#%s", AccountChannelPrefix, address)
-}
-
 var allChannels = make(map[string]IChannel, 10)
 var allChannelsMutex = &sync.RWMutex{}
 

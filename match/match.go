@@ -2,9 +2,11 @@ package match
 
 import (
 	"context"
+	"github.com/mcarloai/mai-v3-broker/common/message"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/mcarloai/mai-v3-broker/common/orderbook"
 	"github.com/mcarloai/mai-v3-broker/dao"
+	"github.com/micro/go-micro/v2/logger"
 	"time"
 )
 
@@ -57,7 +59,28 @@ func (m *match) run() error {
 }
 
 func (m *match) startConsumer() {
+	for {
+		select {
+		case <-m.ctx.Done():
+			logger.Infof("Match Consumer Exit")
+			return
+		case msg, ok := <-m.msgChan:
+			if !ok {
+				return
+			}
+			m.parseMessage(msg.(message.MatchMessage))
+		}
+	}
+}
 
+func (m *match) parseMessage(msg message.MatchMessage) {
+	switch msg.Type {
+	case message.MatchTypeNewOrder:
+	case message.MatchTypeCancelOrder:
+	case message.MatchTypeReloadOrder:
+	default:
+		logger.Errorf("Match unknown message type:%s, perpetual:%s", msg.Type, msg.PerpetualAddress)
+	}
 }
 
 func (m *match) getOraclePrice() error {
@@ -65,6 +88,9 @@ func (m *match) getOraclePrice() error {
 }
 
 func (m *match) checkOrdersMargin() error {
+	// TODO
+	// check margin
+	// check gas
 	return nil
 }
 
@@ -82,9 +108,6 @@ func (m *match) initOrderBook() error {
 		return err
 	}
 	for _, order := range orders {
-		// TODO
-		// check margin
-		// check gas
 		memoryOrder := &orderbook.MemoryOrder{
 			ID:               order.OrderHash,
 			PerpetualAddress: order.PerpetualAddress,
@@ -98,10 +121,17 @@ func (m *match) initOrderBook() error {
 		}
 		if order.Status == model.OrderPending {
 			memoryOrder.ComparePrice = order.Price
-			m.orderbook.InsertOrder(memoryOrder)
+			if err := m.orderbook.InsertOrder(memoryOrder); err != nil {
+				return err
+			}
 		} else {
 			memoryOrder.ComparePrice = order.StopPrice
-			m.stopbook.InsertOrder(memoryOrder)
+			if err := m.stopbook.InsertOrder(memoryOrder); err != nil {
+				return err
+			}
+		}
+		if err := m.setExpirationTimer(order.OrderHash, order.ExpiresAt); err != nil {
+			return err
 		}
 	}
 	return nil

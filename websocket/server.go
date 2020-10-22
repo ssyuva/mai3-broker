@@ -124,13 +124,12 @@ func handleClientRequest(client *Client) {
 		case "subscribe":
 			for _, id := range req.Channels {
 				// TraderAddress check login
-				if strings.HasPrefix(id, AccountChannelPrefix) {
+				if strings.HasPrefix(id, message.AccountChannelPrefix) {
 					parts := strings.Split(id, "#")
 					if len(parts) != 2 || !client.CheckLogin(parts[1]) {
 						client.SendMsg(subScribeResponse{Type: "subscribeError", Channel: id, Code: -1, Desc: "need login"})
 						continue
 					}
-					id = GetAccountChannelID(strings.ToLower(parts[1]))
 				}
 				channel := findChannel(id)
 				if channel == nil {

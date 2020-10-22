@@ -3,33 +3,22 @@ package message
 const MatchTypeNewPerpetual = "newPerpetual"
 const MatchTypeNewOrder = "newOrder"
 const MatchTypeCancelOrder = "cancelOrder"
-const MatchTypeCancelAll = "cancelAll"
 const MatchTypeReloadOrder = "reloadOrder"
 
 type MatchMessage struct {
-	Type    string      `json:"type"`
-	Payload interface{} `json:"payload"`
-}
-
-type MatchNewPerpetualPayload struct {
-	PerpetualAddress string `json:"perpetualAddress"`
+	PerpetualAddress string      `json:"perpetualAddress"`
+	Type             string      `json:"type"`
+	Payload          interface{} `json:"payload"`
 }
 
 type MatchNewOrderPayload struct {
-	PerpetualAddress string `json:"perpetualAddress"`
-	OrderHash        string `json:"orderHash"`
+	OrderHash string `json:"orderHash"`
 }
 
 type MatchCancelOrderPayload struct {
-	PerpetualAddress string `json:"perpetualAddress"`
-	OrderHash        string `json:"orderHash"`
-}
-
-type MatchCancelAllPayload struct {
-	TraderAddress string `json:"traderAddress"`
+	OrderHash string `json:"orderHash"`
 }
 
 type MatchReloadOrderPayload struct {
-	PerpetualAddress string `json:"perpetualAddress"`
-	OrderHash        string `json:"orderHash"`
+	OrderHash string `json:"orderHash"`
 }
