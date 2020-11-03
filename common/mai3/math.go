@@ -1,0 +1,114 @@
+package mai3
+
+import (
+	"github.com/shopspring/decimal"
+)
+
+const DECIMALS = 18
+const FUNDING_TIME = 28800
+const EXCHANGE_FEE_RATE_BASE = 5
+
+type BigNumber = decimal.Decimal
+
+func toDecimal(v string) decimal.Decimal {
+	r, err := decimal.NewFromString(v)
+	if err != nil {
+		panic(err)
+	}
+	return r
+}
+
+var fundingTime = decimal.NewFromInt(FUNDING_TIME)
+var _0 = decimal.Zero
+var _1 = decimal.NewFromInt(1)
+var _2 = decimal.NewFromInt(2)
+var _10 = decimal.NewFromInt(10)
+var _0_1 = toDecimal("0.1")
+var _E = toDecimal("2.718281828459045235")
+var _1_5 = toDecimal("1.5")
+var _LN_1_5 = toDecimal("0.405465108108164381978013115464349137")
+var _LN_10 = toDecimal("2.302585092994045684017991454684364208")
+var _MAX_LN = toDecimal("10000000000000000000000000000000000000000")
+
+func init() {
+	decimal.DivisionPrecision = DECIMALS
+}
+
+func bigLn(v BigNumber) BigNumber {
+	if v.IsNegative() {
+		panic("logE of negative number")
+	}
+	if v.GreaterThan(_MAX_LN) {
+		panic("logE only accepts v <= 1e22 * 1e18")
+	}
+
+	x := v
+	r := _0
+
+	for x.LessThanOrEqual(_0_1) {
+		x = x.Mul(_10)
+		r = r.Sub(_LN_10)
+	}
+	for x.GreaterThanOrEqual(_10) {
+		x = x.Div(_10)
+		r = r.Add(_LN_10)
+	}
+	for x.LessThan(_1) {
+		x = x.Mul(_E)
+		r = r.Sub(_1)
+	}
+	for x.GreaterThan(_E) {
+		x = x.Div(_E)
+		r = r.Add(_1)
+	}
+	if x.Equal(_1) {
+		return r.Truncate(DECIMALS)
+	}
+	if x.Equal(_E) {
+		return _1.Add(r.Truncate(DECIMALS))
+	}
+
+	//                    2    x           2    x          2    x
+	// Ln(a+x) = Ln(a) + ---(------)^1  + ---(------)^3 + ---(------)^5 + ...
+	//                    1   2a+x         3   2a+x        5   2a+x
+	// Let x = v - a
+	//                  2   v-a         2   v-a        2   v-a
+	// Ln(v) = Ln(a) + ---(-----)^1  + ---(-----)^3 + ---(-----)^5 + ...
+	//                  1   v+a         3   v+a        5   v+a
+	r = r.Add(_LN_1_5)
+	a1_5 := _1_5
+	m := _1.Mul(x.Sub(a1_5).Div(x.Add(a1_5)))
+	r = r.Add(m.Mul(_2))
+	m2 := m.Mul(m)
+	var i int = 3
+	for {
+		m = m.Mul(m2)
+		r = r.Add(m.Mul(_2).Div(decimal.NewFromInt(int64(i))))
+		i += 2
+		if i >= 3+2*DECIMALS {
+			break
+		}
+	}
+	return r.Truncate(DECIMALS)
+}
+
+func bigLog(base, x BigNumber) BigNumber {
+	return bigLn(x).Div(bigLn(base))
+}
+
+// x ^ n
+func wpowi(x decimal.Decimal, n int64) decimal.Decimal {
+	z := x
+	if n%2 == 0 {
+		z = decimal.NewFromInt(1)
+	}
+	for n /= 2; n != 0; n /= 2 {
+		x = x.Mul(x)
+		if n%2 != 0 {
+			z = z.Mul(x)
+		}
+		x = x.Truncate(DECIMALS)
+		z = z.Truncate(DECIMALS)
+	}
+	return z
+}

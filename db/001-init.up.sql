@@ -26,16 +26,15 @@ create table orders
   version text not null,
   expires_at timestamp,
   salt bigint not null,
+  is_close_only boolean not null DEFAULT FALSE,
   chain_id bigint not null,
   perpetual_address text not null,  
   status text not null,
   available_amount numeric(32,18) not null,
   confirmed_amount numeric(32,18) not null,
-  confirmed_volume numeric(32,18) not null,
   filled_price numeric(32,18) not null,
   canceled_amount numeric(32,18) not null,
   pending_amount numeric(32,18) not null,
-  pending_volume numeric(32,18) not null,
   gas_fee_amount numeric(32,18) not null,
   signature text not null,
   cancels_json json not null,
@@ -44,7 +43,6 @@ create table orders
 );
 
 create unique index idx_order_hash on orders (order_hash);
-create unique index idx_order_signature on orders (signature);
 create index idx_perpetual_address_status on orders (perpetual_address, status); -- where perpetual_address, pending
 create index idx_perpetual_address_trader_address on orders (trader_address, perpetual_address, status, created_at); -- where trader_address, perpetual_address, pending
 create index idx_perpetual_trader_multistatus on orders (trader_address, created_at, status, perpetual_address); -- where trader_address, status in (...), perpetual_address
@@ -52,15 +50,14 @@ create index idx_trader_status on orders (trader_address, status, created_at); -
 
 create table match_transactions
 (
-  id text PRIMARY KEY,
+  id SERIAL PRIMARY KEY,
   perpetual_address text not null,
   match_json text not null,
   status text not null,
-  created_at timestamp not null,
   block_confirmed bool not null,
   block_number int,
   transaction_hash text,
-  sent_at timestamp,
+  created_at timestamp not null,
   executed_at timestamp
 );
 
@@ -80,6 +77,14 @@ create table synced_blocks
   watcher_id integer not null,
   block_number integer not null,
   block_hash text not null,
-  sync_at timestamp not null,
+  parent_hash text not null,
+  block_time timestamp not null,
   PRIMARY KEY(watcher_id, block_number)
+);
+
+create table broker_nonces
+(
+  address text not null PRIMARY KEY,
+  nonce integer not null,
+  updated_at timestamp not null
 );

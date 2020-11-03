@@ -1,35 +1,12 @@
-package mai2
+package mai3
 
 import (
-	"bytes"
-	"encoding/binary"
 	"fmt"
 	"strings"
 
-	"github.com/mcarloai/mai-v3-broker/common/mai2/crypto"
-	"github.com/mcarloai/mai-v3-broker/common/mai2/utils"
-	"github.com/shopspring/decimal"
+	"github.com/mcarloai/mai-v3-broker/common/mai3/crypto"
+	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
 )
-
-const orderDataFeeRateBase int64 = 100000
-
-var EIP712_DOMAIN_TYPEHASH []byte
-var EIP712_MAI2_ORDER_TYPE []byte
-
-func init() {
-	EIP712_DOMAIN_TYPEHASH = crypto.Keccak256([]byte(`EIP712Domain(string name)`))
-	EIP712_MAI2_ORDER_TYPE = crypto.Keccak256([]byte(`Order(address trader,address broker,address perpetual,uint256 amount,uint256 price,bytes32 data)`))
-}
-
-func feeRateToHex(rate decimal.Decimal) string {
-	f, _ := rate.Float64()
-	n := int16(f * float64(orderDataFeeRateBase))
-	b := bytes.NewBuffer(nil)
-	if err := binary.Write(b, binary.BigEndian, n); err != nil {
-		panic(fmt.Errorf("feeRateToHex error %+v", err))
-	}
-	return utils.Bytes2Hex(b.Bytes())
-}
 
 type OrderSignatureType int
 
@@ -107,27 +84,4 @@ func IsValidSignature(address string, message string, signature string, method O
 	default:
 		return false, fmt.Errorf("IsValidSignature:unknown signature method")
 	}
-}
-
-func getDomainSeparator() []byte {
-	return crypto.Keccak256(
-		EIP712_DOMAIN_TYPEHASH,
-		crypto.Keccak256([]byte("Mai Protocol")),
-	)
-}
-
-func getEIP712MessageHash(message []byte) []byte {
-	return crypto.Keccak256(
-		[]byte{'\x19', '\x01'},
-		getDomainSeparator(),
-		message,
-	)
-}
-
-func addTailingZero(data string, length int) string {
-	return data + strings.Repeat("0", length-len(data))
-}
-
-func addLeadingZero(data string, length int) string {
-	return strings.Repeat("0", length-len(data)) + data
 }

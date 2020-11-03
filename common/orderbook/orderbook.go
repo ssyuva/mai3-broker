@@ -14,14 +14,13 @@ import (
 
 type (
 	MatchItem struct {
-		MakerOrder              *MemoryOrder // NOTE: mutable! should only be modified where execute match
-		MakerOrderOriginAmount  decimal.Decimal
-		MakerOrderCancelAmounts []decimal.Decimal
-		MakerOrderCancelReasons []model.CancelReasonType
-		MakerOrderTotalCancel   decimal.Decimal
+		Order              *MemoryOrder // NOTE: mutable! should only be modified where execute match
+		OrderOriginAmount  decimal.Decimal
+		OrderCancelAmounts []decimal.Decimal
+		OrderCancelReasons []model.CancelReasonType
+		OrderTotalCancel   decimal.Decimal
 
-		MatchedAmount        decimal.Decimal
-		IsMakerForceCanceled bool
+		MatchedAmount decimal.Decimal
 	}
 
 	MemoryOrder struct {
@@ -57,8 +56,6 @@ func (p *priceLevel) Len() int {
 }
 
 func (p *priceLevel) InsertOrder(order *MemoryOrder) error {
-	//logger.Warnf("InsertOrder:%s", order.ID)
-
 	if _, ok := p.orderMap.Get(order.ID); ok {
 		return fmt.Errorf("priceLevel can't add order which is already in this priceLevel. priceLevel: %s, orderID: %s", p.price.String(), order.ID)
 	}
@@ -88,6 +85,14 @@ func (p *priceLevel) GetOrder(id string) (order *MemoryOrder, exist bool) {
 	}
 
 	return orderItem.(*MemoryOrder), exist
+}
+
+func (p *priceLevel) GetOrders() (orders []*MemoryOrder) {
+	iter := p.orderMap.IterFunc()
+	for kv, ok := iter(); ok; kv, ok = iter() {
+		orders = append(orders, kv.Value.(*MemoryOrder))
+	}
+	return
 }
 
 func (p *priceLevel) ChangeOrder(orderID string, changeAmount decimal.Decimal) error {
@@ -291,28 +296,59 @@ func (book *Orderbook) MinAsk() *decimal.Decimal {
 	return nil
 }
 
-func (book *Orderbook) CanMatch(order *MemoryOrder) bool {
-	if order.Side == model.SideBuy {
-		minItem := book.asksTree.Min()
-		if minItem == nil {
-			return false
-		}
+// MinBid ...
+func (book *Orderbook) MinBid() *decimal.Decimal {
+	book.lock.Lock()
+	defer book.lock.Unlock()
 
-		if order.ComparePrice.GreaterThanOrEqual(minItem.(*priceLevel).price) {
-			return true
-		}
-
-		return false
-	} else {
-		maxItem := book.bidsTree.Max()
-		if maxItem == nil {
-			return false
-		}
-
-		if order.ComparePrice.LessThanOrEqual(maxItem.(*priceLevel).price) {
-			return true
-		}
-
-		return false
+	maxItem := book.bidsTree.Min()
+	if maxItem != nil {
+		return &maxItem.(*priceLevel).price
 	}
+	return nil
+}
+
+// MaxAsk ...
+func (book *Orderbook) MaxAsk() *decimal.Decimal {
+	book.lock.Lock()
+	defer book.lock.Unlock()
+
+	minItem := book.asksTree.Max()
+
+	if minItem != nil {
+		return &minItem.(*priceLevel).price
+	}
+
+	return nil
+}
+
+func (book *Orderbook) GetOrdersByPrice(side model.OrderSide, price decimal.Decimal) (orders []*MemoryOrder) {
+	book.lock.Lock()
+	defer book.lock.Unlock()
+
+	orders = make([]*MemoryOrder, 0)
+
+	var tree *llrb.LLRB
+	if side == model.SideSell {
+		tree = book.asksTree
+	} else {
+		tree = book.bidsTree
+	}
+
+	pl := tree.Get(newPriceLevel(price))
+
+	if pl == nil {
+		return
+	}
+
+	orders = pl.(*priceLevel).GetOrders()
+	return
+}
+
+func (book *Orderbook) MatchOrder(price decimal.Decimal) (items []*MatchItem) {
+	book.lock.Lock()
+	defer book.lock.Unlock()
+	items = make([]*MatchItem, 0)
+	//TODO match
+	return
 }

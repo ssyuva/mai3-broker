@@ -8,5 +8,5 @@ type Perpetual struct {
 	CollateralTokenSymbol string `json:"collateralTokenSymbol"   db:"collateral_token_symbol"`
 	CollateralAddress     string `json:"collateralAddress" db:"collateral_address"`
 	IsPublished           bool   `json:"isPublished"       db:"is_published"`
-	BrokerAddress         string `json:"brokerAddress"     db:"broker_address"`
+	BlockNumber           int    `json:"-" db:"block_number"`
 }

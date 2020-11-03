@@ -1,12 +1,17 @@
 package match
 
 import (
+	"github.com/mcarloai/mai-v3-broker/common/model"
+	"github.com/shopspring/decimal"
+	logger "github.com/sirupsen/logrus"
 	"time"
 )
 
 func (m *match) onOrderExpired(orderID string) {
 	m.deleteOrderTimer(orderID)
-	// TODO cancel order
+	if err := m.cancelOrder(orderID, model.CancelReasonExpired, true, decimal.Zero); err != nil {
+		logger.Errorf("Cancel Order error perpetual:%s, orderHash:%s", m.perpetual.PerpetualAddress, orderID)
+	}
 }
 
 func (m *match) setExpirationTimer(orderID string, expiresAt time.Time) error {

@@ -8,19 +8,15 @@ import (
 
 	"github.com/jinzhu/gorm"
 	"github.com/mcarloai/mai-v3-broker/common/model"
-	"github.com/micro/go-micro/v2/logger"
 	"github.com/shopspring/decimal"
+	logger "github.com/sirupsen/logrus"
 )
-
-const COUNT_ORDER_LIMIT = 5000 // never scan more rows when counting the orders
-const ordersTableName = "orders"
 
 type OrderDAO interface {
 	CreateOrder(order *model.Order) error
-	GetOrder(orderID string, forUpdate bool) (*model.Order, error)
+	GetOrder(orderHash string) (*model.Order, error)
 	QueryOrder(traderAddress string, perpetualAddress string, status []model.OrderStatus, beforeOrderID, afterOrderID int64, limit int) ([]*model.Order, error)
-	GetOrderByIDs(ids []string) ([]*model.Order, error)
-	GetOrderBySignature(signature string) (*model.Order, error)
+	GetOrderByHashs(hashs []string) ([]*model.Order, error)
 	UpdateOrder(order *model.Order) error
 }
 type dbOrder struct {
@@ -29,7 +25,7 @@ type dbOrder struct {
 }
 
 func (dbOrder) TableName() string {
-	return ordersTableName
+	return "orders"
 }
 
 func (o *dbOrder) setStatusByAmounts() {
@@ -69,13 +65,9 @@ func NewOrderDAO(db *gorm.DB) OrderDAO {
 	return &orderDAO{db: db}
 }
 
-func (o *orderDAO) GetOrder(orderID string, forUpdate bool) (*model.Order, error) {
+func (o *orderDAO) GetOrder(orderHash string) (*model.Order, error) {
 	var order dbOrder
-	db := o.db
-	if forUpdate {
-		db = db.Set("gorm:query_option", "FOR UPDATE")
-	}
-	if err := db.Where("order_hash = ?", orderID).First(&order).Error; err != nil {
+	if err := o.db.Where("order_hash = ?", orderHash).First(&order).Error; err != nil {
 		return nil, fmt.Errorf("GetOrder:%w", err)
 	}
 	if err := order.unmarshalCancelReason(); err != nil {
@@ -84,18 +76,9 @@ func (o *orderDAO) GetOrder(orderID string, forUpdate bool) (*model.Order, error
 	return &order.Order, nil
 }
 
-func (o *orderDAO) GetOrderBySignature(signature string) (*model.Order, error) {
-	var order dbOrder
-	db := o.db
-	if err := db.Where("signature = ?", signature).First(&order).Error; err != nil {
-		return nil, fmt.Errorf("GetOrder:%w", err)
-	}
-	return &order.Order, nil
-}
-
 func (o *orderDAO) QueryOrder(traderAddress string, perpetualAddress string, status []model.OrderStatus, beforeOrderID, afterOrderID int64, limit int) (orders []*model.Order, err error) {
 	var dbOrders []*dbOrder
-	where := o.db.Table(ordersTableName)
+	where := o.db.Table("orders")
 
 	if traderAddress != "" {
 		where = where.Where("trader_address=?", traderAddress)
@@ -136,10 +119,10 @@ func (o *orderDAO) QueryOrder(traderAddress string, perpetualAddress string, sta
 	return
 }
 
-func (o *orderDAO) GetOrderByIDs(ids []string) (orders []*model.Order, err error) {
+func (o *orderDAO) GetOrderByHashs(hashs []string) (orders []*model.Order, err error) {
 	var dbOrders []*dbOrder
 
-	if err = o.db.Where("order_hash in (?)", ids).Find(&dbOrders).Error; err != nil {
+	if err = o.db.Where("order_hash in (?)", hashs).Find(&dbOrders).Error; err != nil {
 		err = fmt.Errorf("QueryOrder:%w", err)
 		return
 	}

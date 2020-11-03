@@ -145,4 +145,9 @@ func MaxStopNumReachError() *ApiError {
 	return &ApiError{Code: -18, Desc: "cannot create more stop order"}
 }
 
+func OrderIDExistError(id string) *ApiError {
+	return &ApiError{Code: -19, Desc: fmt.Sprintf("order id[%s] exist", id),
+		Params: []string{id}}
+}
+
 // If you add api error, do forget to edit app.vue & en.js(api segment) in FE.

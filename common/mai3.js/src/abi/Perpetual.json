@@ -1,0 +1,653 @@
+[
+    {
+        "anonymous": false,
+        "inputs": [
+        {
+            "indexed": false,
+            "internalType": "address",
+            "name": "",
+            "type": "address"
+        },
+        {
+            "indexed": false,
+            "internalType": "int256",
+            "name": "",
+            "type": "int256"
+        }
+        ],
+        "name": "Deposit",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+        {
+            "components": [
+            {
+                "internalType": "address",
+                "name": "trader",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "broker",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "perpetual",
+                "type": "address"
+            },
+            {
+                "internalType": "int256",
+                "name": "price",
+                "type": "int256"
+            },
+            {
+                "internalType": "int256",
+                "name": "amount",
+                "type": "int256"
+            },
+            {
+                "internalType": "uint64",
+                "name": "expiredAt",
+                "type": "uint64"
+            },
+            {
+                "internalType": "uint32",
+                "name": "version",
+                "type": "uint32"
+            },
+            {
+                "internalType": "uint8",
+                "name": "category",
+                "type": "uint8"
+            },
+            {
+                "internalType": "bool",
+                "name": "closeOnly",
+                "type": "bool"
+            },
+            {
+                "internalType": "bool",
+                "name": "inversed",
+                "type": "bool"
+            },
+            {
+                "internalType": "uint64",
+                "name": "salt",
+                "type": "uint64"
+            },
+            {
+                "internalType": "uint64",
+                "name": "chainId",
+                "type": "uint64"
+            },
+            {
+                "components": [
+                {
+                    "internalType": "bytes32",
+                    "name": "config",
+                    "type": "bytes32"
+                },
+                {
+                    "internalType": "bytes32",
+                    "name": "r",
+                    "type": "bytes32"
+                },
+                {
+                    "internalType": "bytes32",
+                    "name": "s",
+                    "type": "bytes32"
+                }
+                ],
+                "internalType": "struct Perpetual.OrderSignature",
+                "name": "signature",
+                "type": "tuple"
+            }
+            ],
+            "indexed": false,
+            "internalType": "struct Perpetual.Order",
+            "name": "",
+            "type": "tuple"
+        },
+        {
+            "indexed": false,
+            "internalType": "int256",
+            "name": "",
+            "type": "int256"
+        },
+        {
+            "indexed": false,
+            "internalType": "int256",
+            "name": "",
+            "type": "int256"
+        },
+        {
+            "indexed": false,
+            "internalType": "bool",
+            "name": "",
+            "type": "bool"
+        }
+        ],
+        "name": "Match",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+        {
+            "indexed": false,
+            "internalType": "address",
+            "name": "trader",
+            "type": "address"
+        },
+        {
+            "indexed": false,
+            "internalType": "int256",
+            "name": "amount",
+            "type": "int256"
+        },
+        {
+            "indexed": false,
+            "internalType": "int256",
+            "name": "price",
+            "type": "int256"
+        }
+        ],
+        "name": "Trade",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+        {
+            "indexed": false,
+            "internalType": "address",
+            "name": "trader",
+            "type": "address"
+        },
+        {
+            "indexed": false,
+            "internalType": "int256",
+            "name": "amount",
+            "type": "int256"
+        },
+        {
+            "indexed": false,
+            "internalType": "int256",
+            "name": "price",
+            "type": "int256"
+        },
+        {
+            "indexed": false,
+            "internalType": "bytes",
+            "name": "data",
+            "type": "bytes"
+        }
+        ],
+        "name": "Trade2",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+        {
+            "indexed": false,
+            "internalType": "address",
+            "name": "",
+            "type": "address"
+        },
+        {
+            "indexed": false,
+            "internalType": "int256",
+            "name": "",
+            "type": "int256"
+        }
+        ],
+        "name": "Withdraw",
+        "type": "event"
+    },
+    {
+        "inputs": [
+        {
+            "internalType": "address",
+            "name": "",
+            "type": "address"
+        }
+        ],
+        "name": "availableMargin",
+        "outputs": [
+        {
+            "internalType": "int256",
+            "name": "",
+            "type": "int256"
+        }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+        {
+            "components": [
+            {
+                "internalType": "address",
+                "name": "trader",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "broker",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "perpetual",
+                "type": "address"
+            },
+            {
+                "internalType": "int256",
+                "name": "price",
+                "type": "int256"
+            },
+            {
+                "internalType": "int256",
+                "name": "amount",
+                "type": "int256"
+            },
+            {
+                "internalType": "uint64",
+                "name": "expiredAt",
+                "type": "uint64"
+            },
+            {
+                "internalType": "uint32",
+                "name": "version",
+                "type": "uint32"
+            },
+            {
+                "internalType": "uint8",
+                "name": "category",
+                "type": "uint8"
+            },
+            {
+                "internalType": "bool",
+                "name": "closeOnly",
+                "type": "bool"
+            },
+            {
+                "internalType": "bool",
+                "name": "inversed",
+                "type": "bool"
+            },
+            {
+                "internalType": "uint64",
+                "name": "salt",
+                "type": "uint64"
+            },
+            {
+                "internalType": "uint64",
+                "name": "chainId",
+                "type": "uint64"
+            },
+            {
+                "components": [
+                {
+                    "internalType": "bytes32",
+                    "name": "config",
+                    "type": "bytes32"
+                },
+                {
+                    "internalType": "bytes32",
+                    "name": "r",
+                    "type": "bytes32"
+                },
+                {
+                    "internalType": "bytes32",
+                    "name": "s",
+                    "type": "bytes32"
+                }
+                ],
+                "internalType": "struct Perpetual.OrderSignature",
+                "name": "signature",
+                "type": "tuple"
+            }
+            ],
+            "internalType": "struct Perpetual.Order[]",
+            "name": "orders",
+            "type": "tuple[]"
+        },
+        {
+            "internalType": "int256[]",
+            "name": "amounts",
+            "type": "int256[]"
+        },
+        {
+            "internalType": "int256[]",
+            "name": "gases",
+            "type": "int256[]"
+        },
+        {
+            "internalType": "enum Perpetual.FailureOption",
+            "name": "option",
+            "type": "uint8"
+        }
+        ],
+        "name": "batchTrade",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+        {
+            "internalType": "int256",
+            "name": "amount",
+            "type": "int256"
+        }
+        ],
+        "name": "deposit",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+        {
+            "internalType": "address",
+            "name": "",
+            "type": "address"
+        }
+        ],
+        "name": "initialMargin",
+        "outputs": [
+        {
+            "internalType": "int256",
+            "name": "",
+            "type": "int256"
+        }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "lastFundingState",
+        "outputs": [
+        {
+            "internalType": "int256",
+            "name": "",
+            "type": "int256"
+        },
+        {
+            "internalType": "uint256",
+            "name": "",
+            "type": "uint256"
+        }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+        {
+            "internalType": "address",
+            "name": "",
+            "type": "address"
+        }
+        ],
+        "name": "maintenanceMargin",
+        "outputs": [
+        {
+            "internalType": "int256",
+            "name": "",
+            "type": "int256"
+        }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+        {
+            "internalType": "address",
+            "name": "",
+            "type": "address"
+        }
+        ],
+        "name": "margin",
+        "outputs": [
+        {
+            "internalType": "int256",
+            "name": "",
+            "type": "int256"
+        }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+        {
+            "internalType": "address",
+            "name": "",
+            "type": "address"
+        }
+        ],
+        "name": "marginAccount",
+        "outputs": [
+        {
+            "internalType": "int256",
+            "name": "",
+            "type": "int256"
+        },
+        {
+            "internalType": "int256",
+            "name": "",
+            "type": "int256"
+        },
+        {
+            "internalType": "int256",
+            "name": "",
+            "type": "int256"
+        }
+        ],
+        "stateMutability": "pure",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "oracle",
+        "outputs": [
+        {
+            "internalType": "address",
+            "name": "",
+            "type": "address"
+        }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "price",
+        "outputs": [
+        {
+            "internalType": "int256",
+            "name": "",
+            "type": "int256"
+        },
+        {
+            "internalType": "uint256",
+            "name": "",
+            "type": "uint256"
+        },
+        {
+            "internalType": "int256",
+            "name": "",
+            "type": "int256"
+        },
+        {
+            "internalType": "uint256",
+            "name": "",
+            "type": "uint256"
+        }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+        {
+            "internalType": "int256",
+            "name": "value",
+            "type": "int256"
+        }
+        ],
+        "name": "setAvailableMargin",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+        {
+            "internalType": "int256",
+            "name": "value",
+            "type": "int256"
+        }
+        ],
+        "name": "setInitialMargin",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+        {
+            "internalType": "int256",
+            "name": "value",
+            "type": "int256"
+        }
+        ],
+        "name": "setMaintenanceMargin",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+        {
+            "internalType": "int256",
+            "name": "value",
+            "type": "int256"
+        }
+        ],
+        "name": "setMargin",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+        {
+            "internalType": "int256",
+            "name": "value",
+            "type": "int256"
+        }
+        ],
+        "name": "setWithdrawableMargin",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+        {
+            "internalType": "int256",
+            "name": "amount",
+            "type": "int256"
+        },
+        {
+            "internalType": "int256",
+            "name": "priceLimit",
+            "type": "int256"
+        },
+        {
+            "internalType": "uint256",
+            "name": "deadline",
+            "type": "uint256"
+        }
+        ],
+        "name": "trade",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+        {
+            "internalType": "address",
+            "name": "trader",
+            "type": "address"
+        },
+        {
+            "internalType": "int256",
+            "name": "amount",
+            "type": "int256"
+        },
+        {
+            "internalType": "int256",
+            "name": "priceLimit",
+            "type": "int256"
+        },
+        {
+            "internalType": "uint256",
+            "name": "deadline",
+            "type": "uint256"
+        },
+        {
+            "internalType": "bytes",
+            "name": "data",
+            "type": "bytes"
+        }
+        ],
+        "name": "trade2",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+        {
+            "internalType": "int256",
+            "name": "amount",
+            "type": "int256"
+        }
+        ],
+        "name": "withdraw",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+        {
+            "internalType": "address",
+            "name": "",
+            "type": "address"
+        }
+        ],
+        "name": "withdrawableMargin",
+        "outputs": [
+        {
+            "internalType": "int256",
+            "name": "",
+            "type": "int256"
+        }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    }
+]

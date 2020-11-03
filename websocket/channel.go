@@ -3,7 +3,7 @@ package websocket
 import (
 	"fmt"
 	"github.com/mcarloai/mai-v3-broker/common/message"
-	"github.com/micro/go-micro/v2/logger"
+	logger "github.com/sirupsen/logrus"
 	"strings"
 	"sync"
 )

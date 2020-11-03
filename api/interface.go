@@ -20,8 +20,8 @@ type (
 
 	PlaceOrderReq struct {
 		BaseReq
+		OrderHash        string `json:"orderHash"  validate:"required"`
 		PerpetualAddress string `json:"perpetualAddress"  validate:"required"`
-		Side             string `json:"side"      validate:"required,oneof=buy sell"`
 		OrderType        string `json:"orderType" validate:"required,oneof=limit stop-limit"`
 		Price            string `json:"price"     validate:"required"`
 		StopPrice        string `json:"stopPrice"`
@@ -30,15 +30,16 @@ type (
 		Salt             int64  `json:"salt" validate:"required"`
 		Timestamp        int64  `json:"timestamp" validate:"timestamp"`
 		Signature        string `json:"Signature" validate:"required"`
+		IsCloseOnly      bool   `json:"isCloseOnly" validate:"required"`
 	}
 
 	PlaceOrderResp struct {
-		ID string `json:"orderID"   validate:"required,len=66"`
+		OrderHash string `json:"orderHash"`
 	}
 
 	CancelOrderReq struct {
 		BaseReq
-		ID string `json:"id" param:"orderID" validate:"required,len=66"`
+		OrderHash string `json:"orderHash" param:"orderHash" validate:"required,len=66"`
 	}
 
 	CancelAllOrdersReq struct {
@@ -48,16 +49,16 @@ type (
 
 	QuerySingleOrderReq struct {
 		BaseReq
-		OrderID string `json:"orderID" param:"orderID" validate:"required"`
+		OrderHash string `json:"orderHash" param:"orderHash" validate:"required"`
 	}
 
 	QuerySingleOrderResp struct {
 		Order *model.Order `json:"order"`
 	}
 
-	QueryOrdersByIDsReq struct {
+	QueryOrdersByOrderHashsReq struct {
 		BaseReq
-		OrderIDs []string `json:"orderIDs" validate:"required"`
+		OrderHashs []string `json:"orderIDs" validate:"required"`
 	}
 
 	QueryOrderReq struct {

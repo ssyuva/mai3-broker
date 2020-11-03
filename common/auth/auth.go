@@ -3,18 +3,17 @@ package auth
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/mcarloai/mai-v3-broker/common/mai2"
+	"github.com/mcarloai/mai-v3-broker/common/mai3"
+	"github.com/mcarloai/mai-v3-broker/conf"
 )
 
 var (
 	MaiAuthTimeout   = time.Minute * 5
-	JwtSigningKey    = os.Getenv("HSK_JWT_SECRET")
 	JwtSigningMethod = "HS256"
 	JwtExpiration    = time.Hour * 24
 )
@@ -55,7 +54,7 @@ func ValidateMaiAuth(token string) (string, error) {
 	if signTime.After(now.Add(MaiAuthTimeout)) {
 		return "", fmt.Errorf("Timestamp of Mai-Authentication is in the future, check your local time.")
 	}
-	valid, err := mai2.IsValidSignature(maiAuthTokens[0], maiAuthTokens[1], maiAuthTokens[2], mai2.EthSign)
+	valid, err := mai3.IsValidSignature(maiAuthTokens[0], maiAuthTokens[1], maiAuthTokens[2], mai3.EthSign)
 	if !valid || err != nil {
 		return "", fmt.Errorf("Token is invalid or expired, please check your authentication")
 	}
@@ -67,7 +66,7 @@ func jwtKeyfunc(t *jwt.Token) (interface{}, error) {
 	if t.Method.Alg() != JwtSigningMethod {
 		return nil, fmt.Errorf("unexpected jwt signing method=%v", t.Header["alg"])
 	}
-	return []byte(JwtSigningKey), nil
+	return []byte(conf.Conf.JwtSecret), nil
 }
 
 func ValidateJwt(token string) (string, error) {
@@ -93,5 +92,5 @@ func SignJwt(address string) (string, error) {
 		"address": address,
 		"exp":     time.Now().Add(JwtExpiration).Unix(),
 	})
-	return token.SignedString([]byte(JwtSigningKey))
+	return token.SignedString([]byte(conf.Conf.JwtSecret))
 }

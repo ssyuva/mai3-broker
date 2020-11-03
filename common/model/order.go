@@ -16,7 +16,6 @@ const (
 	CancelReasonTransactionFail              CancelReasonType = "TRANSACTION_FAIL"
 	CancelReasonRemainTooSmall               CancelReasonType = "REMAIN_TOO_SMALL"
 	CancelReasonMatchTooSmall                CancelReasonType = "MATCH_TOO_SMALL"
-	CancelReasonTooManyMatches               CancelReasonType = "TOO_MANY_MATCHES"
 	CancelReasonInternalError                CancelReasonType = "INTERNAL_ERROR"
 	CancelReasonInsufficientFunds            CancelReasonType = "INSUFFICIENT_FUNDS"
 	CancelReasonLongPriceTooHighAfterExpired CancelReasonType = "LONG_PRICE_TOO_HIGH_AFTER_EXPIRED"
@@ -49,36 +48,35 @@ const (
 )
 
 type OrderParam struct {
-	TraderAddress string          `json:"traderAddress" db:"trader_address"`
-	Type          OrderType       `json:"type" db:"type"`
-	Side          OrderSide       `json:"side" db:"side"`
-	Price         decimal.Decimal `json:"price" db:"price"`
-	Amount        decimal.Decimal `json:"amount" db:"amount"`
-	StopPrice     decimal.Decimal `json:"stopPrice" db:"stopPrice"`
-	ExpiresAt     time.Time       `json:"expiresAt" db:"expires_at"`
-	Salt          int64           `json:"salt" db:"salt"`
-	ChainID       int64           `json:"chainID" db:"chain_id"`
+	TraderAddress    string          `json:"traderAddress" db:"trader_address"`
+	PerpetualAddress string          `json:"perpetualAddress" db:"perpetual_address"`
+	Type             OrderType       `json:"type" db:"type"`
+	Side             OrderSide       `json:"side" db:"side"`
+	Price            decimal.Decimal `json:"price" db:"price"`
+	Amount           decimal.Decimal `json:"amount" db:"amount"`
+	StopPrice        decimal.Decimal `json:"stopPrice" db:"stopPrice"`
+	ExpiresAt        time.Time       `json:"expiresAt" db:"expires_at"`
+	Salt             int64           `json:"salt" db:"salt"`
+	IsCloseOnly      bool            `json:"isCloseOnly" db:"is_close_only"`
+	ChainID          int64           `json:"chainID" db:"chain_id"`
 }
 
 type Order struct {
 	OrderParam
-	ID               int64                `json:"-" db:"id" primaryKey:"true" gorm:"primary_key"`
-	OrderHash        string               `json:"orderHash" db:"order_hash"`
-	PerpetualAddress string               `json:"perpetualAddress" db:"perpetual_address"`
-	OldStatus        OrderStatus          `json:"oldStatus" sql:"-"`
-	Status           OrderStatus          `json:"status" db:"status"`
-	AvailableAmount  decimal.Decimal      `json:"availableAmount" db:"available_amount"`
-	ConfirmedAmount  decimal.Decimal      `json:"confirmedAmount" db:"confirmed_amount"`
-	ConfirmedVolume  decimal.Decimal      `json:"confirmedVolume" db:"confirmed_volume"`
-	FilledPrice      decimal.Decimal      `json:"filledPrice" db:"filled_price"`
-	CanceledAmount   decimal.Decimal      `json:"canceledAmount" db:"canceled_amount"`
-	PendingAmount    decimal.Decimal      `json:"pendingAmount" db:"pending_amount"`
-	PendingVolume    decimal.Decimal      `json:"pendingVolume" db:"pending_volume"`
-	GasFeeAmount     decimal.Decimal      `json:"gasFeeAmount" db:"gas_fee_amount"`
-	CreatedAt        time.Time            `json:"createdAt" db:"created_at"`
-	UpdatedAt        time.Time            `json:"updatedAt" db:"updated_at"`
-	Signature        string               `json:"-" db:"signature"`
-	CancelReasons    []*OrderCancelReason `json:"cancelReasons" sql:"-"`
+	ID              int64                `json:"-" db:"id" primaryKey:"true" gorm:"primary_key"`
+	OrderHash       string               `json:"orderHash" db:"order_hash"`
+	OldStatus       OrderStatus          `json:"oldStatus" sql:"-"`
+	Status          OrderStatus          `json:"status" db:"status"`
+	AvailableAmount decimal.Decimal      `json:"availableAmount" db:"available_amount"`
+	ConfirmedAmount decimal.Decimal      `json:"confirmedAmount" db:"confirmed_amount"`
+	FilledPrice     decimal.Decimal      `json:"filledPrice" db:"filled_price"`
+	CanceledAmount  decimal.Decimal      `json:"canceledAmount" db:"canceled_amount"`
+	PendingAmount   decimal.Decimal      `json:"pendingAmount" db:"pending_amount"`
+	GasFeeAmount    decimal.Decimal      `json:"gasFeeAmount" db:"gas_fee_amount"`
+	CreatedAt       time.Time            `json:"createdAt" db:"created_at"`
+	UpdatedAt       time.Time            `json:"updatedAt" db:"updated_at"`
+	Signature       string               `json:"-" db:"signature"`
+	CancelReasons   []*OrderCancelReason `json:"cancelReasons" sql:"-"`
 }
 
 //OrderCancelReason records of cancel

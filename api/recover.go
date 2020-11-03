@@ -5,7 +5,7 @@ import (
 	"runtime"
 
 	"github.com/labstack/echo"
-	"github.com/micro/go-micro/v2/logger"
+	logger "github.com/sirupsen/logrus"
 )
 
 func RecoverHandler(next echo.HandlerFunc) echo.HandlerFunc {

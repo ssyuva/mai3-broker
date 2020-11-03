@@ -3,8 +3,8 @@ package websocket
 import (
 	"errors"
 	"github.com/gorilla/websocket"
-	"github.com/micro/go-micro/v2/logger"
 	"github.com/satori/go.uuid"
+	logger "github.com/sirupsen/logrus"
 	"net"
 	// "sync"
 	"strings"

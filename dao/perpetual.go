@@ -15,6 +15,7 @@ type PerpetualDAO interface {
 	QueryPerpetuals(publishedOnly bool) ([]*model.Perpetual, error)
 	GetPerpetualByAddress(address string) (*model.Perpetual, error)
 	UpdatePerpetual(*model.Perpetual) error
+	RollbackPerpetual(beginRollbackHeight int, endRollbackHeight int) ([]*model.Perpetual, error)
 }
 
 type dbPerpetual struct {
@@ -79,4 +80,23 @@ func (m *perpetualDAO) CreatePerpetual(perpetual *model.Perpetual) error {
 		return fmt.Errorf("CreatePerpetual:%w", err)
 	}
 	return err
+}
+
+func (m *perpetualDAO) RollbackPerpetual(beginRollbackHeight int, endRollbackHeight int) ([]*model.Perpetual, error) {
+	result := make([]*model.Perpetual, 0)
+	s := make([]*dbPerpetual, 0)
+	if err := m.db.Where("block_number >= ? AND block_number < ?", beginRollbackHeight, endRollbackHeight).Find(&s).Error; err != nil {
+		return result, err
+	}
+	for _, perpetual := range s {
+		result = append(result, &perpetual.Perpetual)
+	}
+	if len(result) == 0 {
+		return result, nil
+	}
+	if err := m.db.Delete(dbPerpetual{},
+		"block_number >= ? AND block_number < ?", beginRollbackHeight, endRollbackHeight).Error; err != nil {
+		return result, fmt.Errorf("delete perpetual failed:%w", err)
+	}
+	return result, nil
 }

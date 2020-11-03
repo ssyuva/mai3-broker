@@ -2,12 +2,12 @@ package api
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"time"
 
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
+	"github.com/mcarloai/mai-v3-broker/conf"
 	"github.com/ulule/limiter/v3"
 )
 
@@ -33,14 +33,10 @@ type IPRatelimiterConfig struct {
 // Set HSK_API_RATE_LIMIT to 0 will diable limiter
 func IPRatelimiter() echo.MiddlewareFunc {
 	config := DefaultIPRatelimiterConfig
-	if l := os.Getenv("HSK_API_RATE_LIMIT"); l != "" {
-		if n, err := strconv.ParseInt(l, 10, 64); err == nil {
-			if n > 0 {
-				config.Limit = n
-			} else {
-				RateLimitEnable = false
-			}
-		}
+	if conf.Conf.APIRateLimit > 0 {
+		config.Limit = conf.Conf.APIRateLimit
+	} else {
+		RateLimitEnable = false
 	}
 	return IPRatelimiterWithConfig(config)
 }

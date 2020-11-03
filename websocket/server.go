@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"os"
 	"runtime"
 	"strings"
 	"sync"
@@ -16,7 +15,8 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/mcarloai/mai-v3-broker/common/auth"
 	"github.com/mcarloai/mai-v3-broker/common/message"
-	"github.com/micro/go-micro/v2/logger"
+	"github.com/mcarloai/mai-v3-broker/conf"
+	logger "github.com/sirupsen/logrus"
 )
 
 type channelCreator = func(channelID string) (IChannel, error)
@@ -192,7 +192,8 @@ func New(ctx context.Context, msgChan chan interface{}) *Server {
 
 func (s *Server) startSocketServer() error {
 	handler := http.HandlerFunc(connectHandler)
-	srv := &http.Server{Addr: os.Getenv("HSK_WS_HOST"),
+	srv := &http.Server{
+		Addr:         conf.Conf.WebsocketHost,
 		Handler:      handler,
 		ReadTimeout:  time.Second * 3,
 		WriteTimeout: time.Second * 3,

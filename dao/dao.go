@@ -5,12 +5,15 @@ import (
 
 	"github.com/jinzhu/gorm"
 	"github.com/mcarloai/mai-v3-broker/common/postgres"
-	"github.com/micro/go-micro/v2/logger"
+	logger "github.com/sirupsen/logrus"
 )
 
 type DAO interface {
 	PerpetualDAO
 	OrderDAO
+	MatchTransactionDAO
+	WatcherDAO
+	ForUpdate()
 	Transaction(body func(DAO) error) error
 }
 
@@ -18,6 +21,12 @@ type gormDAO struct {
 	db *gorm.DB
 	perpetualDAO
 	orderDAO
+	matchTransactionDAO
+	watcherDAO
+}
+
+func (g *gormDAO) ForUpdate() {
+	g.db = g.db.Set("gorm:query_option", "FOR UPDATE")
 }
 
 func (g *gormDAO) Transaction(body func(DAO) error) (err error) {
@@ -70,9 +79,11 @@ func New() DAO {
 
 func NewFromGormDB(db *gorm.DB) DAO {
 	return &gormDAO{
-		db:           db,
-		perpetualDAO: perpetualDAO{db: db},
-		orderDAO:     orderDAO{db: db},
+		db:                  db,
+		perpetualDAO:        perpetualDAO{db: db},
+		orderDAO:            orderDAO{db: db},
+		matchTransactionDAO: matchTransactionDAO{db: db},
+		watcherDAO:          watcherDAO{db: db},
 	}
 }
 

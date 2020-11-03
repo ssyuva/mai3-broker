@@ -1,9 +1,14 @@
 package message
 
+import (
+	"github.com/shopspring/decimal"
+)
+
 const MatchTypeNewPerpetual = "newPerpetual"
 const MatchTypeNewOrder = "newOrder"
 const MatchTypeCancelOrder = "cancelOrder"
-const MatchTypeReloadOrder = "reloadOrder"
+const MatchTypeChangeOrder = "reloadOrder"
+const MatchTypePerpetualRollBack = "perpetualRollBack"
 
 type MatchMessage struct {
 	PerpetualAddress string      `json:"perpetualAddress"`
@@ -19,6 +24,7 @@ type MatchCancelOrderPayload struct {
 	OrderHash string `json:"orderHash"`
 }
 
-type MatchReloadOrderPayload struct {
-	OrderHash string `json:"orderHash"`
+type MatchChangeOrderPayload struct {
+	OrderHash string          `json:"orderHash"`
+	Amount    decimal.Decimal `json:"amount"`
 }

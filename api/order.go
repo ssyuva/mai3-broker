@@ -3,6 +3,7 @@ package api
 import (
 	"errors"
 	"fmt"
+	"github.com/mcarloai/mai-v3-broker/common/mai3"
 	"github.com/mcarloai/mai-v3-broker/common/message"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/mcarloai/mai-v3-broker/dao"
@@ -17,7 +18,7 @@ func (s *Server) GetOrders(p Param) (interface{}, error) {
 	params := p.(*QueryOrderReq)
 	var beforeOrderID, afterOrderID int64
 	if params.BeforeOrderHash != "" {
-		beforeOrder, err := s.dao.GetOrder(params.BeforeOrderHash, false)
+		beforeOrder, err := s.dao.GetOrder(params.BeforeOrderHash)
 		if err != nil {
 			if dao.IsRecordNotFound(err) {
 				return nil, OrderIDNotExistError(params.BeforeOrderHash)
@@ -29,7 +30,7 @@ func (s *Server) GetOrders(p Param) (interface{}, error) {
 	}
 
 	if params.AfterOrderHash != "" {
-		afterOrder, err := s.dao.GetOrder(params.AfterOrderHash, false)
+		afterOrder, err := s.dao.GetOrder(params.AfterOrderHash)
 		if err != nil {
 			if dao.IsRecordNotFound(err) {
 				return nil, OrderIDNotExistError(params.AfterOrderHash)
@@ -72,12 +73,12 @@ func (s *Server) GetOrders(p Param) (interface{}, error) {
 	return res, nil
 }
 
-func (s *Server) GetOrderByID(p Param) (interface{}, error) {
+func (s *Server) GetOrderByOrderHash(p Param) (interface{}, error) {
 	params := p.(*QuerySingleOrderReq)
-	order, err := s.dao.GetOrder(params.OrderID, false)
+	order, err := s.dao.GetOrder(params.OrderHash)
 	if err != nil {
 		if dao.IsRecordNotFound(err) {
-			return nil, OrderIDNotExistError(params.OrderID)
+			return nil, OrderIDNotExistError(params.OrderHash)
 		}
 		return nil, InternalError(err)
 	}
@@ -87,9 +88,9 @@ func (s *Server) GetOrderByID(p Param) (interface{}, error) {
 	return res, nil
 }
 
-func (s *Server) GetOrdersByIDs(p Param) (interface{}, error) {
-	params := p.(*QueryOrdersByIDsReq)
-	orders, err := s.dao.GetOrderByIDs(params.OrderIDs)
+func (s *Server) GetOrdersByOrderHashs(p Param) (interface{}, error) {
+	params := p.(*QueryOrdersByOrderHashsReq)
+	orders, err := s.dao.GetOrderByHashs(params.OrderHashs)
 
 	if err != nil {
 		return nil, InternalError(err)
@@ -108,27 +109,34 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 		return nil, err
 	}
 
-	if params.PerpetualAddress != "" {
-		_, err := s.dao.GetPerpetualByAddress(strings.ToLower(params.PerpetualAddress))
-		if err != nil {
-			if dao.IsRecordNotFound(err) {
-				return nil, PerpetualNotFoundError(params.PerpetualAddress)
-			}
-			return nil, InternalError(err)
-		}
+	//1. check signature, orderhash?
+	valid, err := mai3.IsValidOrderSignature(params.Address, params.OrderHash, params.Signature)
+	if err != nil {
+		return nil, InternalError(fmt.Errorf("check signature fail"))
+	}
+	if !valid {
+		return nil, BadSignatureError()
 	}
 
-	_, err = s.dao.GetOrderBySignature(params.Signature)
+	_, err = s.dao.GetPerpetualByAddress(strings.ToLower(params.PerpetualAddress))
+	if err != nil {
+		if dao.IsRecordNotFound(err) {
+			return nil, PerpetualNotFoundError(params.PerpetualAddress)
+		}
+		return nil, InternalError(err)
+	}
+
+	_, err = s.dao.GetOrder(params.OrderHash)
 	if err == nil {
-		return nil, BadSignatureError()
+		return nil, OrderIDExistError(params.OrderHash)
 	} else if !dao.IsRecordNotFound(err) {
 		return nil, InternalError(err)
 	}
 
-	//TODO Place Order
-	//1. check signature
 	//2. check margin balance
+	//3. close only
 	order := &model.Order{}
+	order.OrderHash = params.OrderHash
 	order.OrderParam.TraderAddress = strings.ToLower(params.Address)
 	if params.OrderType == string(model.LimitOrder) {
 		order.OrderParam.Type = model.LimitOrder
@@ -138,15 +146,19 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 		order.Status = model.OrderStop
 	}
 
-	if params.Side == string(model.SideBuy) {
-		order.OrderParam.Side = model.SideBuy
-	} else {
+	amount, _ := decimal.NewFromString(params.Amount)
+	if amount.LessThan(decimal.Zero) {
+		order.OrderParam.Amount = amount.Neg()
 		order.OrderParam.Side = model.SideSell
+	} else {
+		order.OrderParam.Amount = amount
+		order.OrderParam.Side = model.SideBuy
 	}
 
 	order.OrderParam.Price, _ = decimal.NewFromString(params.Price)
 	order.OrderParam.Amount, _ = decimal.NewFromString(params.Amount)
 	order.OrderParam.StopPrice, _ = decimal.NewFromString(params.StopPrice)
+	order.OrderParam.IsCloseOnly = params.IsCloseOnly
 	expiresAt := getExpiresAt(params.Expires)
 	order.OrderParam.ExpiresAt = time.Unix(expiresAt, 0).UTC()
 	order.OrderParam.Salt = params.Salt
@@ -181,7 +193,7 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 		},
 	}
 	s.matchChan <- message
-	return PlaceOrderResp{ID: order.OrderHash}, nil
+	return PlaceOrderResp{OrderHash: order.OrderHash}, nil
 }
 
 func getExpiresAt(expiresInSeconds int64) int64 {
@@ -202,8 +214,8 @@ func validatePlaceOrder(req *PlaceOrderReq) error {
 	if err != nil {
 		return InvalidPriceAmountError(fmt.Sprintf("parse amount[%s] error", req.Amount))
 	}
-	if amount.LessThanOrEqual(decimal.Zero) {
-		return InvalidPriceAmountError("amount <= 0")
+	if amount.Equal(decimal.Zero) {
+		return InvalidPriceAmountError("amount = 0")
 	}
 
 	price, err := decimal.NewFromString(req.Price)
@@ -239,11 +251,41 @@ func validatePlaceOrder(req *PlaceOrderReq) error {
 }
 
 func (s *Server) CancelOrder(p Param) (interface{}, error) {
-	// params := p.(*CancelOrderReq)
+	params := p.(*CancelOrderReq)
+	order, err := s.dao.GetOrder(params.OrderHash)
+	if err != nil {
+		return nil, InternalError(err)
+	}
+
+	// notice match for cancel order
+	message := message.MatchMessage{
+		PerpetualAddress: order.PerpetualAddress,
+		Type:             message.MatchTypeCancelOrder,
+		Payload: message.MatchCancelOrderPayload{
+			OrderHash: order.OrderHash,
+		},
+	}
+	s.matchChan <- message
 	return nil, nil
 }
 
 func (s *Server) CancelAllOrders(p Param) (interface{}, error) {
-	// params := p.(*CancelAllOrdersReq)
+	params := p.(*CancelAllOrdersReq)
+	orders, err := s.dao.QueryOrder(params.Address, "", []model.OrderStatus{model.OrderPending, model.OrderStop}, 0, 0, 0)
+	if err != nil {
+		return nil, InternalError(err)
+	}
+
+	for _, order := range orders {
+		// notice match for cancel order
+		message := message.MatchMessage{
+			PerpetualAddress: order.PerpetualAddress,
+			Type:             message.MatchTypeCancelOrder,
+			Payload: message.MatchCancelOrderPayload{
+				OrderHash: order.OrderHash,
+			},
+		}
+		s.matchChan <- message
+	}
 	return nil, nil
 }

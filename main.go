@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"github.com/mcarloai/mai-v3-broker/common/redis"
 	"github.com/mcarloai/mai-v3-broker/dao"
 	"os"
@@ -10,30 +11,42 @@ import (
 	"syscall"
 
 	"github.com/mcarloai/mai-v3-broker/api"
+	"github.com/mcarloai/mai-v3-broker/common/chain"
+	"github.com/mcarloai/mai-v3-broker/common/chain/ethereum"
+	"github.com/mcarloai/mai-v3-broker/conf"
+	"github.com/mcarloai/mai-v3-broker/launcher"
 	"github.com/mcarloai/mai-v3-broker/match"
 	"github.com/mcarloai/mai-v3-broker/watcher"
 	"github.com/mcarloai/mai-v3-broker/websocket"
-	"github.com/micro/go-micro/v2/logger"
+	logger "github.com/sirupsen/logrus"
 )
 
 func main() {
 	ctx, stop := context.WithCancel(context.Background())
 	go WaitExitSignal(stop)
 
+	flag.Parse()
+	if err := conf.Init(); err != nil {
+		panic(err)
+	}
+
 	// init redis
-	err := redis.Init(os.Getenv("HSK_REDIS_URL"))
+	err := redis.Init(conf.Conf.RedisURL)
 	if err != nil {
 		logger.Errorf("create redis client fail:%s", err.Error())
 		os.Exit(-1)
 	}
 
 	// init database
-	if err = dao.ConnectPostgres(os.Getenv("HSK_DATABASE_URL")); err != nil {
+	if err = dao.ConnectPostgres(conf.Conf.DataBaseURL); err != nil {
 		logger.Errorf("create database fail:%s", err.Error())
 		os.Exit(-2)
 	}
 
 	dao := dao.New()
+
+	var chainCli chain.ChainClient
+	chainCli = ethereum.NewClient(conf.Conf.BlockChain.ProviderURL)
 
 	// msg chan for websocket message
 	wsChan := make(chan interface{}, 100)
@@ -43,7 +56,7 @@ func main() {
 	wg := &sync.WaitGroup{}
 
 	// start api server
-	apiServer, err := api.New(ctx, dao, wsChan, matchChan)
+	apiServer, err := api.New(ctx, chainCli, dao, wsChan, matchChan)
 	if err != nil {
 		logger.Errorf("create api server fail:%s", err.Error())
 		os.Exit(-3)
@@ -71,7 +84,7 @@ func main() {
 	// start match server
 	matchErrChan := make(chan error, 1)
 	wg.Add(1)
-	matchServer := match.New(ctx, dao, wsChan, matchChan)
+	matchServer := match.New(ctx, chainCli, dao, wsChan, matchChan)
 	go func() {
 		defer wg.Done()
 		if err := matchServer.Start(); err != nil {
@@ -79,11 +92,21 @@ func main() {
 		}
 	}()
 
+	// start launcher
+	launcherErrChan := make(chan error, 1)
+	wg.Add(1)
+	launch := launcher.NewLaunch(ctx, chainCli, dao, wsChan, matchChan)
+	go func() {
+		defer wg.Done()
+		if err := launch.Start(); err != nil {
+			launcherErrChan <- err
+		}
+	}()
+
 	// start watcher
 	watcherErrChan := make(chan error, 1)
 	wg.Add(1)
-	factoryAddress := os.Getenv("HSK_FACTORY_ADDRESS")
-	watcherSrv := watcher.New(ctx, dao, factoryAddress, wsChan, matchChan)
+	watcherSrv := watcher.New(ctx, chainCli, dao, conf.Conf.FactoryAddress, wsChan, matchChan)
 	go func() {
 		defer wg.Done()
 		if err := watcherSrv.Start(); err != nil {
@@ -100,6 +123,12 @@ func main() {
 		stop()
 	case err := <-wsErrChan:
 		logger.Errorf("websocket server stop error:%s", err.Error())
+		stop()
+	case err := <-matchErrChan:
+		logger.Errorf("match server stop error:%s", err.Error())
+		stop()
+	case err := <-watcherErrChan:
+		logger.Errorf("watcher server stop error:%s", err.Error())
 		stop()
 	}
 	wg.Wait()

@@ -4,12 +4,13 @@ import (
 	"context"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
+	"github.com/mcarloai/mai-v3-broker/common/chain"
 	redis "github.com/mcarloai/mai-v3-broker/common/redis"
+	"github.com/mcarloai/mai-v3-broker/conf"
 	"github.com/mcarloai/mai-v3-broker/dao"
-	"github.com/micro/go-micro/v2/logger"
+	logger "github.com/sirupsen/logrus"
 	limiter_redis "github.com/ulule/limiter/v3/drivers/store/redis"
 	"net/http"
-	"os"
 	"time"
 )
 
@@ -18,10 +19,11 @@ type Server struct {
 	e         *echo.Echo
 	wsChan    chan interface{}
 	matchChan chan interface{}
+	chainCli  chain.ChainClient
 	dao       dao.DAO
 }
 
-func New(ctx context.Context, dao dao.DAO, wsChan, matchChan chan interface{}) (*Server, error) {
+func New(ctx context.Context, cli chain.ChainClient, dao dao.DAO, wsChan, matchChan chan interface{}) (*Server, error) {
 	e := echo.New()
 	e.HideBanner = true
 
@@ -55,6 +57,7 @@ func New(ctx context.Context, dao dao.DAO, wsChan, matchChan chan interface{}) (
 		e:         e,
 		wsChan:    wsChan,
 		matchChan: matchChan,
+		chainCli:  cli,
 		dao:       dao,
 	}
 	s.initRouter()
@@ -63,7 +66,7 @@ func New(ctx context.Context, dao dao.DAO, wsChan, matchChan chan interface{}) (
 
 func (s *Server) Start() error {
 	srv := &http.Server{
-		Addr:         os.Getenv("HSK_API_HOST"),
+		Addr:         conf.Conf.APIHost,
 		ReadTimeout:  20 * time.Second,
 		WriteTimeout: 20 * time.Second,
 	}
@@ -94,10 +97,10 @@ func (s *Server) Start() error {
 func (s *Server) initRouter() {
 	eg := s.e.Group("/orders", MaiAuthMiddleware, JwtAuthMiddleware, CheckAuthMiddleware)
 	addGroupRoute(eg, "GET", "", &QueryOrderReq{}, s.GetOrders)
-	addGroupRoute(eg, "GET", "/:orderID", &QuerySingleOrderReq{}, s.GetOrderByID)
-	addGroupRoute(eg, "POST", "/byids", &QueryOrdersByIDsReq{}, s.GetOrdersByIDs)
+	addGroupRoute(eg, "GET", "/:orderHash", &QuerySingleOrderReq{}, s.GetOrderByOrderHash)
+	addGroupRoute(eg, "POST", "/byhashs", &QueryOrdersByOrderHashsReq{}, s.GetOrdersByOrderHashs)
 	addGroupRoute(eg, "POST", "", &PlaceOrderReq{}, s.PlaceOrder)
-	addGroupRoute(eg, "DELETE", "/:orderID", &CancelOrderReq{}, s.CancelOrder)
+	addGroupRoute(eg, "DELETE", "/:orderHash", &CancelOrderReq{}, s.CancelOrder)
 	addGroupRoute(eg, "DELETE", "", &CancelAllOrdersReq{}, s.CancelAllOrders)
 
 	addRoute(s.e, "GET", "/jwt", &BaseReq{}, GetJwtAuth, MaiAuthMiddleware, CheckAuthMiddleware)
