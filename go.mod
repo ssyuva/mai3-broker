@@ -7,7 +7,7 @@ require (
 	github.com/btcsuite/btcd v0.21.0-beta
 	github.com/cevaris/ordered_map v0.0.0-20190319150403-3adeae072e73
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
-	github.com/ethereum/go-ethereum v1.9.23
+	github.com/ethereum/go-ethereum v1.9.12
 	github.com/go-redis/redis/v7 v7.2.0
 	github.com/gorilla/websocket v1.4.1
 	github.com/jinzhu/gorm v1.9.12

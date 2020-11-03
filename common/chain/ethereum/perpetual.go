@@ -3,24 +3,27 @@ package ethereum
 import (
 	"context"
 	"fmt"
+        "strings"
 	ethBind "github.com/ethereum/go-ethereum/accounts/abi/bind"
 	gethCommon "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/shopspring/decimal"
 
 	"github.com/mcarloai/mai-v3-broker/common/chain/ethereum/abis/perpetual"
+	"github.com/mcarloai/mai-v3-broker/common/model"
+	"github.com/mcarloai/mai-v3-broker/common/mai3"
 )
 
 func (c *Client) FilterMatch(ctx context.Context, perpetualAddress string, start, end uint64) ([]*model.MatchEvent, error) {
 	opts := &ethBind.FilterOpts{
 		Start:   start,
 		End:     &end,
-		context: ctx,
+		Context: ctx,
 	}
 
-	rsp = make([]*model.MatchEvent, 0)
+	rsp := make([]*model.MatchEvent, 0)
 
-	addresss, err := HexToAddress(perpetualAddress)
+	address, err := HexToAddress(perpetualAddress)
 	if err != nil {
 		return rsp, fmt.Errorf("invalid perpetual address:%w", err)
 	}
@@ -30,7 +33,7 @@ func (c *Client) FilterMatch(ctx context.Context, perpetualAddress string, start
 		return rsp, fmt.Errorf("init perpetual contract failed:%w", err)
 	}
 
-	iter, err := contract.FilterMatch(opts, []gethCommon.Address{})
+	iter, err := contract.FilterMatch(opts)
 	if err != nil {
 		return rsp, fmt.Errorf("filter trade event failed:%w", err)
 	}
@@ -46,7 +49,7 @@ func (c *Client) FilterMatch(ctx context.Context, perpetualAddress string, start
 			Gas:              decimal.NewFromBigInt(iter.Event.Arg2, -mai3.DECIMALS),
 		}
 
-		rsp := append(rsp, match)
+		rsp = append(rsp, match)
 	}
 
 	return rsp, nil
@@ -65,9 +68,9 @@ func (c *Client) GetMarginAccount(ctx context.Context, perpetualAddress, account
 		return nil, fmt.Errorf("invalid account address:%w", err)
 	}
 
-	contract, err := perpetual.NewPerpetual(oracleAddress, c.ethCli)
+	contract, err := perpetual.NewPerpetual(address, c.ethCli)
 	if err != nil {
-		return res, fmt.Errorf("init perpetual contract failed:%w", err)
+		return nil, fmt.Errorf("init perpetual contract failed:%w", err)
 	}
 
 	cash, pos, funding, err := contract.MarginAccount(opts, accountAddress)
@@ -88,7 +91,7 @@ func (c *Client) GetPrice(ctx context.Context, oracle string) (decimal.Decimal, 
 	var opts *ethBind.CallOpts
 	var res decimal.Decimal
 
-	oracleAddress, err := HexToAddress(oracleAddress)
+	oracleAddress, err := HexToAddress(oracle)
 	if err != nil {
 		return res, fmt.Errorf("invalid oracle address:%w", err)
 	}
@@ -98,7 +101,7 @@ func (c *Client) GetPrice(ctx context.Context, oracle string) (decimal.Decimal, 
 		return res, fmt.Errorf("init oracle contract failed:%w", err)
 	}
 
-	_, _, fast, _, err := perpetual.Price(opts)
+	_, _, fast, _, err := contract.Price(opts)
 	if err != nil {
 		return res, fmt.Errorf("get oracle price failed:%w", err)
 	}
@@ -113,7 +116,7 @@ func (c *Client) SendBatchTrade(ctx context.Context) {
 func (c *Client) WaitForReceipt(ctx context.Context, transactionHash string) (blockNumber uint64, blockHash string, succ bool, err error) {
 	receipt, err := c.ethCli.TransactionReceipt(ctx, gethCommon.HexToHash(transactionHash))
 	if err != nil {
-		err = errors.Wrap(err, "fail to retrieve transaction receipt")
+		err = fmt.Errorf("fail to retrieve transaction receipt error:%w", err)
 		return
 	}
 

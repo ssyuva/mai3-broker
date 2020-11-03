@@ -1,22 +1,23 @@
 package ethereum
 
-// import (
-// 	"context"
+ import (
+ 	"context"
 // 	"fmt"
 // 	ethBind "github.com/ethereum/go-ethereum/accounts/abi/bind"
 // 	gethCommon "github.com/ethereum/go-ethereum/common"
+	"github.com/mcarloai/mai-v3-broker/common/model"
 
 // 	"github.com/mcarloai/mai-v3-broker/common/chain/ethereum/abis/factory"
-// )
+ )
 
-// func (c *Client) FilterCreatePerpetual(ctx context.Context, factoryAddress string, start, end uint64) ([]*model.PerpetualEvent, error) {
+ func (c *Client) FilterCreatePerpetual(ctx context.Context, factoryAddress string, start, end uint64) ([]*model.PerpetualEvent, error) {
 // 	opts := &ethBind.FilterOpts{
 // 		Start:   start,
 // 		End:     &end,
 // 		context: ctx,
 // 	}
 
-// 	rsp = make([]*model.PerpetualEvent, 0)
+	rsp := make([]*model.PerpetualEvent, 0)
 
 // 	addresss, err := HexToAddress(factoryAddress)
 // 	if err != nil {
@@ -47,5 +48,5 @@ package ethereum
 // 		rsp := append(rsp, perpetual)
 // 	}
 
-// 	return rsp, nil
-// }
+ 	return rsp, nil
+}

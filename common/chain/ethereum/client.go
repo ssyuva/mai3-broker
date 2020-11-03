@@ -16,7 +16,7 @@ type Client struct {
 }
 
 func NewClient(ctx context.Context, provider string) (*Client, error) {
-	ethCli, err := ethclient.Dial(Provider)
+	ethCli, err := ethclient.Dial(provider)
 	if err != nil {
 		return nil, err
 	}
@@ -24,7 +24,7 @@ func NewClient(ctx context.Context, provider string) (*Client, error) {
 	return &Client{
 		ctx:    ctx,
 		ethCli: ethCli,
-	}
+	}, nil
 }
 
 func (c *Client) HeaderByNumber(ctx context.Context, number *big.Int) (*model.BlockHeader, error) {
