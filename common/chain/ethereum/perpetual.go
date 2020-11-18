@@ -3,10 +3,12 @@ package ethereum
 import (
 	"context"
 	"fmt"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	ethBind "github.com/ethereum/go-ethereum/accounts/abi/bind"
 	gethCommon "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/shopspring/decimal"
+	"math/big"
 	"strings"
 
 	"github.com/mcarloai/mai-v3-broker/common/chain/ethereum/abis/perpetual"
@@ -46,7 +48,7 @@ func (c *Client) FilterMatch(ctx context.Context, perpetualAddress string, start
 			PerpetualAddress: strings.ToLower(iter.Event.Raw.Address.Hex()),
 			TransactionSeq:   int(iter.Event.Raw.TxIndex),
 			TransactionHash:  strings.ToLower(iter.Event.Raw.TxHash.Hex()),
-			BlockNumber:      int(iter.Event.Raw.BlockNumber),
+			BlockNumber:      int64(iter.Event.Raw.BlockNumber),
 			TraderAddress:    strings.ToLower(iter.Event.Arg0.Trader.Hex()),
 			Amount:           decimal.NewFromBigInt(iter.Event.Arg1, -mai3.DECIMALS),
 			Gas:              decimal.NewFromBigInt(iter.Event.Arg2, -mai3.DECIMALS),
@@ -131,8 +133,8 @@ func (c *Client) BatchTradeDataPack(orderParams []*model.WalletOrderParam, match
 			Category:  param.Category,
 			CloseOnly: param.CloseOnly,
 			Salt:      param.Salt,
-			ChainId:   param.ChainId,
-			Signature: perpetual.Signature{
+			ChainId:   param.ChainID,
+			Signature: perpetual.PerpetualOrderSignature{
 				Config: param.Signature.Config,
 				R:      param.Signature.R,
 				S:      param.Signature.S,

@@ -65,11 +65,11 @@ func (c *Client) GetAccount(account string) (*Account, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	address := ethCommon.HexToAddress(account)
-	account, ok := accounts[address]
+	acc, ok := c.accounts[address]
 	if !ok {
 		return nil, errors.New("account not exists")
 	}
-	return account, nil
+	return acc, nil
 }
 
 func (c *Client) HeaderByNumber(ctx context.Context, number *big.Int) (*model.BlockHeader, error) {
@@ -78,7 +78,7 @@ func (c *Client) HeaderByNumber(ctx context.Context, number *big.Int) (*model.Bl
 		return nil, err
 	}
 	block := &model.BlockHeader{
-		BlockNumber: int(header.Number.Int64()),
+		BlockNumber: header.Number.Int64(),
 		BlockHash:   strings.ToLower(header.Hash().Hex()),
 		ParentHash:  strings.ToLower(header.ParentHash.Hex()),
 		BlockTime:   time.Unix(int64(header.Time), 0).UTC(),
@@ -114,25 +114,25 @@ func (c *Client) TransactionByHash(ctx context.Context, txHash string) (bool, er
 func (c *Client) SendTransaction(ctx context.Context, tx *model.LaunchTransaction) (string, error) {
 	rawTx := ethtypes.NewTransaction(
 		*tx.Nonce,
-		ethcommon.HexToAddress(tx.ToAddress),
+		ethCommon.HexToAddress(tx.ToAddress),
 		utils.MustDecimalToBigInt(tx.Value),
 		*tx.GasLimit,
 		big.NewInt(int64(*tx.GasPrice)),
 		tx.Inputs)
 	chainID, err := c.ethCli.NetworkID(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "get network id failed")
+		return "", errors.Wrap(err, "get network id failed")
 	}
 	acc, err := c.GetAccount(tx.FromAddress)
 	if err != nil {
-		return nil, errors.Wrap(err, "account not availables")
+		return "", errors.Wrap(err, "account not availables")
 	}
 	signedTx, err := acc.Signer().Signer(ethtypes.NewEIP155Signer(chainID), acc.Address(), rawTx)
 	if err != nil {
-		return nil, errors.Wrap(err, "sign transaction failed")
+		return "", errors.Wrap(err, "sign transaction failed")
 	}
 	if err = c.ethCli.SendTransaction(ctx, signedTx); err != nil {
-		return errors.Wrap(err, "send transaction failed")
+		return "", errors.Wrap(err, "send transaction failed")
 	}
 	return signedTx.Hash().Hex(), nil
 }
