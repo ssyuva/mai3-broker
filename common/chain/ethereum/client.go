@@ -11,6 +11,7 @@ import (
 	"math/big"
 	"math/rand"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -36,33 +37,33 @@ func NewClient(ctx context.Context, provider string) (*Client, error) {
 }
 
 func (c *Client) GetSignAccount() (string, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	accLen := len(c.aliases)
 	if accLen == 0 {
 		return "", errors.New("no account added")
 	}
 
 	idx := rand.Intn(accLen)
-	return aliases[idx], nil
+	return c.aliases[idx], nil
 }
 
 func (c *Client) AddAccount(pk string) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	private, err := HexToPrivate(pk)
 	if err != nil {
 		return err
 	}
 	account := PrivateToAccount(private)
 	c.accounts[account.Address()] = account
-	aliases = append(aliases, account.String())
+	c.aliases = append(c.aliases, account.String())
 	return nil
 }
 
 func (c *Client) GetAccount(account string) (*Account, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	address := ethCommon.HexToAddress(account)
 	account, ok := accounts[address]
 	if !ok {

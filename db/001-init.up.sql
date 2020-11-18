@@ -119,4 +119,4 @@ create table kv_stores
   category text not null,
   value bytea,
   update_time timestamp
-)
+);

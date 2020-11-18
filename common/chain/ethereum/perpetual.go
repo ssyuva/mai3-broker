@@ -127,16 +127,16 @@ func (c *Client) BatchTradeDataPack(orderParams []*model.WalletOrderParam, match
 			Price:     utils.MustDecimalToBigInt(utils.ToWad(param.Price)),
 			Amount:    utils.MustDecimalToBigInt(utils.ToWad(param.Amount)),
 			ExpiredAt: param.ExpiredAt,
-			Version: param.Version,
-			Category: param.Category,
+			Version:   param.Version,
+			Category:  param.Category,
 			CloseOnly: param.CloseOnly,
-			Salt: param.Salt,
-			ChainId: param.ChainId,
+			Salt:      param.Salt,
+			ChainId:   param.ChainId,
 			Signature: perpetual.Signature{
 				Config: param.Signature.Config,
-				R: param.Signature.R,
-				S: param.Signature.S,
-			}
+				R:      param.Signature.R,
+				S:      param.Signature.S,
+			},
 		}
 		orders = append(orders, perpetualOrder)
 		amounts = append(amounts, perpetualOrder.Amount)

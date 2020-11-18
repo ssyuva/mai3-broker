@@ -41,7 +41,7 @@ type MatchEvent struct {
 
 type PerpetualEvent struct {
 	FactoryAddress   string
-	BlockNumber      int
+	BlockNumber      int64
 	TransactionSeq   int
 	TransactionHash  string
 	PerpetualAddress string
