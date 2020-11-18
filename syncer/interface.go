@@ -12,22 +12,22 @@ type BlockSyncer interface {
 }
 
 type SyncBlockContext struct {
-	ForceRollback int // -1 means not set
+	ForceRollback int64 // -1 means not set
 	Context       context.Context
 	// EthProxy            *ethproxy.EthProxy
 	Dao                 dao.DAO
 	WatcherW            *model.Watcher
-	LatestBlockNumber   int                        // include
-	RollbackBeginHeight int                        // include
-	RollbackEndHeight   int                        // exclude
-	Blocks              map[int]*model.SyncedBlock // every headers
+	LatestBlockNumber   int64                        // include
+	RollbackBeginHeight int64                        // include
+	RollbackEndHeight   int64                        // exclude
+	Blocks              map[int64]*model.SyncedBlock // every headers
 	// Signer              *gethTypes.EIP155Signer
 
 }
 
 func NewSyncBlockContext() *SyncBlockContext {
 	return &SyncBlockContext{
-		Blocks: make(map[int]*model.SyncedBlock),
+		Blocks: make(map[int64]*model.SyncedBlock),
 	}
 }
 

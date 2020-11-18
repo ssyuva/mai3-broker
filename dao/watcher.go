@@ -12,10 +12,10 @@ type WatcherDAO interface {
 	FindWatcherByID(id int) (*model.Watcher, error)
 	SaveWatcher(*model.Watcher) error
 	SaveBlock(b *model.SyncedBlock) error
-	FindBlock(watcherID int, blockNumber int) (*model.SyncedBlock, error)
+	FindBlock(watcherID int, blockNumber int64) (*model.SyncedBlock, error)
 	FindBlockByHash(watcherID int, blockHash string) (*model.SyncedBlock, error)
-	FindBlocksBetween(watcherID int, beginBlockNumber int, endBlockNumber int) ([]*model.SyncedBlock, error)
-	RollbackBlock(watcherID int, beginRollbackHeight int, endRollbackHeight int) error
+	FindBlocksBetween(watcherID int, beginBlockNumber int64, endBlockNumber int64) ([]*model.SyncedBlock, error)
+	RollbackBlock(watcherID int, beginRollbackHeight int64, endRollbackHeight int64) error
 }
 
 type dbWatcher struct {
@@ -75,7 +75,7 @@ func (l *watcherDAO) SaveBlock(b *model.SyncedBlock) error {
 	return nil
 }
 
-func (l *watcherDAO) FindBlock(watcherID int, blockNumber int) (*model.SyncedBlock, error) {
+func (l *watcherDAO) FindBlock(watcherID int, blockNumber int64) (*model.SyncedBlock, error) {
 	var b dbSyncedBlock
 	err := l.db.Where("watcher_id = ? AND block_number = ?", watcherID, blockNumber).First(&b).Error
 	if err != nil {
@@ -93,7 +93,7 @@ func (l *watcherDAO) FindBlockByHash(watcherID int, blockHash string) (*model.Sy
 	return &b.SyncedBlock, nil
 }
 
-func (l *watcherDAO) FindBlocksBetween(watcherID int, beginBlockNumber int, endBlockNumber int) ([]*model.SyncedBlock, error) {
+func (l *watcherDAO) FindBlocksBetween(watcherID int, beginBlockNumber int64, endBlockNumber int64) ([]*model.SyncedBlock, error) {
 	var blocks []*model.SyncedBlock
 	err := l.db.Table("synced_blocks").Where("watcher_id = ? AND block_number between ? AND ?", watcherID, beginBlockNumber, endBlockNumber).Find(&blocks).Error
 	if err != nil {
@@ -102,7 +102,7 @@ func (l *watcherDAO) FindBlocksBetween(watcherID int, beginBlockNumber int, endB
 	return blocks, nil
 }
 
-func (l *watcherDAO) RollbackBlock(watcherID int, beginRollbackHeight int, endRollbackHeight int) error {
+func (l *watcherDAO) RollbackBlock(watcherID int, beginRollbackHeight int64, endRollbackHeight int64) error {
 	var b dbSyncedBlock
 	if err := l.db.Delete(b,
 		"watcher_id = ? AND block_number >= ? AND block_number < ?", watcherID, beginRollbackHeight, endRollbackHeight).Error; err != nil {

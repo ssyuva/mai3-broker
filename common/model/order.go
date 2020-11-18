@@ -50,12 +50,14 @@ const (
 type OrderParam struct {
 	TraderAddress    string          `json:"traderAddress" db:"trader_address"`
 	PerpetualAddress string          `json:"perpetualAddress" db:"perpetual_address"`
+	BrokerAddress    string          `json:"brokerAddress" db:"broker_address"`
 	Type             OrderType       `json:"type" db:"type"`
 	Side             OrderSide       `json:"side" db:"side"`
 	Price            decimal.Decimal `json:"price" db:"price"`
 	Amount           decimal.Decimal `json:"amount" db:"amount"`
 	StopPrice        decimal.Decimal `json:"stopPrice" db:"stopPrice"`
 	ExpiresAt        time.Time       `json:"expiresAt" db:"expires_at"`
+	Version          int32           `json:"version" db:"version"`
 	Salt             int64           `json:"salt" db:"salt"`
 	IsCloseOnly      bool            `json:"isCloseOnly" db:"is_close_only"`
 	ChainID          int64           `json:"chainID" db:"chain_id"`

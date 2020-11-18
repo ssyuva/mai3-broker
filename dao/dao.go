@@ -13,6 +13,8 @@ type DAO interface {
 	OrderDAO
 	MatchTransactionDAO
 	WatcherDAO
+	TransactionDAO
+	NonceDAO
 	ForUpdate()
 	Transaction(body func(DAO) error) error
 }
@@ -23,6 +25,8 @@ type gormDAO struct {
 	orderDAO
 	matchTransactionDAO
 	watcherDAO
+	transactionDAO
+	nonceDAO
 }
 
 func (g *gormDAO) ForUpdate() {
@@ -84,6 +88,8 @@ func NewFromGormDB(db *gorm.DB) DAO {
 		orderDAO:            orderDAO{db: db},
 		matchTransactionDAO: matchTransactionDAO{db: db},
 		watcherDAO:          watcherDAO{db: db},
+		transactionDAO:      transactionDAO{db},
+		nonceDAO:            nonceDAO{db},
 	}
 }
 

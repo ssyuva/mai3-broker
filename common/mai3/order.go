@@ -39,7 +39,7 @@ func addLeadingZero(data string, length int) string {
 	return strings.Repeat("0", length-len(data)) + data
 }
 
-func GenerateOrderData(version MaiProtocolVersion, expiredAtSeconds, salt, chainID int64, asMakerFeeRate, asTakerFeeRate, makerRebateRate decimal.Decimal, isSell, isMarket, isMakerOnly bool, isInverse bool) string {
+func GenerateOrderData(version MaiProtocolVersion, expiredAtSeconds, salt, chainID int64, isSell, isMarket, isCloseOnly bool) string {
 	data := strings.Builder{}
 	data.WriteString("0x")
 	data.WriteString(addLeadingZero(strconv.FormatInt(int64(version), 16), 2))
@@ -56,22 +56,14 @@ func GenerateOrderData(version MaiProtocolVersion, expiredAtSeconds, salt, chain
 	}
 
 	data.WriteString(addLeadingZero(fmt.Sprintf("%x", expiredAtSeconds), 5*2))
-	data.WriteString(addLeadingZero(feeRateToHex(asMakerFeeRate), 2*2))
-	data.WriteString(addLeadingZero(feeRateToHex(asTakerFeeRate), 2*2))
-	data.WriteString(addLeadingZero(feeRateToHex(makerRebateRate), 2*2))
 	data.WriteString(addLeadingZero(fmt.Sprintf("%x", salt), 8*2))
 
-	if isMakerOnly {
+	if isCloseOnly {
 		data.WriteString("01")
 	} else {
 		data.WriteString("00")
 	}
 
-	if isInverse {
-		data.WriteString("01")
-	} else {
-		data.WriteString("00")
-	}
 	data.WriteString(addLeadingZero(fmt.Sprintf("%x", chainID), 8*2))
 
 	return addTailingZero(data.String(), 66)

@@ -15,7 +15,7 @@ type PerpetualDAO interface {
 	QueryPerpetuals(publishedOnly bool) ([]*model.Perpetual, error)
 	GetPerpetualByAddress(address string) (*model.Perpetual, error)
 	UpdatePerpetual(*model.Perpetual) error
-	RollbackPerpetual(beginRollbackHeight int, endRollbackHeight int) ([]*model.Perpetual, error)
+	RollbackPerpetual(beginRollbackHeight int64, endRollbackHeight int64) ([]*model.Perpetual, error)
 }
 
 type dbPerpetual struct {
@@ -82,7 +82,7 @@ func (m *perpetualDAO) CreatePerpetual(perpetual *model.Perpetual) error {
 	return err
 }
 
-func (m *perpetualDAO) RollbackPerpetual(beginRollbackHeight int, endRollbackHeight int) ([]*model.Perpetual, error) {
+func (m *perpetualDAO) RollbackPerpetual(beginRollbackHeight int64, endRollbackHeight int64) ([]*model.Perpetual, error) {
 	result := make([]*model.Perpetual, 0)
 	s := make([]*dbPerpetual, 0)
 	if err := m.db.Where("block_number >= ? AND block_number < ?", beginRollbackHeight, endRollbackHeight).Find(&s).Error; err != nil {

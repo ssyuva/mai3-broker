@@ -3,16 +3,19 @@ package ethereum
 import (
 	"context"
 	"fmt"
-        "strings"
 	ethBind "github.com/ethereum/go-ethereum/accounts/abi/bind"
 	gethCommon "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/shopspring/decimal"
+	"strings"
 
 	"github.com/mcarloai/mai-v3-broker/common/chain/ethereum/abis/perpetual"
-	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/mcarloai/mai-v3-broker/common/mai3"
+	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
+	"github.com/mcarloai/mai-v3-broker/common/model"
 )
+
+var TradeFailureOption = 1 // 0: revert 1: continue for batchTrade
 
 func (c *Client) FilterMatch(ctx context.Context, perpetualAddress string, start, end uint64) ([]*model.MatchEvent, error) {
 	opts := &ethBind.FilterOpts{
@@ -107,6 +110,43 @@ func (c *Client) GetPrice(ctx context.Context, oracle string) (decimal.Decimal, 
 	}
 
 	return decimal.NewFromBigInt(fast, -mai3.DECIMALS), nil
+}
+
+func (c *Client) BatchTradeDataPack(orderParams []*model.WalletOrderParam, matchAmounts []decimal.Decimal, gases []*big.Int) ([]byte, error) {
+	parsed, err := abi.JSON(strings.NewReader(perpetual.PerpetualABI))
+	if err != nil {
+		return nil, err
+	}
+	orders := make([]perpetual.PerpetualOrder, len(orderParams))
+	amounts := make([]*big.Int, len(orderParams))
+	for _, param := range orderParams {
+		perpetualOrder := perpetual.PerpetualOrder{
+			Trader:    gethCommon.HexToAddress(param.Trader),
+			Broker:    gethCommon.HexToAddress(param.Broker),
+			Perpetual: gethCommon.HexToAddress(param.Perpetual),
+			Price:     utils.MustDecimalToBigInt(utils.ToWad(param.Price)),
+			Amount:    utils.MustDecimalToBigInt(utils.ToWad(param.Amount)),
+			ExpiredAt: param.ExpiredAt,
+			Version: param.Version,
+			Category: param.Category,
+			CloseOnly: param.CloseOnly,
+			Salt: param.Salt,
+			ChainId: param.ChainId,
+			Signature: perpetual.Signature{
+				Config: param.Signature.Config,
+				R: param.Signature.R,
+				S: param.Signature.S,
+			}
+		}
+		orders = append(orders, perpetualOrder)
+		amounts = append(amounts, perpetualOrder.Amount)
+	}
+
+	for _, amount := range matchAmounts {
+		amounts = append(amounts, utils.MustDecimalToBigInt(utils.ToWad(amount)))
+	}
+	inputs, err := parsed.Pack("batchTrade", orders, amounts, gases, TradeFailureOption)
+	return inputs, err
 }
 
 func (c *Client) SendBatchTrade(ctx context.Context) {

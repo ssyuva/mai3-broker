@@ -5,6 +5,7 @@ redis_url = "redis://127.0.0.1:6380/0"
 database_url = "postgres://postgres:postgres@localhost:5434/postgres?sslmode=disable"
 jwt_secret = "test"
 factory_address = "0x00000000000000000000000000"
+broker_address = "0x00000000000000000000000000"
 watcher_id = 1
 
 [blockchain]

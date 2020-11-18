@@ -3,6 +3,7 @@ package match
 import (
 	"context"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/mcarloai/mai-v3-broker/common/chain"
 	"github.com/mcarloai/mai-v3-broker/common/message"
 	"github.com/mcarloai/mai-v3-broker/common/model"
@@ -127,11 +128,7 @@ func (m *match) matchStopOrders(indexPrice decimal.Decimal) {
 			if minBidPrice != nil && minBidPrice.LessThanOrEqual(indexPrice) {
 				orders := m.stopbook.GetOrdersByPrice(model.SideBuy, *minBidPrice)
 				for _, order := range orders {
-					order.ComparePrice = order.Price
-					if err := m.orderbook.InsertOrder(order); err != nil {
-						logger.Errorf("insert stop order to orderbook fail! orderID:%s err:%s", order.ID, err.Error())
-						continue
-					}
+					m.changeStopOrder(order)
 				}
 			} else {
 				break
@@ -147,11 +144,7 @@ func (m *match) matchStopOrders(indexPrice decimal.Decimal) {
 			if MaxAskPrice != nil && MaxAskPrice.GreaterThanOrEqual(indexPrice) {
 				orders := m.stopbook.GetOrdersByPrice(model.SideSell, *MaxAskPrice)
 				for _, order := range orders {
-					order.ComparePrice = order.Price
-					if err := m.orderbook.InsertOrder(order); err != nil {
-						logger.Errorf("insert stop order to orderbook fail! orderID:%s err:%s", order.ID, err.Error())
-						continue
-					}
+					m.changeStopOrder(order)
 				}
 			} else {
 				break
@@ -162,6 +155,33 @@ func (m *match) matchStopOrders(indexPrice decimal.Decimal) {
 
 	wg.Wait()
 	return
+}
+
+func (m *match) changeStopOrder(memoryOrder *orderbook.MemoryOrder) {
+	err := m.dao.Transaction(func(dao dao.DAO) error {
+		dao.ForUpdate()
+		order, err := dao.GetOrder(memoryOrder.ID)
+		if err != nil {
+			return err
+		}
+		order.Status = model.OrderPending
+		if err = dao.UpdateOrder(order); err != nil {
+			return err
+		}
+
+		if err := m.stopbook.RemoveOrder(memoryOrder); err != nil {
+			return err
+		}
+
+		memoryOrder.ComparePrice = memoryOrder.Price
+		if err := m.orderbook.InsertOrder(memoryOrder); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		logger.Errorf("change stop order to pending order fail! err:%s", err)
+	}
 }
 
 func (m *match) matchOrders(indexPrice decimal.Decimal) {
@@ -182,7 +202,13 @@ func (m *match) matchOrders(indexPrice decimal.Decimal) {
 	if len(matchItems) == 0 {
 		return
 	}
+
+	u, err := uuid.NewRandom()
+	if err != nil {
+		logger.Errorf("generate transaction uuid error:%s", err.Error())
+	}
 	matchTransaction := &model.MatchTransaction{
+		ID:               u.String(),
 		Status:           model.TransactionStatusInit,
 		PerpetualAddress: m.perpetual.PerpetualAddress,
 	}
@@ -199,7 +225,7 @@ func (m *match) matchOrders(indexPrice decimal.Decimal) {
 			}
 			order.AvailableAmount = newAmount
 			order.PendingAmount = order.PendingAmount.Add(item.MatchedAmount)
-			matchTransaction.MatchItems = append(matchTransaction.MatchItems, &model.MatchItem{
+			matchTransaction.MatchResult.MatchItems = append(matchTransaction.MatchResult.MatchItems, &model.MatchItem{
 				OrderHash: order.OrderHash,
 				Amount:    item.MatchedAmount,
 			})

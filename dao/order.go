@@ -18,6 +18,7 @@ type OrderDAO interface {
 	QueryOrder(traderAddress string, perpetualAddress string, status []model.OrderStatus, beforeOrderID, afterOrderID int64, limit int) ([]*model.Order, error)
 	GetOrderByHashs(hashs []string) ([]*model.Order, error)
 	UpdateOrder(order *model.Order) error
+	LoadMatchOrders(matchItems []*model.MatchItem) error
 }
 type dbOrder struct {
 	model.Order
@@ -164,6 +165,16 @@ func (o *orderDAO) UpdateOrder(order *model.Order) error {
 	order.Status = t.Status
 	if err := o.db.Save(&t).Error; err != nil {
 		return fmt.Errorf("UpdateOrder:%w", err)
+	}
+	return nil
+}
+
+func (o *orderDAO) LoadMatchOrders(matchItems []*model.MatchItem) error {
+	var err error
+	for _, item := range matchItems {
+		if item.Order, err = o.GetOrder(item.OrderHash); err != nil {
+			return fmt.Errorf("LoadMatchOrders:%w", err)
+		}
 	}
 	return nil
 }

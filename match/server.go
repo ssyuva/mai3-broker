@@ -34,6 +34,7 @@ func New(ctx context.Context, cli chain.ChainClient, dao dao.DAO, wsChan, matchC
 }
 
 func (s *Server) Start() error {
+	logger.Infof("Match start")
 	perpetuals, err := s.dao.QueryPerpetuals(true)
 	if err != nil {
 		return err
@@ -47,7 +48,7 @@ func (s *Server) Start() error {
 
 	select {
 	case <-s.ctx.Done():
-		logger.Infof("Match Server recieve context done")
+		logger.Infof("Match Server receive context done")
 		return nil
 	case err := <-s.matchErrChan:
 		logger.Infof("Match Server sub match error:%s", err.Error())

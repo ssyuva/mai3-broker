@@ -11,12 +11,12 @@ import (
 
 type MatchTransactionDAO interface {
 	CreateMatchTransaction(*model.MatchTransaction) error
-	QueryMatchTransaction(marketID string, status []model.TransactionStatus) ([]*model.MatchTransaction, error)
+	QueryMatchTransaction(perpetualAddress string, status []model.TransactionStatus) ([]*model.MatchTransaction, error)
 	QueryUnconfirmedTransactions() ([]*model.MatchTransaction, error)
 	QueryUnconfirmedTransactionsByContract(address string) (transactions []*model.MatchTransaction, err error)
-	GetMatchTransaction(ID string, forUpdate bool) (*model.MatchTransaction, error)
+	GetMatchTransaction(ID string) (*model.MatchTransaction, error)
 	UpdateMatchTransaction(transaction *model.MatchTransaction) error
-	RollbackTransactions(beginRollbackHeight int, endRollbackHeight int) (transactions []*model.MatchItem, err error)
+	RollbackTransactions(beginRollbackHeight int64, endRollbackHeight int64) (transactions []*model.MatchItem, err error)
 }
 
 type matchTransactionDAO struct {
@@ -24,7 +24,7 @@ type matchTransactionDAO struct {
 }
 
 func (t *matchTransactionDAO) CreateMatchTransaction(transaction *model.MatchTransaction) error {
-	jsonData, err := json.Marshal(transaction.MatchItems)
+	jsonData, err := json.Marshal(transaction.MatchResult)
 	if err != nil {
 		return fmt.Errorf("CreateMatchTransaction:%w", err)
 	}
@@ -36,18 +36,15 @@ func (t *matchTransactionDAO) CreateMatchTransaction(transaction *model.MatchTra
 	return nil
 }
 
-func (t *matchTransactionDAO) GetMatchTransaction(ID string, forUpdate bool) (*model.MatchTransaction, error) {
+func (t *matchTransactionDAO) GetMatchTransaction(ID string) (*model.MatchTransaction, error) {
 	var transaction model.MatchTransaction
 
 	db := t.db
-	if forUpdate {
-		db = db.Set("gorm:query_option", "FOR UPDATE")
-	}
 	if err := db.Where("id = ?", ID).First(&transaction).Error; err != nil {
 		return nil, fmt.Errorf("GetMatchTransaction:%w", err)
 	}
 
-	if err := json.Unmarshal([]byte(transaction.MatchJson), &transaction.MatchItems); err != nil {
+	if err := json.Unmarshal([]byte(transaction.MatchJson), &transaction.MatchResult); err != nil {
 		return nil, fmt.Errorf("GetMatchTransaction:%w", err)
 	}
 
@@ -68,7 +65,7 @@ func (t *matchTransactionDAO) QueryMatchTransaction(address string, status []mod
 	}
 
 	for _, transaction := range transactions {
-		if err := json.Unmarshal([]byte(transaction.MatchJson), &transaction.MatchItems); err != nil {
+		if err := json.Unmarshal([]byte(transaction.MatchJson), &transaction.MatchResult); err != nil {
 			return nil, fmt.Errorf("QueryMatchTransaction:%w", err)
 		}
 	}
@@ -76,7 +73,7 @@ func (t *matchTransactionDAO) QueryMatchTransaction(address string, status []mod
 }
 
 func (t *matchTransactionDAO) UpdateMatchTransaction(transaction *model.MatchTransaction) error {
-	jsonData, err := json.Marshal(transaction.MatchItems)
+	jsonData, err := json.Marshal(transaction.MatchResult)
 	if err != nil {
 		return fmt.Errorf("CreateMatchTransaction:%w", err)
 	}
@@ -104,14 +101,14 @@ func (t *matchTransactionDAO) QueryUnconfirmedTransactionsByContract(address str
 	return
 }
 
-func (t *matchTransactionDAO) RollbackTransactions(beginRollbackHeight int, endRollbackHeight int) (items []*model.MatchItem, err error) {
+func (t *matchTransactionDAO) RollbackTransactions(beginRollbackHeight int64, endRollbackHeight int64) (items []*model.MatchItem, err error) {
 	transactions := make([]*model.MatchTransaction, 0)
 	if err = t.db.Where("block_confirmed = ?", true).Where("block_number >= ? AND block_number < ?", beginRollbackHeight, endRollbackHeight).Find(&transactions).Error; err != nil {
 		err = fmt.Errorf("QueryTransactions:%w", err)
 		return
 	}
 	for _, transaction := range transactions {
-		if err := json.Unmarshal([]byte(transaction.MatchJson), &transaction.MatchItems); err != nil {
+		if err := json.Unmarshal([]byte(transaction.MatchJson), &transaction.MatchResult); err != nil {
 			return items, fmt.Errorf("QueryMatchTransaction:%w", err)
 		}
 
@@ -119,7 +116,7 @@ func (t *matchTransactionDAO) RollbackTransactions(beginRollbackHeight int, endR
 		if err = t.db.Save(transaction).Error; err != nil {
 			return items, fmt.Errorf("UpdateMatchTransaction status:%w", err)
 		}
-		items = append(items, transaction.MatchItems...)
+		items = append(items, transaction.MatchResult.ReceiptItems...)
 	}
 	return
 }

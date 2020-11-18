@@ -20,9 +20,8 @@ type ApiError struct {
 
 const (
 	// MinOrderExpiration and MaxOrderExpiration represents the valid range of order expiration time;
-	// Any duration lower than MinOrderExpiration will be set to MaxOrderExpiration.
-	MinOrderExpiration = time.Minute * 5
-	MaxOrderExpiration = time.Hour * 24 * 30
+	MinOrderExpiration = time.Hour * 24
+	MaxOrderExpiration = time.Hour * 24 * 90
 )
 
 // Unwrap extract internal error in ApiError
@@ -145,9 +144,13 @@ func MaxStopNumReachError() *ApiError {
 	return &ApiError{Code: -18, Desc: "cannot create more stop order"}
 }
 
-func OrderIDExistError(id string) *ApiError {
-	return &ApiError{Code: -19, Desc: fmt.Sprintf("order id[%s] exist", id),
-		Params: []string{id}}
+func OrderHashExistError(orderHash string) *ApiError {
+	return &ApiError{Code: -19, Desc: fmt.Sprintf("order hash[%s] exist", orderHash),
+		Params: []string{orderHash}}
+}
+
+func BrokerAddressError(address string) *ApiError {
+	return &ApiError{Code: -20, Desc: fmt.Sprintf("Invalid broker address [%s]", address)}
 }
 
 // If you add api error, do forget to edit app.vue & en.js(api segment) in FE.

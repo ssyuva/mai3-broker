@@ -8,7 +8,7 @@ create table perpetuals
   collateral_address text not null,
   contract_type text not null,
   is_published boolean not null default true,
-  broker_address text not null
+  block_number bigint not null
 );
 
 create unique index idx_perpetual_address on perpetuals (perpetual_address);
@@ -23,7 +23,7 @@ create table orders
   side text not null,
   price numeric(32,18) not null,
   amount numeric(32,18) not null,
-  version text not null,
+  version integer not null,
   expires_at timestamp,
   salt bigint not null,
   is_close_only boolean not null DEFAULT FALSE,
@@ -50,7 +50,7 @@ create index idx_trader_status on orders (trader_address, status, created_at); -
 
 create table match_transactions
 (
-  id SERIAL PRIMARY KEY,
+  id text PRIMARY KEY,
   perpetual_address text not null,
   match_json text not null,
   status text not null,
@@ -68,14 +68,14 @@ create index idx_match_transactions_block_number on match_transactions(block_num
 create table watchers
 (
   id SERIAL PRIMARY KEY,
-  synced_block_number integer not null,
-  initial_block_number integer not null
+  synced_block_number bigint not null,
+  initial_block_number bigint not null
 );
 
 create table synced_blocks
 (
   watcher_id integer not null,
-  block_number integer not null,
+  block_number bigint not null,
   block_hash text not null,
   parent_hash text not null,
   block_time timestamp not null,
@@ -88,3 +88,35 @@ create table broker_nonces
   nonce integer not null,
   updated_at timestamp not null
 );
+
+create table launch_transactions
+(
+  id SERIAL PRIMARY KEY,
+  tx_id text not null,
+  from_address text,
+  to_address text,
+  type integer,
+  inputs bytea,
+  block_number bigint,
+  block_hash text,
+  block_time bigint,
+  transaction_hash text,
+  nonce bigint,
+  gas_price bigint,
+  gas_limit bigint,
+  gas_used bigint,
+  status integer,
+  value numeric(78,18),
+  commit_time timestamp,
+  update_time timestamp
+);
+
+create index idx_transactions_tx_id on launch_transactions (tx_id);
+
+create table kv_stores
+(
+  key text not null PRIMARY KEY,
+  category text not null,
+  value bytea,
+  update_time timestamp
+)

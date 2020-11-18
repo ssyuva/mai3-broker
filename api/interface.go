@@ -8,7 +8,7 @@ type (
 	// BaseReq represents a basic request data containing wallet addresses
 	// from which the request is sent
 	BaseReq struct {
-		Address string `json:"address"`
+		Address string `json:"address" query:"address"`
 	}
 
 	// BaseResp represents a basic response data containing status and description to indicates
@@ -22,6 +22,7 @@ type (
 		BaseReq
 		OrderHash        string `json:"orderHash"  validate:"required"`
 		PerpetualAddress string `json:"perpetualAddress"  validate:"required"`
+		BrokerAddress    string `json:"brokerAddress" validate:"required"`
 		OrderType        string `json:"orderType" validate:"required,oneof=limit stop-limit"`
 		Price            string `json:"price"     validate:"required"`
 		StopPrice        string `json:"stopPrice"`
@@ -31,6 +32,7 @@ type (
 		Timestamp        int64  `json:"timestamp" validate:"timestamp"`
 		Signature        string `json:"Signature" validate:"required"`
 		IsCloseOnly      bool   `json:"isCloseOnly" validate:"required"`
+		ChainID          int64  `json:"chainID" valiadte:"required"`
 	}
 
 	PlaceOrderResp struct {

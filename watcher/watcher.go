@@ -48,6 +48,7 @@ func (w *Watcher) AddBlockSyncer(syncer syncer.BlockSyncer) {
 }
 
 func (w *Watcher) Start() error {
+	logger.Infof("Watcher start")
 	if err := w.EnsureWatcherRecord(); err != nil {
 		return fmt.Errorf("init watcher db failed:%w", err)
 	}
@@ -55,7 +56,7 @@ func (w *Watcher) Start() error {
 	for {
 		select {
 		case <-w.ctx.Done():
-			logger.Info("background watcher quits")
+			logger.Info("Watcher receive conext done")
 			return nil
 		case <-time.After(conf.Conf.BlockChain.Interval.Duration):
 			if err := w.Sync(); err != nil {
@@ -111,7 +112,7 @@ func (w *Watcher) Sync() error {
 	return nil
 }
 
-func (w *Watcher) syncFrom(forceRollback int) (syncedCount int, err error) {
+func (w *Watcher) syncFrom(forceRollback int64) (syncedCount int, err error) {
 	// parameters
 	syncCtx := syncer.NewSyncBlockContext()
 	syncCtx.ForceRollback = forceRollback
@@ -174,16 +175,17 @@ func (w *Watcher) innerSync(syncCtx *syncer.SyncBlockContext) (err error) {
 	}
 
 	// limit the syncing range
-	partialSync := -1
+	var partialSync int64
+	partialSync = -1
 	if syncCtx.ForceRollback >= 0 {
 		if syncCtx.LatestBlockNumber > syncCtx.ForceRollback+MatureBlocks {
-			partialSync = syncCtx.ForceRollback + MatureBlocks
+			partialSync = syncCtx.ForceRollback + int64(MatureBlocks)
 			logger.Warnf("the sync range is too wide, let us partially sync [force %v, %v]",
 				syncCtx.ForceRollback, partialSync)
 		}
 	} else {
 		if syncCtx.LatestBlockNumber > syncCtx.WatcherW.SyncedBlockNumber+MatureBlocks {
-			partialSync = syncCtx.WatcherW.SyncedBlockNumber + MatureBlocks
+			partialSync = syncCtx.WatcherW.SyncedBlockNumber + int64(MatureBlocks)
 			logger.Warnf("the sync range is too wide, let us partially sync [auto %v, %v]",
 				syncCtx.WatcherW.SyncedBlockNumber, partialSync)
 		}
@@ -225,7 +227,7 @@ func (w *Watcher) innerSync(syncCtx *syncer.SyncBlockContext) (err error) {
 }
 
 func (w *Watcher) innerTraceAncestor(syncCtx *syncer.SyncBlockContext) (err error) {
-	var i int
+	var i int64
 	for i = syncCtx.LatestBlockNumber; i > syncCtx.WatcherW.InitialBlockNumber; i-- {
 		if i%1000 == 0 {
 			logger.Infof("checking the latest block[%v]", i)

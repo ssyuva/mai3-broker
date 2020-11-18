@@ -14,6 +14,7 @@ type Config struct {
 	DataBaseURL    string     `toml:"database_url"`
 	JwtSecret      string     `toml:"jwt_secret"`
 	FactoryAddress string     `toml:"factory_address"`
+	BrokerAddress  string     `toml:"broker_address"`
 	WatcherID      int        `toml:"watcher_id"`
 	BlockChain     blockchain `toml:"blockchain"`
 }

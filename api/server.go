@@ -95,13 +95,13 @@ func (s *Server) Start() error {
 }
 
 func (s *Server) initRouter() {
-	eg := s.e.Group("/orders", MaiAuthMiddleware, JwtAuthMiddleware, CheckAuthMiddleware)
+	eg := s.e.Group("/orders")
 	addGroupRoute(eg, "GET", "", &QueryOrderReq{}, s.GetOrders)
 	addGroupRoute(eg, "GET", "/:orderHash", &QuerySingleOrderReq{}, s.GetOrderByOrderHash)
 	addGroupRoute(eg, "POST", "/byhashs", &QueryOrdersByOrderHashsReq{}, s.GetOrdersByOrderHashs)
 	addGroupRoute(eg, "POST", "", &PlaceOrderReq{}, s.PlaceOrder)
-	addGroupRoute(eg, "DELETE", "/:orderHash", &CancelOrderReq{}, s.CancelOrder)
-	addGroupRoute(eg, "DELETE", "", &CancelAllOrdersReq{}, s.CancelAllOrders)
+	addGroupRoute(eg, "DELETE", "/:orderHash", &CancelOrderReq{}, s.CancelOrder, MaiAuthMiddleware, JwtAuthMiddleware, CheckAuthMiddleware)
+	addGroupRoute(eg, "DELETE", "", &CancelAllOrdersReq{}, s.CancelAllOrders, MaiAuthMiddleware, JwtAuthMiddleware, CheckAuthMiddleware)
 
 	addRoute(s.e, "GET", "/jwt", &BaseReq{}, GetJwtAuth, MaiAuthMiddleware, CheckAuthMiddleware)
 }

@@ -25,13 +25,18 @@ const (
 	TransactionStatusAbort TransactionStatus = "ABORT"
 )
 
+type MatchResult struct {
+	MatchItems   []*MatchItem `json:"matchItems"`
+	ReceiptItems []*MatchItem `json:"receiptItems"`
+}
 type MatchItem struct {
 	OrderHash string          `json:"orderHash"`
+	Order     *Order          `json:"-"`
 	Amount    decimal.Decimal `json:"amount"`
 }
 
 type MatchTransaction struct {
-	ID               int64             `json:"id" db:"id" primaryKey:"true" gorm:"primary_key"`
+	ID               string            `json:"id" db:"id" primaryKey:"true" gorm:"primary_key"`
 	PerpetualAddress string            `json:"perpetualAddress" db:"perpetual_address"`
 	MatchJson        string            `json:"-" db:"match_json"`
 	Status           TransactionStatus `json:"status" db:"status"`
@@ -41,7 +46,7 @@ type MatchTransaction struct {
 	TransactionHash  null.String       `json:"transactionHash" db:"transaction_hash"`
 	CreatedAt        time.Time         `json:"createdAt" db:"created_at"`
 	ExecutedAt       null.Time         `json:"executedAt" db:"executed_at"`
-	MatchItems       []*MatchItem      `json:"matchItems" sql:"-"`
+	MatchResult      MatchResult       `json:"matchResult" sql:"-"`
 }
 
 func (MatchTransaction) TableName() string {

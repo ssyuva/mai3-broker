@@ -8,6 +8,19 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+var (
+	wad, _  = decimal.NewFromString("1000000000000000000")
+	rate, _ = decimal.NewFromString("10000")
+)
+
+func ToWad(n decimal.Decimal) decimal.Decimal {
+	return n.Mul(wad)
+}
+
+func ToRate(n decimal.Decimal) decimal.Decimal {
+	return n.Mul(rate)
+}
+
 func String2BigInt(str string) (*big.Int, error) {
 	n := new(big.Int)
 	if _, ok := n.SetString(str, 0); !ok {

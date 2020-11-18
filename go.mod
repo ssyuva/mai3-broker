@@ -9,11 +9,14 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/ethereum/go-ethereum v1.9.12
 	github.com/go-redis/redis/v7 v7.2.0
+	github.com/google/uuid v1.1.1
 	github.com/gorilla/websocket v1.4.1
 	github.com/jinzhu/gorm v1.9.12
 	github.com/labstack/echo v3.3.10+incompatible
-	github.com/labstack/gommon v0.3.0 // indirect
+	github.com/mcarloai/dex-be-common v0.1.31 // indirect
+	github.com/pborman/uuid v1.2.0
 	github.com/petar/GoLLRB v0.0.0-20190514000832-33fb24c13b99
+	github.com/pkg/errors v0.9.1
 	github.com/satori/go.uuid v1.2.0
 	github.com/shopspring/decimal v1.2.0
 	github.com/sirupsen/logrus v1.4.2
@@ -21,6 +24,7 @@ require (
 	github.com/ulule/limiter/v3 v3.5.0
 	github.com/valyala/fasttemplate v1.2.1 // indirect
 	golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897
+	golang.org/x/net v0.0.0-20200301022130-244492dfa37a
 	gopkg.in/go-playground/validator.v9 v9.31.0
 	gopkg.in/guregu/null.v3 v3.5.0
 )
