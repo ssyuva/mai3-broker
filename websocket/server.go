@@ -8,7 +8,6 @@ import (
 	"net"
 	"net/http"
 	"runtime"
-	"strings"
 	"sync"
 	"time"
 
@@ -42,11 +41,11 @@ var (
 	}
 )
 
-type loginResponse struct {
-	Type string `json:"type"`
-	Code int    `json:"code"`
-	Desc string `json:"desc"`
-}
+// type loginResponse struct {
+// 	Type string `json:"type"`
+// 	Code int    `json:"code"`
+// 	Desc string `json:"desc"`
+// }
 
 type subScribeResponse struct {
 	Type    string `json:"type"`
@@ -109,28 +108,28 @@ func handleClientRequest(client *Client) {
 		switch req.Type {
 		case "ping":
 			client.SendMsg(pongResp)
-		case "login":
-			loginResp := loginResponse{Type: "login", Code: 0, Desc: "login success"}
-			trader, err := loginAuth(req.Jwt, req.MaiToken)
-			if err != nil {
-				logger.Errorf("login auth err:%s", err.Error())
-				loginResp.Code = -1
-				loginResp.Desc = err.Error()
-			} else {
-				client.AddLoginAddress(trader)
-			}
-			client.SendMsg(loginResp)
+		// case "login":
+		// 	loginResp := loginResponse{Type: "login", Code: 0, Desc: "login success"}
+		// 	trader, err := loginAuth(req.Jwt, req.MaiToken)
+		// 	if err != nil {
+		// 		logger.Errorf("login auth err:%s", err.Error())
+		// 		loginResp.Code = -1
+		// 		loginResp.Desc = err.Error()
+		// 	} else {
+		// 		client.AddLoginAddress(trader)
+		// 	}
+		// 	client.SendMsg(loginResp)
 
 		case "subscribe":
 			for _, id := range req.Channels {
-				// TraderAddress check login
-				if strings.HasPrefix(id, message.AccountChannelPrefix) {
-					parts := strings.Split(id, "#")
-					if len(parts) != 2 || !client.CheckLogin(parts[1]) {
-						client.SendMsg(subScribeResponse{Type: "subscribeError", Channel: id, Code: -1, Desc: "need login"})
-						continue
-					}
-				}
+				// // TraderAddress check login
+				// if strings.HasPrefix(id, message.AccountChannelPrefix) {
+				// 	parts := strings.Split(id, "#")
+				// 	if len(parts) != 2 || !client.CheckLogin(parts[1]) {
+				// 		client.SendMsg(subScribeResponse{Type: "subscribeError", Channel: id, Code: -1, Desc: "need login"})
+				// 		continue
+				// 	}
+				// }
 				channel := findChannel(id)
 				if channel == nil {
 					// There is a risk to let user create channel freely.

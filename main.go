@@ -47,10 +47,10 @@ func main() {
 
 	var chainCli chain.ChainClient
 	chainCli, err = ethereum.NewClient(ctx, conf.Conf.BlockChain.ProviderURL)
-        if err != nil {
-                logger.Errorf("init ethereum client error:%s", err.Error())
-                os.Exit(-3)
-        }
+	if err != nil {
+		logger.Errorf("init ethereum client error:%s", err.Error())
+		os.Exit(-3)
+	}
 
 	// msg chan for websocket message
 	wsChan := make(chan interface{}, 100)
@@ -99,7 +99,7 @@ func main() {
 	// start launcher
 	launcherErrChan := make(chan error, 1)
 	wg.Add(1)
-	launch := launcher.NewLaunch(ctx, dao, chainCli, wsChan, matchChan)
+	launch := launcher.NewLaunch(ctx, conf.Conf.BrokerAddress, dao, chainCli, wsChan, matchChan)
 	go func() {
 		defer wg.Done()
 		if err := launch.Start(); err != nil {

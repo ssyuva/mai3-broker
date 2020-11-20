@@ -29,7 +29,7 @@ type (
 		Amount           string `json:"amount"    validate:"required"`
 		Expires          int64  `json:"expires"`
 		Salt             int64  `json:"salt" validate:"required"`
-		Timestamp        int64  `json:"timestamp" validate:"timestamp"`
+		Timestamp        int64  `json:"timestamp" validate:"required"`
 		Signature        string `json:"Signature" validate:"required"`
 		IsCloseOnly      bool   `json:"isCloseOnly" validate:"required"`
 		ChainID          int64  `json:"chainID" valiadte:"required"`
@@ -46,7 +46,7 @@ type (
 
 	CancelAllOrdersReq struct {
 		BaseReq
-		MarketID string `json:"marketID"`
+		PerpetualAddress string `json:"perpetualAddress"`
 	}
 
 	QuerySingleOrderReq struct {
@@ -74,6 +74,15 @@ type (
 
 	QueryOrdersResp struct {
 		Orders []*model.Order `json:"orders"`
+	}
+
+	GetPerpetualReq struct {
+		BaseReq
+		PerpetualAddress string `json:"perpetualAddress" param:"perpetual" validate:"required"`
+	}
+
+	GetPerpetualResp struct {
+		Perpetual *model.Perpetual `json:"perpetual"`
 	}
 )
 

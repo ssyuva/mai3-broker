@@ -1,7 +1,7 @@
 package api
 
 import (
-	"context"
+	// "context"
 	"errors"
 	"fmt"
 	"github.com/mcarloai/mai-v3-broker/common/mai3"
@@ -10,7 +10,7 @@ import (
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/mcarloai/mai-v3-broker/conf"
 	"github.com/mcarloai/mai-v3-broker/dao"
-	"github.com/mcarloai/mai-v3-broker/perp"
+	// "github.com/mcarloai/mai-v3-broker/perp"
 	"github.com/shopspring/decimal"
 	"strings"
 	"time"
@@ -193,21 +193,21 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 	}
 
 	// get accountStorage
-	ctx, cancel := context.WithTimeout(s.ctx, conf.Conf.BlockChain.Timeout.Duration)
-	defer cancel()
-	accountContext, err := s.chainCli.GetMarginAccount(ctx, order.PerpetualAddress, order.TraderAddress)
-	if err != nil {
-		return nil, InternalError(err)
-	}
+	// ctx, cancel := context.WithTimeout(s.ctx, conf.Conf.BlockChain.Timeout.Duration)
+	// defer cancel()
+	// accountContext, err := s.chainCli.GetMarginAccount(ctx, order.PerpetualAddress, order.TraderAddress)
+	// if err != nil {
+	// 	return nil, InternalError(err)
+	// }
 
-	// TODO perp storage
-	orderContext := &perp.OrderContext{Account: accountContext}
+	// // TODO perp storage
+	// orderContext := &perp.OrderContext{Account: accountContext}
 
 	// check margin balance
-	actives, err := s.dao.QueryOrder(order.TraderAddress, order.PerpetualAddress, []model.OrderStatus{model.OrderPending, model.OrderStop}, 0, 0, 0)
-	if err != nil {
-		return nil, InternalError(fmt.Errorf("QueryOrder:%w", err))
-	}
+	// actives, err := s.dao.QueryOrder(order.TraderAddress, order.PerpetualAddress, []model.OrderStatus{model.OrderPending, model.OrderStop}, 0, 0, 0)
+	// if err != nil {
+	// 	return nil, InternalError(fmt.Errorf("QueryOrder:%w", err))
+	// }
 	//3. close only
 
 	if err := s.dao.CreateOrder(order); err != nil {
@@ -319,7 +319,7 @@ func (s *Server) CancelOrder(p Param) (interface{}, error) {
 
 func (s *Server) CancelAllOrders(p Param) (interface{}, error) {
 	params := p.(*CancelAllOrdersReq)
-	orders, err := s.dao.QueryOrder(params.Address, "", []model.OrderStatus{model.OrderPending, model.OrderStop}, 0, 0, 0)
+	orders, err := s.dao.QueryOrder(params.Address, params.PerpetualAddress, []model.OrderStatus{model.OrderPending, model.OrderStop}, 0, 0, 0)
 	if err != nil {
 		return nil, InternalError(err)
 	}

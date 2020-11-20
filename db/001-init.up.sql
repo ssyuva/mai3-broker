@@ -6,7 +6,8 @@ create table perpetuals
   symbol text not null,
   collateral_token_symbol text not null,
   collateral_address text not null,
-  contract_type text not null,
+  broker_address text not null,
+  version integer not null,
   is_published boolean not null default true,
   block_number bigint not null
 );
@@ -19,7 +20,7 @@ create table orders
   id SERIAL PRIMARY KEY,
   order_hash text not null,
   trader_address text not null,
-  type text not null,
+  type integer not null,
   side text not null,
   price numeric(32,18) not null,
   amount numeric(32,18) not null,
