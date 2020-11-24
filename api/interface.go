@@ -23,7 +23,9 @@ type (
 		OrderHash        string `json:"orderHash"  validate:"required"`
 		PerpetualAddress string `json:"perpetualAddress"  validate:"required"`
 		BrokerAddress    string `json:"brokerAddress" validate:"required"`
-		OrderType        string `json:"orderType" validate:"required,oneof=limit stop-limit"`
+		RelayerAddress   string `json:"relayerAddress" validate:"required"`
+		ReferrerAddress  string `json:"referrerAddress"`
+		OrderType        int    `json:"orderType" validate:"required,oneof=0 1 2"`
 		Price            string `json:"price"     validate:"required"`
 		StopPrice        string `json:"stopPrice"`
 		Amount           string `json:"amount"    validate:"required"`

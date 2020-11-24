@@ -7,7 +7,7 @@ import (
 	"github.com/mcarloai/mai-v3-broker/common/mai3/crypto"
 	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
 	"github.com/shopspring/decimal"
-	"strconv"
+	"math/big"
 	"strings"
 )
 
@@ -18,7 +18,7 @@ var EIP712_MAI3_ORDER_TYPE []byte
 
 func init() {
 	EIP712_DOMAIN_TYPEHASH = crypto.Keccak256([]byte(`EIP712Domain(string name)`))
-	EIP712_MAI3_ORDER_TYPE = crypto.Keccak256([]byte(`Order(address trader,address broker,address perpetual,uint256 amount,uint256 price,bytes32 data)`))
+	EIP712_MAI3_ORDER_TYPE = crypto.Keccak256([]byte(`Order(address trader,address broker,address relayer,address perpetual,address referrer,int256 amount,int256 price,uint64 deadline,uint32 version,uint8 orderType,bool closeOnly,uint64 salt,uint256 chainID)`))
 }
 
 func feeRateToHex(rate decimal.Decimal) string {
@@ -39,38 +39,13 @@ func addLeadingZero(data string, length int) string {
 	return strings.Repeat("0", length-len(data)) + data
 }
 
-func GenerateOrderData(version MaiProtocolVersion, expiredAtSeconds, salt, chainID int64, isSell, isMarket, isCloseOnly bool) string {
-	data := strings.Builder{}
-	data.WriteString("0x")
-	data.WriteString(addLeadingZero(strconv.FormatInt(int64(version), 16), 2))
-	if isSell {
-		data.WriteString("01")
-	} else {
-		data.WriteString("00")
-	}
-
-	if isMarket {
-		data.WriteString("01")
-	} else {
-		data.WriteString("00")
-	}
-
-	data.WriteString(addLeadingZero(fmt.Sprintf("%x", expiredAtSeconds), 5*2))
-	data.WriteString(addLeadingZero(fmt.Sprintf("%x", salt), 8*2))
-
-	if isCloseOnly {
-		data.WriteString("01")
-	} else {
-		data.WriteString("00")
-	}
-
-	data.WriteString(addLeadingZero(fmt.Sprintf("%x", chainID), 8*2))
-
-	return addTailingZero(data.String(), 66)
-}
-
-func GetOrderHash(traderAddress, relayerAddress, contractAddress, orderData string, amount, price decimal.Decimal) ([]byte, error) {
+func GetOrderHash(traderAddress, brokerAddress, relayerAddress, contractAddress, referrerAddress string, amount, price decimal.Decimal,
+	expiredAtSeconds int64, version int32, ordrType int8, isCloseOnly bool, salt, chainID int64) ([]byte, error) {
 	trader, err := utils.HexToHash(traderAddress)
+	if err != nil {
+		return nil, fmt.Errorf("GetOrderHash:%w", err)
+	}
+	broker, err := utils.HexToHash(brokerAddress)
 	if err != nil {
 		return nil, fmt.Errorf("GetOrderHash:%w", err)
 	}
@@ -82,23 +57,36 @@ func GetOrderHash(traderAddress, relayerAddress, contractAddress, orderData stri
 	if err != nil {
 		return nil, fmt.Errorf("GetOrderHash:%w", err)
 	}
-
-	amountBin := utils.BytesToHash(utils.MustDecimalToBigInt(amount).Bytes())
-	priceBin := utils.BytesToHash(utils.MustDecimalToBigInt(price).Bytes())
-	orderDataBin, err := utils.HexToHash(orderData)
+	referrer, err := utils.HexToHash(referrerAddress)
 	if err != nil {
 		return nil, fmt.Errorf("GetOrderHash:%w", err)
 	}
+
+	amountBin := utils.BytesToHash(utils.MustDecimalToBigInt(amount).Bytes())
+	priceBin := utils.BytesToHash(utils.MustDecimalToBigInt(price).Bytes())
+	expiredAtSecondsBin := utils.BytesToHash(utils.Int64ToBytes(expiredAtSeconds))
+	versionBin := utils.BytesToHash(utils.Int32ToBytes(version))
+	ordrTypeBin := utils.BytesToHash(utils.Int8ToBytes(ordrType))
+	isCloseOnlyBin := utils.BytesToHash(utils.BoolToBytes(isCloseOnly))
+	saltBin := utils.BytesToHash(utils.Int64ToBytes(salt))
+	chainIDBin := utils.BytesToHash(big.NewInt(chainID).Bytes())
 
 	hash := getEIP712MessageHash(
 		crypto.Keccak256(
 			EIP712_MAI3_ORDER_TYPE,
 			trader.Bytes(),
+			broker.Bytes(),
 			relayer.Bytes(),
 			contract.Bytes(),
+			referrer.Bytes(),
 			amountBin.Bytes(),
 			priceBin.Bytes(),
-			orderDataBin.Bytes(),
+			expiredAtSecondsBin.Bytes(),
+			versionBin.Bytes(),
+			ordrTypeBin.Bytes(),
+			isCloseOnlyBin.Bytes(),
+			saltBin.Bytes(),
+			chainIDBin.Bytes(),
 		),
 	)
 	return hash, nil

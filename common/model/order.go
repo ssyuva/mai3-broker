@@ -23,11 +23,11 @@ const (
 	CancelReasonContractSettled              CancelReasonType = "CONTRACT_SETTLED"
 )
 
-type OrderType string
+type OrderType int
 
 const (
-	LimitOrder     OrderType = "limit"
-	StopLimitOrder OrderType = "stop-limit"
+	LimitOrder     OrderType = 1
+	StopLimitOrder OrderType = 2
 )
 
 type OrderStatus string
@@ -50,7 +50,9 @@ const (
 type OrderParam struct {
 	TraderAddress    string          `json:"traderAddress" db:"trader_address"`
 	PerpetualAddress string          `json:"perpetualAddress" db:"perpetual_address"`
+	RelayerAddress   string          `json:"relayerAddress" db:"relayer_address"`
 	BrokerAddress    string          `json:"brokerAddress" db:"broker_address"`
+	ReferrerAddress  string          `json:"referrerAddress" db:"referrer_address"`
 	Type             OrderType       `json:"type" db:"type"`
 	Side             OrderSide       `json:"side" db:"side"`
 	Price            decimal.Decimal `json:"price" db:"price"`

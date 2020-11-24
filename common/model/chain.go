@@ -6,13 +6,6 @@ import (
 	"time"
 )
 
-type AccountStorage struct {
-	CashBalance      decimal.Decimal
-	Position         decimal.Decimal
-	EntrySocialLoss  decimal.Decimal
-	EntryFundingLoss decimal.Decimal
-}
-
 type BlockHeader struct {
 	BlockNumber int64
 	BlockHash   string
@@ -47,21 +40,6 @@ type PerpetualEvent struct {
 	PerpetualAddress string
 	OracleAddress    string
 	OperatorAddress  string
-}
-
-type PerpetualStorage struct {
-	Leverage        decimal.Decimal
-	Cash            decimal.Decimal
-	Position        decimal.Decimal
-	IndexPrice      decimal.Decimal
-	Beta            decimal.Decimal
-	Beta2           decimal.Decimal
-	Fee             decimal.Decimal
-	Spread          decimal.Decimal
-	Gama            decimal.Decimal
-	LastFundingTime int64
-	FundingRate     decimal.Decimal
-	IndexBuffer     decimal.Decimal
 }
 
 type WalletSignature struct {

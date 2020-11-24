@@ -18,6 +18,8 @@ import (
 
 const TIMESTAMP_RANGE = 5 * 60
 
+const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000"
+
 func (s *Server) GetOrders(p Param) (interface{}, error) {
 	params := p.(*QueryOrderReq)
 	var beforeOrderID, afterOrderID int64
@@ -116,7 +118,7 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 	order := &model.Order{}
 	order.OrderHash = params.OrderHash
 	order.OrderParam.TraderAddress = strings.ToLower(params.Address)
-	if params.OrderType == string(model.LimitOrder) {
+	if params.OrderType == model.LimitOrder {
 		order.OrderParam.Type = model.LimitOrder
 		order.Status = model.OrderPending
 	} else {
@@ -142,6 +144,11 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 	order.OrderParam.ExpiresAt = time.Unix(expiresAt, 0).UTC()
 	order.OrderParam.Salt = params.Salt
 	order.PerpetualAddress = strings.ToLower(params.PerpetualAddress)
+	order.BrokerAddress = strings.ToLower(params.BrokerAddress)
+	order.RelayerAddress = strings.ToLower(params.RelayerAddress)
+	if params.ReferrerAddress == "" {
+		order.ReferrerAddress = ADDRESS_ZERO
+	}
 	order.AvailableAmount = order.OrderParam.Amount
 	order.ConfirmedAmount = decimal.Zero
 	order.CanceledAmount = decimal.Zero
@@ -151,15 +158,8 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 	order.UpdatedAt = now
 
 	// check orderhash
-	orderData := mai3.GenerateOrderData(
-		mai3.ProtocolV3,
-		expiresAt,
-		params.Salt,
-		params.ChainID,
-		order.Side == model.SideSell,
-		false,
-		order.IsCloseOnly)
-	orderHash, err := mai3.GetOrderHash(order.TraderAddress, order.BrokerAddress, order.PerpetualAddress, orderData, amount, order.Price)
+	orderHash, err := mai3.GetOrderHash(order.TraderAddress, order.BrokerAddress, order.RelayerAddress, order.PerpetualAddress, order.ReferrerAddress,
+		amount, order.Price, expiresAt, order.Version, int8(order.Type), order.IsCloseOnly, order.OrderParam.Salt, order.OrderParam.ChainID)
 	if err != nil {
 		return nil, InternalError(fmt.Errorf("get order hash fail"))
 	}

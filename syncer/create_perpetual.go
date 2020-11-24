@@ -54,6 +54,7 @@ func (c *CreatePerpetualSyncer) Forward(syncCtx *SyncBlockContext) error {
 			logger.Errorf("watcher perpetual already exists:%s", event.PerpetualAddress)
 			continue
 		}
+		//TODO CreatePerpetual event
 		dbPerpetual := &model.Perpetual{
 			PerpetualAddress: event.PerpetualAddress,
 			OracleAddress:    event.OracleAddress,
