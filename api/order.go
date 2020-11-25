@@ -118,7 +118,7 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 	order := &model.Order{}
 	order.OrderHash = params.OrderHash
 	order.OrderParam.TraderAddress = strings.ToLower(params.Address)
-	if params.OrderType == model.LimitOrder {
+	if params.OrderType == int(model.LimitOrder) {
 		order.OrderParam.Type = model.LimitOrder
 		order.Status = model.OrderPending
 	} else {
@@ -161,7 +161,7 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 	orderHash, err := mai3.GetOrderHash(order.TraderAddress, order.BrokerAddress, order.RelayerAddress, order.PerpetualAddress, order.ReferrerAddress,
 		amount, order.Price, expiresAt, order.Version, int8(order.Type), order.IsCloseOnly, order.OrderParam.Salt, order.OrderParam.ChainID)
 	if err != nil {
-		return nil, InternalError(fmt.Errorf("get order hash fail"))
+		return nil, InternalError(fmt.Errorf("get order hash fail err:%s", err))
 	}
 
 	if utils.Bytes2HexP(orderHash) != params.OrderHash {
@@ -277,7 +277,7 @@ func validatePlaceOrder(req *PlaceOrderReq) error {
 	}
 
 	// Price OrderType
-	if req.OrderType == string(model.StopLimitOrder) {
+	if req.OrderType == int(model.StopLimitOrder) {
 		stopPrice, err := decimal.NewFromString(req.StopPrice)
 		if err != nil {
 			return InvalidPriceAmountError(fmt.Sprintf("parse price[%s] error", req.StopPrice))
@@ -286,7 +286,7 @@ func validatePlaceOrder(req *PlaceOrderReq) error {
 		if stopPrice.LessThanOrEqual(decimal.Zero) {
 			return InvalidPriceAmountError("stop price <= 0")
 		}
-	} else if req.OrderType != string(model.LimitOrder) {
+	} else if req.OrderType != int(model.LimitOrder) {
 		return InternalError(errors.New("order type must be limit/stop-limit"))
 	}
 

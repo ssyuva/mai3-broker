@@ -18,7 +18,7 @@ var EIP712_MAI3_ORDER_TYPE []byte
 
 func init() {
 	EIP712_DOMAIN_TYPEHASH = crypto.Keccak256([]byte(`EIP712Domain(string name)`))
-	EIP712_MAI3_ORDER_TYPE = crypto.Keccak256([]byte(`Order(address trader,address broker,address relayer,address perpetual,address referrer,int256 amount,int256 price,uint64 deadline,uint32 version,uint8 orderType,bool closeOnly,uint64 salt,uint256 chainID)`))
+	EIP712_MAI3_ORDER_TYPE = crypto.Keccak256([]byte(`Order(address trader,address broker,address relayer,address perpetual,address referrer,int256 amount,int256 priceLimit,uint64 deadline,uint32 version,OrderType orderType,bool isCloseOnly,uint64 salt,uint256 chainID)`))
 }
 
 func feeRateToHex(rate decimal.Decimal) string {
@@ -95,14 +95,19 @@ func GetOrderHash(traderAddress, brokerAddress, relayerAddress, contractAddress,
 func getDomainSeparator() []byte {
 	return crypto.Keccak256(
 		EIP712_DOMAIN_TYPEHASH,
-		crypto.Keccak256([]byte("Mai Protocol")),
+		crypto.Keccak256([]byte("Mai Protocol v3")),
 	)
 }
 
 func getEIP712MessageHash(message []byte) []byte {
-	return crypto.Keccak256(
+	hash := crypto.Keccak256(
 		[]byte{'\x19', '\x01'},
 		getDomainSeparator(),
 		message,
+	)
+
+	return crypto.Keccak256(
+		[]byte("\x19Ethereum Signed Message:\n32"),
+		hash,
 	)
 }

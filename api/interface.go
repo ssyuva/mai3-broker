@@ -86,6 +86,17 @@ type (
 	GetPerpetualResp struct {
 		Perpetual *model.Perpetual `json:"perpetual"`
 	}
+
+	GetBrokerRelayReq struct {
+		BaseReq
+		PerpetualAddress string `json:"perpetualAddress" query:"perpetual" validate:"required"`
+	}
+
+	GetBrokerRelayResp struct {
+		BrokerAddress  string `json:"brokerAddress"`
+		Version        int    `json:"version"`
+		RelayerAddress string `json:"relayerAddress"`
+	}
 )
 
 func (b *BaseReq) GetAddress() string {

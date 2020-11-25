@@ -136,21 +136,17 @@ func ContractSettledError() *ApiError {
 	}
 }
 
-func PendingOrdersNotFoundError(perpetual string) *ApiError {
-	return &ApiError{Code: -17, Desc: fmt.Sprintf("no more pending orders in perpetual[%s]", perpetual)}
-}
-
 func MaxStopNumReachError() *ApiError {
-	return &ApiError{Code: -18, Desc: "cannot create more stop order"}
+	return &ApiError{Code: -17, Desc: "cannot create more stop order"}
 }
 
 func OrderHashExistError(orderHash string) *ApiError {
-	return &ApiError{Code: -19, Desc: fmt.Sprintf("order hash[%s] exist", orderHash),
+	return &ApiError{Code: -18, Desc: fmt.Sprintf("order hash[%s] exist", orderHash),
 		Params: []string{orderHash}}
 }
 
 func BrokerAddressError(address string) *ApiError {
-	return &ApiError{Code: -20, Desc: fmt.Sprintf("Invalid broker address [%s]", address)}
+	return &ApiError{Code: -19, Desc: fmt.Sprintf("Invalid broker address [%s]", address)}
 }
 
 // If you add api error, do forget to edit app.vue & en.js(api segment) in FE.
