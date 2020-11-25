@@ -54,3 +54,21 @@ func MustDecimalToBigInt(d decimal.Decimal) *big.Int {
 	}
 	return n
 }
+
+func HasTheSameSign(x, y decimal.Decimal) bool {
+	return (x.Sign() ^ y.Sign()) == 0
+}
+
+func SplitAmount(position, amount decimal.Decimal) (close, open decimal.Decimal) {
+	if HasTheSameSign(position, amount) {
+		close = decimal.Zero
+		open = amount
+	} else if position.Abs().GreaterThanOrEqual(amount) {
+		close = amount
+		open = decimal.Zero
+	} else {
+		close = position.Neg()
+		open = position.Add(amount)
+	}
+	return
+}

@@ -3,7 +3,9 @@ module github.com/mcarloai/mai-v3-broker
 go 1.13
 
 require (
+	github.com/Azure/azure-sdk-for-go v32.4.0+incompatible
 	github.com/BurntSushi/toml v0.3.1
+	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/btcsuite/btcd v0.21.0-beta
 	github.com/cevaris/ordered_map v0.0.0-20190319150403-3adeae072e73
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
@@ -13,7 +15,7 @@ require (
 	github.com/gorilla/websocket v1.4.1
 	github.com/jinzhu/gorm v1.9.12
 	github.com/labstack/echo v3.3.10+incompatible
-	github.com/mcarloai/dex-be-common v0.1.31 // indirect
+	github.com/labstack/gommon v0.3.0 // indirect
 	github.com/pborman/uuid v1.2.0
 	github.com/petar/GoLLRB v0.0.0-20190514000832-33fb24c13b99
 	github.com/pkg/errors v0.9.1

@@ -1,7 +1,7 @@
 package api
 
 import (
-	// "context"
+	"context"
 	"errors"
 	"fmt"
 	"github.com/mcarloai/mai-v3-broker/common/mai3"
@@ -158,8 +158,9 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 	order.UpdatedAt = now
 
 	// check orderhash
+	orderData := mai3.GenerateOrderData(expiresAt, order.Version, int8(order.Type), order.IsCloseOnly, order.OrderParam.Salt)
 	orderHash, err := mai3.GetOrderHash(order.TraderAddress, order.BrokerAddress, order.RelayerAddress, order.PerpetualAddress, order.ReferrerAddress,
-		amount, order.Price, expiresAt, order.Version, int8(order.Type), order.IsCloseOnly, order.OrderParam.Salt, order.OrderParam.ChainID)
+		orderData, amount, order.Price, order.OrderParam.ChainID)
 	if err != nil {
 		return nil, InternalError(fmt.Errorf("get order hash fail err:%s", err))
 	}
@@ -183,6 +184,14 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 			return nil, PerpetualNotFoundError(params.PerpetualAddress)
 		}
 		return nil, InternalError(err)
+	}
+
+	// check ChainID
+	ctx, cancel := context.WithTimeout(s.ctx, conf.Conf.BlockChain.Timeout.Duration)
+	defer cancel()
+	chainID, err := s.chainCli.GetChainID(ctx)
+	if chainID.Int64() != params.ChainID {
+		return nil, ChainIDError(params.ChainID)
 	}
 
 	_, err = s.dao.GetOrder(params.OrderHash)
@@ -303,6 +312,10 @@ func (s *Server) CancelOrder(p Param) (interface{}, error) {
 	order, err := s.dao.GetOrder(params.OrderHash)
 	if err != nil {
 		return nil, InternalError(err)
+	}
+
+	if order.TraderAddress != strings.ToLower(params.Address) {
+		return nil, OrderAuthError(params.OrderHash)
 	}
 
 	// notice match for cancel order

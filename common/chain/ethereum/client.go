@@ -72,6 +72,10 @@ func (c *Client) GetAccount(account string) (*Account, error) {
 	return acc, nil
 }
 
+func (c *Client) GetChainID(ctx context.Context) (*big.Int, error) {
+	return c.ethCli.ChainID(ctx)
+}
+
 func (c *Client) HeaderByNumber(ctx context.Context, number *big.Int) (*model.BlockHeader, error) {
 	header, err := c.ethCli.HeaderByNumber(ctx, number)
 	if err != nil {

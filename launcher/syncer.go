@@ -131,7 +131,7 @@ func (s *Syncer) updateStatusByUser(user string) {
 			matchTx.Status = tx.Status.TransactionStatus()
 
 			// update orders
-			matchEvents, err := s.chainCli.FilterMatch(ctx, matchTx.PerpetualAddress, *tx.BlockNumber, *tx.BlockNumber)
+			matchEvents, err := s.chainCli.FilterTradeSuccess(ctx, matchTx.PerpetualAddress, *tx.BlockNumber, *tx.BlockNumber)
 			if err != nil {
 				return err
 			}

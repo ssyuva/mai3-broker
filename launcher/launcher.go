@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/mcarloai/mai-v3-broker/common/chain"
+	"github.com/mcarloai/mai-v3-broker/common/mai3"
 	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
 	"github.com/mcarloai/mai-v3-broker/common/model"
-	"github.com/mcarloai/mai-v3-broker/conf"
 	"github.com/mcarloai/mai-v3-broker/dao"
 	"github.com/shopspring/decimal"
 	logger "github.com/sirupsen/logrus"
@@ -96,7 +96,7 @@ func (l *Launcher) createLaunchTransaction(matchTx *model.MatchTransaction) erro
 	orderParams := make([]*model.WalletOrderParam, len(matchTx.MatchResult.MatchItems))
 	matchAmounts := make([]decimal.Decimal, len(matchTx.MatchResult.MatchItems))
 	//TODO gas price
-	gases := make([]*big.Int, len(matchTx.MatchResult.MatchItems))
+	gasRewards := make([]*big.Int, len(matchTx.MatchResult.MatchItems))
 	for _, item := range matchTx.MatchResult.MatchItems {
 		param, err := getWalletOrderParam(item.Order)
 		if err != nil {
@@ -108,8 +108,9 @@ func (l *Launcher) createLaunchTransaction(matchTx *model.MatchTransaction) erro
 			amount = amount.Neg()
 		}
 		matchAmounts = append(matchAmounts, amount)
+		gasRewards = append(gasRewards, big.NewInt(1000000))
 	}
-	inputs, err := l.chainCli.BatchTradeDataPack(orderParams, matchAmounts, gases)
+	inputs, err := l.chainCli.BatchTradeDataPack(orderParams, matchAmounts, gasRewards)
 	if err != nil {
 		return err
 	}
@@ -146,61 +147,36 @@ func (l *Launcher) createLaunchTransaction(matchTx *model.MatchTransaction) erro
 	return err
 }
 
-func getWalletSignature(signature string) (*model.WalletSignature, error) {
-	buf, err := utils.Hex2Bytes(signature)
-	if err != nil {
-		return nil, fmt.Errorf("getWalletSignature:%w", err)
-	}
-	if len(buf) != 96 {
-		return nil, fmt.Errorf("getWalletSignature:bad signature length[%d], must be 96", len(buf))
-	}
-	var ws model.WalletSignature
-	copy(ws.Config[0:32], buf[0:32])
-	copy(ws.R[0:32], buf[32:64])
-	copy(ws.S[0:32], buf[64:96])
-	return &ws, nil
-}
-
-func getCategoryByOrderType(orderType model.OrderType) (uint8, error) {
-	switch orderType {
-	case model.LimitOrder:
-		return 0, nil
-	case model.StopLimitOrder:
-		return 1, nil
-	default:
-		return 0, fmt.Errorf("Unknown order Type %s", orderType)
-	}
-}
-
 func getWalletOrderParam(order *model.Order) (*model.WalletOrderParam, error) {
 	if order == nil {
 		return nil, fmt.Errorf("getWalletOrderParam:nil order")
 	}
-	signature, err := getWalletSignature(order.Signature)
+	signature, err := utils.Hex2Bytes(order.Signature)
 	if err != nil {
 		return nil, fmt.Errorf("getWalletOrderParam:%w", err)
 	}
-	category, err := getCategoryByOrderType(order.Type)
-	if err != nil {
-		return nil, err
-	}
+	orderData, err := mai3.GetOrderData(
+		order.ExpiresAt.UTC().Unix(),
+		order.Version,
+		int8(order.Type),
+		order.IsCloseOnly,
+		order.Salt,
+	)
 	amount := order.Amount
 	if order.Side == model.SideSell {
 		amount = amount.Neg()
 	}
 	param := &model.WalletOrderParam{
 		Trader:    order.TraderAddress,
+		Broker:    order.BrokerAddress,
+		Relayer:   order.RelayerAddress,
 		Perpetual: order.PerpetualAddress,
-		Broker:    conf.Conf.BrokerAddress,
+		Referrer:  order.ReferrerAddress,
 		Price:     order.Price,
 		Amount:    amount,
-		ExpiredAt: uint64(order.ExpiresAt.UTC().Unix()),
-		Version:   uint32(order.Version),
-		Category:  category,
-		CloseOnly: order.IsCloseOnly,
-		Salt:      uint64(order.Salt),
+		OrderData: orderData,
 		ChainID:   uint64(order.ChainID),
-		Signature: *signature,
+		Signature: signature,
 	}
 
 	return param, nil

@@ -21,7 +21,7 @@ type Receipt struct {
 	BlockTime   uint64
 }
 
-type MatchEvent struct {
+type TradeSuccessEvent struct {
 	PerpetualAddress string
 	BlockNumber      int64
 	TransactionSeq   int
@@ -42,24 +42,16 @@ type PerpetualEvent struct {
 	OperatorAddress  string
 }
 
-type WalletSignature struct {
-	Config [32]byte
-	R      [32]byte
-	S      [32]byte
-}
-
 type WalletOrderParam struct {
 	Trader    string
 	Broker    string
+	Relayer   string
 	Perpetual string
-	Price     decimal.Decimal
+	Referrer  string
 	Amount    decimal.Decimal
-	ExpiredAt uint64
-	Version   uint32
-	Category  uint8
-	CloseOnly bool
-	Salt      uint64
+	Price     decimal.Decimal
+	OrderData [32]byte
 	ChainID   uint64
 	Gas       *big.Int
-	Signature WalletSignature
+	Signature []byte
 }

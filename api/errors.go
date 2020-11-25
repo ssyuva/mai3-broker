@@ -106,11 +106,11 @@ func AuthError(desc string, err error) *ApiError {
 }
 
 func EchoHTTPError(err *echo.HTTPError) *ApiError {
-	return &ApiError{Code: -13, Desc: fmt.Sprintf("%v", err.Message), internalError: err.Internal}
+	return &ApiError{Code: -12, Desc: fmt.Sprintf("%v", err.Message), internalError: err.Internal}
 }
 
 func OrderAuthError(id string) *ApiError {
-	return &ApiError{Code: -12, Desc: fmt.Sprintf("order id[%s] do not exist or is not owned by current address", id),
+	return &ApiError{Code: -13, Desc: fmt.Sprintf("order hash[%s] do not exist or is not owned by current address", id),
 		Params: []string{id}}
 }
 
@@ -147,6 +147,10 @@ func OrderHashExistError(orderHash string) *ApiError {
 
 func BrokerAddressError(address string) *ApiError {
 	return &ApiError{Code: -19, Desc: fmt.Sprintf("Invalid broker address [%s]", address)}
+}
+
+func ChainIDError(chainID int64) *ApiError {
+	return &ApiError{Code: -20, Desc: fmt.Sprintf("not in same chain. chainID [%s]", chainID)}
 }
 
 // If you add api error, do forget to edit app.vue & en.js(api segment) in FE.

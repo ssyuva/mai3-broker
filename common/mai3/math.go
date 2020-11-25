@@ -5,8 +5,6 @@ import (
 )
 
 const DECIMALS = 18
-const FUNDING_TIME = 28800
-const EXCHANGE_FEE_RATE_BASE = 5
 
 type BigNumber = decimal.Decimal
 
@@ -18,7 +16,6 @@ func toDecimal(v string) decimal.Decimal {
 	return r
 }
 
-var fundingTime = decimal.NewFromInt(FUNDING_TIME)
 var _0 = decimal.Zero
 var _1 = decimal.NewFromInt(1)
 var _2 = decimal.NewFromInt(2)
