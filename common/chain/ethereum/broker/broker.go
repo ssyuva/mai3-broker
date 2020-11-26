@@ -29,23 +29,19 @@ var (
 
 // Order is an auto generated low-level Go binding around an user-defined struct.
 type Order struct {
-	Trader      common.Address
-	Broker      common.Address
-	Relayer     common.Address
-	Perpetual   common.Address
-	Referrer    common.Address
-	Amount      *big.Int
-	PriceLimit  *big.Int
-	Deadline    uint64
-	Version     uint32
-	OrderType   uint8
-	IsCloseOnly bool
-	Salt        uint64
-	ChainID     *big.Int
+	Trader     common.Address
+	Broker     common.Address
+	Relayer    common.Address
+	Perpetual  common.Address
+	Referrer   common.Address
+	Amount     *big.Int
+	PriceLimit *big.Int
+	Data       [32]byte
+	ChainID    *big.Int
 }
 
 // BrokerABI is the input ABI used to generate the binding from.
-const BrokerABI = "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"trader\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Deposit\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"orderHash\",\"type\":\"bytes32\"},{\"components\":[{\"internalType\":\"address\",\"name\":\"trader\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"broker\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"relayer\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"perpetual\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"referrer\",\"type\":\"address\"},{\"internalType\":\"int256\",\"name\":\"amount\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"priceLimit\",\"type\":\"int256\"},{\"internalType\":\"uint64\",\"name\":\"deadline\",\"type\":\"uint64\"},{\"internalType\":\"uint32\",\"name\":\"version\",\"type\":\"uint32\"},{\"internalType\":\"enumOrderType\",\"name\":\"orderType\",\"type\":\"uint8\"},{\"internalType\":\"bool\",\"name\":\"isCloseOnly\",\"type\":\"bool\"},{\"internalType\":\"uint64\",\"name\":\"salt\",\"type\":\"uint64\"},{\"internalType\":\"uint256\",\"name\":\"chainID\",\"type\":\"uint256\"}],\"indexed\":false,\"internalType\":\"structOrder\",\"name\":\"order\",\"type\":\"tuple\"},{\"indexed\":false,\"internalType\":\"int256\",\"name\":\"amount\",\"type\":\"int256\"}],\"name\":\"TradeFailed\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"orderHash\",\"type\":\"bytes32\"},{\"components\":[{\"internalType\":\"address\",\"name\":\"trader\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"broker\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"relayer\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"perpetual\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"referrer\",\"type\":\"address\"},{\"internalType\":\"int256\",\"name\":\"amount\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"priceLimit\",\"type\":\"int256\"},{\"internalType\":\"uint64\",\"name\":\"deadline\",\"type\":\"uint64\"},{\"internalType\":\"uint32\",\"name\":\"version\",\"type\":\"uint32\"},{\"internalType\":\"enumOrderType\",\"name\":\"orderType\",\"type\":\"uint8\"},{\"internalType\":\"bool\",\"name\":\"isCloseOnly\",\"type\":\"bool\"},{\"internalType\":\"uint64\",\"name\":\"salt\",\"type\":\"uint64\"},{\"internalType\":\"uint256\",\"name\":\"chainID\",\"type\":\"uint256\"}],\"indexed\":false,\"internalType\":\"structOrder\",\"name\":\"order\",\"type\":\"tuple\"},{\"indexed\":false,\"internalType\":\"int256\",\"name\":\"amount\",\"type\":\"int256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"gasReward\",\"type\":\"uint256\"}],\"name\":\"TradeSuccess\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Transfer\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"trader\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Withdraw\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"SUPPORTED_MAX_ORDER_VERSION\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"SUPPORTED_MIN_ORDER_VERSION\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"trader\",\"type\":\"address\"}],\"name\":\"balanceOf\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"address\",\"name\":\"trader\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"broker\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"relayer\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"perpetual\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"referrer\",\"type\":\"address\"},{\"internalType\":\"int256\",\"name\":\"amount\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"priceLimit\",\"type\":\"int256\"},{\"internalType\":\"uint64\",\"name\":\"deadline\",\"type\":\"uint64\"},{\"internalType\":\"uint32\",\"name\":\"version\",\"type\":\"uint32\"},{\"internalType\":\"enumOrderType\",\"name\":\"orderType\",\"type\":\"uint8\"},{\"internalType\":\"bool\",\"name\":\"isCloseOnly\",\"type\":\"bool\"},{\"internalType\":\"uint64\",\"name\":\"salt\",\"type\":\"uint64\"},{\"internalType\":\"uint256\",\"name\":\"chainID\",\"type\":\"uint256\"}],\"internalType\":\"structOrder[]\",\"name\":\"orders\",\"type\":\"tuple[]\"},{\"internalType\":\"int256[]\",\"name\":\"amounts\",\"type\":\"int256[]\"},{\"internalType\":\"bytes[]\",\"name\":\"signatures\",\"type\":\"bytes[]\"},{\"internalType\":\"uint256[]\",\"name\":\"gasRewards\",\"type\":\"uint256[]\"}],\"name\":\"batchTrade\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"deposit\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"withdraw\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"stateMutability\":\"payable\",\"type\":\"receive\"}]"
+const BrokerABI = "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"trader\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Deposit\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"orderHash\",\"type\":\"bytes32\"},{\"components\":[{\"internalType\":\"address\",\"name\":\"trader\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"broker\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"relayer\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"perpetual\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"referrer\",\"type\":\"address\"},{\"internalType\":\"int256\",\"name\":\"amount\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"priceLimit\",\"type\":\"int256\"},{\"internalType\":\"bytes32\",\"name\":\"data\",\"type\":\"bytes32\"},{\"internalType\":\"uint256\",\"name\":\"chainID\",\"type\":\"uint256\"}],\"indexed\":false,\"internalType\":\"structOrder\",\"name\":\"order\",\"type\":\"tuple\"},{\"indexed\":false,\"internalType\":\"int256\",\"name\":\"amount\",\"type\":\"int256\"}],\"name\":\"TradeFailed\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"orderHash\",\"type\":\"bytes32\"},{\"components\":[{\"internalType\":\"address\",\"name\":\"trader\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"broker\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"relayer\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"perpetual\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"referrer\",\"type\":\"address\"},{\"internalType\":\"int256\",\"name\":\"amount\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"priceLimit\",\"type\":\"int256\"},{\"internalType\":\"bytes32\",\"name\":\"data\",\"type\":\"bytes32\"},{\"internalType\":\"uint256\",\"name\":\"chainID\",\"type\":\"uint256\"}],\"indexed\":false,\"internalType\":\"structOrder\",\"name\":\"order\",\"type\":\"tuple\"},{\"indexed\":false,\"internalType\":\"int256\",\"name\":\"amount\",\"type\":\"int256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"gasReward\",\"type\":\"uint256\"}],\"name\":\"TradeSuccess\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Transfer\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"trader\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Withdraw\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"SUPPORTED_MAX_ORDER_VERSION\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"SUPPORTED_MIN_ORDER_VERSION\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"trader\",\"type\":\"address\"}],\"name\":\"balanceOf\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"address\",\"name\":\"trader\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"broker\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"relayer\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"perpetual\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"referrer\",\"type\":\"address\"},{\"internalType\":\"int256\",\"name\":\"amount\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"priceLimit\",\"type\":\"int256\"},{\"internalType\":\"bytes32\",\"name\":\"data\",\"type\":\"bytes32\"},{\"internalType\":\"uint256\",\"name\":\"chainID\",\"type\":\"uint256\"}],\"internalType\":\"structOrder[]\",\"name\":\"orders\",\"type\":\"tuple[]\"},{\"internalType\":\"int256[]\",\"name\":\"amounts\",\"type\":\"int256[]\"},{\"internalType\":\"bytes[]\",\"name\":\"signatures\",\"type\":\"bytes[]\"},{\"internalType\":\"uint256[]\",\"name\":\"gasRewards\",\"type\":\"uint256[]\"}],\"name\":\"batchTrade\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"deposit\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"withdraw\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"stateMutability\":\"payable\",\"type\":\"receive\"}]"
 
 // Broker is an auto generated Go binding around an Ethereum contract.
 type Broker struct {
@@ -267,21 +263,21 @@ func (_Broker *BrokerCallerSession) BalanceOf(trader common.Address) (*big.Int, 
 	return _Broker.Contract.BalanceOf(&_Broker.CallOpts, trader)
 }
 
-// BatchTrade is a paid mutator transaction binding the contract method 0x0f89f242.
+// BatchTrade is a paid mutator transaction binding the contract method 0x76cfbf67.
 //
 // Solidity: function batchTrade([]Order orders, int256[] amounts, bytes[] signatures, uint256[] gasRewards) returns()
 func (_Broker *BrokerTransactor) BatchTrade(opts *bind.TransactOpts, orders []Order, amounts []*big.Int, signatures [][]byte, gasRewards []*big.Int) (*types.Transaction, error) {
 	return _Broker.contract.Transact(opts, "batchTrade", orders, amounts, signatures, gasRewards)
 }
 
-// BatchTrade is a paid mutator transaction binding the contract method 0x0f89f242.
+// BatchTrade is a paid mutator transaction binding the contract method 0x76cfbf67.
 //
 // Solidity: function batchTrade([]Order orders, int256[] amounts, bytes[] signatures, uint256[] gasRewards) returns()
 func (_Broker *BrokerSession) BatchTrade(orders []Order, amounts []*big.Int, signatures [][]byte, gasRewards []*big.Int) (*types.Transaction, error) {
 	return _Broker.Contract.BatchTrade(&_Broker.TransactOpts, orders, amounts, signatures, gasRewards)
 }
 
-// BatchTrade is a paid mutator transaction binding the contract method 0x0f89f242.
+// BatchTrade is a paid mutator transaction binding the contract method 0x76cfbf67.
 //
 // Solidity: function batchTrade([]Order orders, int256[] amounts, bytes[] signatures, uint256[] gasRewards) returns()
 func (_Broker *BrokerTransactorSession) BatchTrade(orders []Order, amounts []*big.Int, signatures [][]byte, gasRewards []*big.Int) (*types.Transaction, error) {
@@ -539,7 +535,7 @@ type BrokerTradeFailed struct {
 	Raw       types.Log // Blockchain specific contextual infos
 }
 
-// FilterTradeFailed is a free log retrieval operation binding the contract event 0xe3af26f021ae3e2287b6973e4a1e49be45dba0460ebfa47a893696ec7d25132b.
+// FilterTradeFailed is a free log retrieval operation binding the contract event 0xae93f888992028f93dc5665984d81bf40e8388ac69a87ec79be635fc60cb8bac.
 //
 // Solidity: event TradeFailed(bytes32 orderHash, Order order, int256 amount)
 func (_Broker *BrokerFilterer) FilterTradeFailed(opts *bind.FilterOpts) (*BrokerTradeFailedIterator, error) {
@@ -551,7 +547,7 @@ func (_Broker *BrokerFilterer) FilterTradeFailed(opts *bind.FilterOpts) (*Broker
 	return &BrokerTradeFailedIterator{contract: _Broker.contract, event: "TradeFailed", logs: logs, sub: sub}, nil
 }
 
-// WatchTradeFailed is a free log subscription operation binding the contract event 0xe3af26f021ae3e2287b6973e4a1e49be45dba0460ebfa47a893696ec7d25132b.
+// WatchTradeFailed is a free log subscription operation binding the contract event 0xae93f888992028f93dc5665984d81bf40e8388ac69a87ec79be635fc60cb8bac.
 //
 // Solidity: event TradeFailed(bytes32 orderHash, Order order, int256 amount)
 func (_Broker *BrokerFilterer) WatchTradeFailed(opts *bind.WatchOpts, sink chan<- *BrokerTradeFailed) (event.Subscription, error) {
@@ -588,7 +584,7 @@ func (_Broker *BrokerFilterer) WatchTradeFailed(opts *bind.WatchOpts, sink chan<
 	}), nil
 }
 
-// ParseTradeFailed is a log parse operation binding the contract event 0xe3af26f021ae3e2287b6973e4a1e49be45dba0460ebfa47a893696ec7d25132b.
+// ParseTradeFailed is a log parse operation binding the contract event 0xae93f888992028f93dc5665984d81bf40e8388ac69a87ec79be635fc60cb8bac.
 //
 // Solidity: event TradeFailed(bytes32 orderHash, Order order, int256 amount)
 func (_Broker *BrokerFilterer) ParseTradeFailed(log types.Log) (*BrokerTradeFailed, error) {
@@ -675,7 +671,7 @@ type BrokerTradeSuccess struct {
 	Raw       types.Log // Blockchain specific contextual infos
 }
 
-// FilterTradeSuccess is a free log retrieval operation binding the contract event 0x36aba36f914a412535bcace9e02cd3fe0657464c05d44e65bbc2edacb158ecfe.
+// FilterTradeSuccess is a free log retrieval operation binding the contract event 0x842f0bc7d692443dc7f10a1f970f4ed52b1cf1c949d9ba161f54131f77d9cffa.
 //
 // Solidity: event TradeSuccess(bytes32 orderHash, Order order, int256 amount, uint256 gasReward)
 func (_Broker *BrokerFilterer) FilterTradeSuccess(opts *bind.FilterOpts) (*BrokerTradeSuccessIterator, error) {
@@ -687,7 +683,7 @@ func (_Broker *BrokerFilterer) FilterTradeSuccess(opts *bind.FilterOpts) (*Broke
 	return &BrokerTradeSuccessIterator{contract: _Broker.contract, event: "TradeSuccess", logs: logs, sub: sub}, nil
 }
 
-// WatchTradeSuccess is a free log subscription operation binding the contract event 0x36aba36f914a412535bcace9e02cd3fe0657464c05d44e65bbc2edacb158ecfe.
+// WatchTradeSuccess is a free log subscription operation binding the contract event 0x842f0bc7d692443dc7f10a1f970f4ed52b1cf1c949d9ba161f54131f77d9cffa.
 //
 // Solidity: event TradeSuccess(bytes32 orderHash, Order order, int256 amount, uint256 gasReward)
 func (_Broker *BrokerFilterer) WatchTradeSuccess(opts *bind.WatchOpts, sink chan<- *BrokerTradeSuccess) (event.Subscription, error) {
@@ -724,7 +720,7 @@ func (_Broker *BrokerFilterer) WatchTradeSuccess(opts *bind.WatchOpts, sink chan
 	}), nil
 }
 
-// ParseTradeSuccess is a log parse operation binding the contract event 0x36aba36f914a412535bcace9e02cd3fe0657464c05d44e65bbc2edacb158ecfe.
+// ParseTradeSuccess is a log parse operation binding the contract event 0x842f0bc7d692443dc7f10a1f970f4ed52b1cf1c949d9ba161f54131f77d9cffa.
 //
 // Solidity: event TradeSuccess(bytes32 orderHash, Order order, int256 amount, uint256 gasReward)
 func (_Broker *BrokerFilterer) ParseTradeSuccess(log types.Log) (*BrokerTradeSuccess, error) {

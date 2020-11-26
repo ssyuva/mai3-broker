@@ -21,19 +21,15 @@ func (c *Client) BatchTradeDataPack(orderParams []*model.WalletOrderParam, match
 	amounts := make([]*big.Int, len(orderParams))
 	for _, param := range orderParams {
 		order := broker.Order{
-			Trader:      gethCommon.HexToAddress(param.Trader),
-			Broker:      gethCommon.HexToAddress(param.Broker),
-			Relayer:     gethCommon.HexToAddress(param.Relayer),
-			Perpetual:   gethCommon.HexToAddress(param.Perpetual),
-			Referrer:    gethCommon.HexToAddress(param.Referrer),
-			Amount:      utils.MustDecimalToBigInt(utils.ToWad(param.Amount)),
-			PriceLimit:  utils.MustDecimalToBigInt(utils.ToWad(param.Price)),
-			Deadline:    param.Deadline,
-			Version:     param.Version,
-			OrderType:   param.OrderType,
-			IsCloseOnly: param.IsCloseOnly,
-			Salt:        param.Salt,
-			ChainId:     param.ChainID,
+			Trader:     gethCommon.HexToAddress(param.Trader),
+			Broker:     gethCommon.HexToAddress(param.Broker),
+			Relayer:    gethCommon.HexToAddress(param.Relayer),
+			Perpetual:  gethCommon.HexToAddress(param.Perpetual),
+			Referrer:   gethCommon.HexToAddress(param.Referrer),
+			Amount:     utils.MustDecimalToBigInt(utils.ToWad(param.Amount)),
+			PriceLimit: utils.MustDecimalToBigInt(utils.ToWad(param.Price)),
+			Data:       param.OrderData,
+			ChainId:    param.ChainID,
 		}
 		orders = append(orders, order)
 		signatures = append(signatures, param.Signature)

@@ -15,7 +15,7 @@ var EIP712_MAI3_ORDER_TYPE []byte
 
 func init() {
 	EIP712_DOMAIN_TYPEHASH = crypto.Keccak256([]byte(`EIP712Domain(string name)`))
-	EIP712_MAI3_ORDER_TYPE = crypto.Keccak256([]byte(`Order(address trader,address broker,address relayer,address perpetual,address referrer,int256 amount,int256 priceLimit,uint64 deadline,uint32 version,OrderType orderType,bool isCloseOnly,uint64 salt,uint256 chainID)`))
+	EIP712_MAI3_ORDER_TYPE = crypto.Keccak256([]byte(`Order(address trader,address broker,address relayer,address perpetual,address referrer,int256 amount,int256 priceLimit,bytes32 data,uint256 chainID)`))
 }
 
 func addTailingZero(data string, length int) string {
@@ -87,6 +87,19 @@ func GetOrderHash(traderAddress, brokerAddress, relayerAddress, contractAddress,
 	}
 	chainIDBin := utils.BytesToHash(big.NewInt(chainID).Bytes())
 
+	fmt.Println(utils.Bytes2HexP(EIP712_MAI3_ORDER_TYPE))
+	fmt.Println(utils.Bytes2HexP(crypto.Keccak256(
+		EIP712_MAI3_ORDER_TYPE,
+		trader.Bytes(),
+		broker.Bytes(),
+		relayer.Bytes(),
+		contract.Bytes(),
+		referrer.Bytes(),
+		amountBin.Bytes(),
+		priceBin.Bytes(),
+		orderDataBin.Bytes(),
+		chainIDBin.Bytes(),
+	)))
 	hash := getEIP712MessageHash(
 		crypto.Keccak256(
 			EIP712_MAI3_ORDER_TYPE,
