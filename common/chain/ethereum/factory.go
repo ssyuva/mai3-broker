@@ -3,8 +3,8 @@ package ethereum
 import (
 	"context"
 	"fmt"
+        "strings"
 	ethBind "github.com/ethereum/go-ethereum/accounts/abi/bind"
-	gethCommon "github.com/ethereum/go-ethereum/common"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 
 	"github.com/mcarloai/mai-v3-broker/common/chain/ethereum/factory"
@@ -14,12 +14,12 @@ func (c *Client) FilterCreatePerpetual(ctx context.Context, factoryAddress strin
 	opts := &ethBind.FilterOpts{
 		Start:   start,
 		End:     &end,
-		context: ctx,
+		Context: ctx,
 	}
 
 	rsp := make([]*model.PerpetualEvent, 0)
 
-	addresss, err := HexToAddress(factoryAddress)
+	address, err := HexToAddress(factoryAddress)
 	if err != nil {
 		return rsp, fmt.Errorf("invalid factory address:%w", err)
 	}
@@ -29,7 +29,7 @@ func (c *Client) FilterCreatePerpetual(ctx context.Context, factoryAddress strin
 		return rsp, fmt.Errorf("init factory contract failed:%w", err)
 	}
 
-	iter, err := contract.FilterCreatePerpetual(opts, []gethCommon.Address{})
+	iter, err := contract.FilterCreatePerpetual(opts)
 	if err != nil {
 		return rsp, fmt.Errorf("filter create perpetual failed:%w", err)
 	}
@@ -39,13 +39,13 @@ func (c *Client) FilterCreatePerpetual(ctx context.Context, factoryAddress strin
 			FactoryAddress:   strings.ToLower(iter.Event.Raw.Address.Hex()),
 			TransactionSeq:   int(iter.Event.Raw.TxIndex),
 			TransactionHash:  strings.ToLower(iter.Event.Raw.TxHash.Hex()),
-			BlockNumber:      int(iter.Event.Raw.BlockNumber),
+			BlockNumber:      int64(iter.Event.Raw.BlockNumber),
 			PerpetualAddress: strings.ToLower(iter.Event.Perpetual.Hex()),
 			OperatorAddress:  strings.ToLower(iter.Event.Operator.Hex()),
 			OracleAddress:    strings.ToLower(iter.Event.Oracle.Hex()),
 		}
 
-		rsp := append(rsp, perpetual)
+		rsp = append(rsp, perpetual)
 	}
 
 	return rsp, nil

@@ -2,6 +2,7 @@ package api
 
 import (
 	"strings"
+        "net/url"
 
 	"github.com/labstack/echo"
 	"github.com/mcarloai/mai-v3-broker/common/auth"
@@ -26,6 +27,10 @@ func (ma *maiAuthenticator) IsAvail(c *MaiApiContext) bool {
 // Valid validate the token
 func (ma *maiAuthenticator) Valid(c *MaiApiContext) (string, error) {
 	token := c.Request().Header.Get("Mai-Authentication")
+        token, err := url.QueryUnescape(token)
+	if err != nil {
+		return "", AuthError("Mai-Authentication requires uri-encoded", err)
+	}
 	address, err := auth.ValidateMaiAuth(token)
 	if err != nil {
 		return "", AuthError("Mai-Authentication fail:", err)
