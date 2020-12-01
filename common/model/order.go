@@ -40,13 +40,6 @@ const (
 	OrderStop          OrderStatus = "stop"
 )
 
-type OrderSide string
-
-const (
-	SideBuy  OrderSide = "buy"
-	SideSell OrderSide = "sell"
-)
-
 type OrderParam struct {
 	TraderAddress    string          `json:"traderAddress" db:"trader_address"`
 	PerpetualAddress string          `json:"perpetualAddress" db:"perpetual_address"`
@@ -54,7 +47,6 @@ type OrderParam struct {
 	BrokerAddress    string          `json:"brokerAddress" db:"broker_address"`
 	ReferrerAddress  string          `json:"referrerAddress" db:"referrer_address"`
 	Type             OrderType       `json:"type" db:"type"`
-	Side             OrderSide       `json:"side" db:"side"`
 	Price            decimal.Decimal `json:"price" db:"price"`
 	Amount           decimal.Decimal `json:"amount" db:"amount"`
 	StopPrice        decimal.Decimal `json:"stopPrice" db:"stopPrice"`

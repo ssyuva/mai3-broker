@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/cevaris/ordered_map"
+	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/petar/GoLLRB/llrb"
 	"github.com/shopspring/decimal"
@@ -30,7 +31,6 @@ type (
 		Price            decimal.Decimal `json:"price"`
 		StopPrice        decimal.Decimal `json:"stopPrice"`
 		Amount           decimal.Decimal `json:"amount"`
-		Side             model.OrderSide `json:"side"`
 		Type             model.OrderType `json:"type"`
 		Trader           string          `json:"trader"`
 		GasFeeAmount     decimal.Decimal `json:"gasFeeAmount"`
@@ -103,8 +103,9 @@ func (p *priceLevel) ChangeOrder(orderID string, changeAmount decimal.Decimal) e
 	}
 
 	order := orderItem.(*MemoryOrder)
+	oldAmount := order.Amount
 	newAmount := order.Amount.Add(changeAmount)
-	if newAmount.IsNegative() {
+	if !utils.HasTheSameSign(newAmount, oldAmount) {
 		return fmt.Errorf("can't change order[%s], after change the amount is negative. old amount=%s change amount=%s",
 			order.ID, order.Amount, changeAmount)
 	}
@@ -152,7 +153,7 @@ func (book *Orderbook) InsertOrder(order *MemoryOrder) error {
 	//log.Debug("cost in lock, InsertOrder :", order.ID, float64(time.Since(startTime))/1000000)
 
 	var tree *llrb.LLRB
-	if order.Side == "sell" {
+	if order.Amount.IsNegative() {
 		tree = book.asksTree
 	} else {
 		tree = book.bidsTree
@@ -183,7 +184,7 @@ func (book *Orderbook) RemoveOrder(order *MemoryOrder) error {
 	defer book.lock.Unlock()
 
 	var tree *llrb.LLRB
-	if order.Side == "sell" {
+	if order.Amount.IsNegative() {
 		tree = book.asksTree
 	} else {
 		tree = book.bidsTree
@@ -220,7 +221,7 @@ func (book *Orderbook) ChangeOrder(order *MemoryOrder, changeAmount decimal.Deci
 	defer book.lock.Unlock()
 
 	var tree *llrb.LLRB
-	if order.Side == "sell" {
+	if order.Amount.IsNegative() {
 		tree = book.asksTree
 	} else {
 		tree = book.bidsTree
@@ -250,12 +251,12 @@ func (book *Orderbook) ChangeOrder(order *MemoryOrder, changeAmount decimal.Deci
 	return nil
 }
 
-func (book *Orderbook) GetOrder(id string, side model.OrderSide, price decimal.Decimal) (*MemoryOrder, bool) {
+func (book *Orderbook) GetOrder(id string, isAsk bool, price decimal.Decimal) (*MemoryOrder, bool) {
 	book.lock.Lock()
 	defer book.lock.Unlock()
 
 	var tree *llrb.LLRB
-	if side == model.SideSell {
+	if isAsk {
 		tree = book.asksTree
 	} else {
 		tree = book.bidsTree
@@ -322,18 +323,33 @@ func (book *Orderbook) MaxAsk() *decimal.Decimal {
 	return nil
 }
 
-func (book *Orderbook) GetOrdersByPrice(side model.OrderSide, price decimal.Decimal) (orders []*MemoryOrder) {
+func (book *Orderbook) GetAskOrdersByPrice(price decimal.Decimal) (orders []*MemoryOrder) {
 	book.lock.Lock()
 	defer book.lock.Unlock()
 
 	orders = make([]*MemoryOrder, 0)
 
 	var tree *llrb.LLRB
-	if side == model.SideSell {
-		tree = book.asksTree
-	} else {
-		tree = book.bidsTree
+	tree = book.asksTree
+
+	pl := tree.Get(newPriceLevel(price))
+
+	if pl == nil {
+		return
 	}
+
+	orders = pl.(*priceLevel).GetOrders()
+	return
+}
+
+func (book *Orderbook) GetBidOrdersByPrice(price decimal.Decimal) (orders []*MemoryOrder) {
+	book.lock.Lock()
+	defer book.lock.Unlock()
+
+	orders = make([]*MemoryOrder, 0)
+
+	var tree *llrb.LLRB
+	tree = book.bidsTree
 
 	pl := tree.Get(newPriceLevel(price))
 

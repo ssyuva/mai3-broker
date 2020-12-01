@@ -3,8 +3,10 @@ package syncer
 import (
 	"fmt"
 	"github.com/mcarloai/mai-v3-broker/common/chain"
+	"github.com/mcarloai/mai-v3-broker/common/mai3"
 	"github.com/mcarloai/mai-v3-broker/common/message"
 	"github.com/mcarloai/mai-v3-broker/common/model"
+	"github.com/mcarloai/mai-v3-broker/conf"
 	"github.com/mcarloai/mai-v3-broker/dao"
 	logger "github.com/sirupsen/logrus"
 )
@@ -56,9 +58,12 @@ func (c *CreatePerpetualSyncer) Forward(syncCtx *SyncBlockContext) error {
 		}
 		//TODO CreatePerpetual event
 		dbPerpetual := &model.Perpetual{
-			PerpetualAddress: event.PerpetualAddress,
-			OracleAddress:    event.OracleAddress,
-			BlockNumber:      event.BlockNumber,
+			PerpetualAddress:  event.PerpetualAddress,
+			CollateralAddress: event.CollateralAddress,
+			OracleAddress:     event.OracleAddress,
+			Version:           int(mai3.ProtocolV3),
+			BrokerAddress:     conf.Conf.BrokerAddress,
+			BlockNumber:       event.BlockNumber,
 		}
 		err = syncCtx.Dao.CreatePerpetual(dbPerpetual)
 		if err != nil {

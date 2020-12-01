@@ -103,11 +103,7 @@ func (l *Launcher) createLaunchTransaction(matchTx *model.MatchTransaction) erro
 			return err
 		}
 		orderParams = append(orderParams, param)
-		amount := item.Amount
-		if item.Order.Side == model.SideSell {
-			amount = amount.Neg()
-		}
-		matchAmounts = append(matchAmounts, amount)
+		matchAmounts = append(matchAmounts, item.Amount)
 		gasRewards = append(gasRewards, big.NewInt(1000000))
 	}
 	inputs, err := l.chainCli.BatchTradeDataPack(orderParams, matchAmounts, gasRewards)
@@ -162,10 +158,6 @@ func getWalletOrderParam(order *model.Order) (*model.WalletOrderParam, error) {
 		order.IsCloseOnly,
 		order.Salt,
 	)
-	amount := order.Amount
-	if order.Side == model.SideSell {
-		amount = amount.Neg()
-	}
 	param := &model.WalletOrderParam{
 		Trader:    order.TraderAddress,
 		Broker:    order.BrokerAddress,
@@ -173,7 +165,7 @@ func getWalletOrderParam(order *model.Order) (*model.WalletOrderParam, error) {
 		Perpetual: order.PerpetualAddress,
 		Referrer:  order.ReferrerAddress,
 		Price:     order.Price,
-		Amount:    amount,
+		Amount:    order.Amount,
 		OrderData: orderData,
 		ChainID:   uint64(order.ChainID),
 		Signature: signature,

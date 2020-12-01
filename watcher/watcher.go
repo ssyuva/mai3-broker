@@ -117,6 +117,7 @@ func (w *Watcher) syncFrom(forceRollback int64) (syncedCount int, err error) {
 	syncCtx := syncer.NewSyncBlockContext()
 	syncCtx.ForceRollback = forceRollback
 	syncCtx.Context = w.ctx
+	syncCtx.Dao = w.dao
 
 	// the new end
 	ctxTimeout, ctxTimeoutCancel := context.WithTimeout(w.ctx, conf.Conf.BlockChain.Timeout.Duration)

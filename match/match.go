@@ -126,7 +126,7 @@ func (m *match) matchStopOrders(indexPrice decimal.Decimal) {
 		for {
 			minBidPrice := m.stopbook.MinBid()
 			if minBidPrice != nil && minBidPrice.LessThanOrEqual(indexPrice) {
-				orders := m.stopbook.GetOrdersByPrice(model.SideBuy, *minBidPrice)
+				orders := m.stopbook.GetBidOrdersByPrice(*minBidPrice)
 				for _, order := range orders {
 					m.changeStopOrder(order)
 				}
@@ -142,7 +142,7 @@ func (m *match) matchStopOrders(indexPrice decimal.Decimal) {
 		for {
 			MaxAskPrice := m.stopbook.MaxAsk()
 			if MaxAskPrice != nil && MaxAskPrice.GreaterThanOrEqual(indexPrice) {
-				orders := m.stopbook.GetOrdersByPrice(model.SideSell, *MaxAskPrice)
+				orders := m.stopbook.GetAskOrdersByPrice(*MaxAskPrice)
 				for _, order := range orders {
 					m.changeStopOrder(order)
 				}
@@ -293,7 +293,6 @@ func (m *match) insertNewOrder(order *model.Order) error {
 		StopPrice:        order.StopPrice,
 		Amount:           order.Amount,
 		Type:             order.Type,
-		Side:             order.Side,
 		Trader:           order.TraderAddress,
 		GasFeeAmount:     order.GasFeeAmount,
 	}
@@ -327,7 +326,7 @@ func (m *match) cancelOrder(orderID string, reason model.CancelReasonType, cance
 		if err != nil {
 			return err
 		}
-		bookOrder, ok := m.orderbook.GetOrder(orderID, order.Side, order.Price)
+		bookOrder, ok := m.orderbook.GetOrder(orderID, order.Amount.IsNegative(), order.Price)
 		if !ok {
 			if !order.AvailableAmount.IsPositive() {
 				logger.Warnf("cancel order:order[%s] is closed.", orderID)
@@ -395,7 +394,7 @@ func (m *match) changeOrder(orderID string, changeAmount decimal.Decimal) error 
 	if err != nil {
 		return err
 	}
-	bookOrder, ok := m.orderbook.GetOrder(orderID, order.Side, order.Price)
+	bookOrder, ok := m.orderbook.GetOrder(orderID, order.Amount.IsNegative(), order.Price)
 	if ok {
 		if err = m.orderbook.ChangeOrder(bookOrder, changeAmount); err != nil {
 			return err

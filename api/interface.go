@@ -89,7 +89,7 @@ type (
 
 	GetBrokerRelayReq struct {
 		BaseReq
-		PerpetualAddress string `json:"perpetualAddress" query:"perpetual" validate:"required"`
+		PerpetualAddress string `json:"perpetualAddress" validate:"required"`
 	}
 
 	GetBrokerRelayResp struct {

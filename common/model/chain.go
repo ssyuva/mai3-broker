@@ -33,13 +33,14 @@ type TradeSuccessEvent struct {
 }
 
 type PerpetualEvent struct {
-	FactoryAddress   string
-	BlockNumber      int64
-	TransactionSeq   int
-	TransactionHash  string
-	PerpetualAddress string
-	OracleAddress    string
-	OperatorAddress  string
+	FactoryAddress    string
+	BlockNumber       int64
+	TransactionSeq    int
+	TransactionHash   string
+	PerpetualAddress  string
+	OracleAddress     string
+	CollateralAddress string
+	OperatorAddress   string
 }
 
 type WalletOrderParam struct {

@@ -3,9 +3,9 @@ package ethereum
 import (
 	"context"
 	"fmt"
-        "strings"
 	ethBind "github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/mcarloai/mai-v3-broker/common/model"
+	"strings"
 
 	"github.com/mcarloai/mai-v3-broker/common/chain/ethereum/factory"
 )
@@ -36,13 +36,14 @@ func (c *Client) FilterCreatePerpetual(ctx context.Context, factoryAddress strin
 
 	if iter.Next() {
 		perpetual := &model.PerpetualEvent{
-			FactoryAddress:   strings.ToLower(iter.Event.Raw.Address.Hex()),
-			TransactionSeq:   int(iter.Event.Raw.TxIndex),
-			TransactionHash:  strings.ToLower(iter.Event.Raw.TxHash.Hex()),
-			BlockNumber:      int64(iter.Event.Raw.BlockNumber),
-			PerpetualAddress: strings.ToLower(iter.Event.Perpetual.Hex()),
-			OperatorAddress:  strings.ToLower(iter.Event.Operator.Hex()),
-			OracleAddress:    strings.ToLower(iter.Event.Oracle.Hex()),
+			FactoryAddress:    strings.ToLower(iter.Event.Raw.Address.Hex()),
+			TransactionSeq:    int(iter.Event.Raw.TxIndex),
+			TransactionHash:   strings.ToLower(iter.Event.Raw.TxHash.Hex()),
+			BlockNumber:       int64(iter.Event.Raw.BlockNumber),
+			PerpetualAddress:  strings.ToLower(iter.Event.Perpetual.Hex()),
+			OperatorAddress:   strings.ToLower(iter.Event.Operator.Hex()),
+			OracleAddress:     strings.ToLower(iter.Event.Oracle.Hex()),
+			CollateralAddress: strings.ToLower(iter.Event.Collateral.Hex()),
 		}
 
 		rsp = append(rsp, perpetual)

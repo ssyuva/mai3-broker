@@ -28,7 +28,7 @@ var (
 )
 
 // FactoryABI is the input ABI used to generate the binding from.
-const FactoryABI = "[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"governor\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"shareToken\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"perpetual\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"implementation\",\"type\":\"address\"}],\"name\":\"AddVersion\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"perpetual\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"governor\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"shareToken\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"operator\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"oracle\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"int256[7]\",\"name\":\"coreParams\",\"type\":\"int256[7]\"},{\"indexed\":false,\"internalType\":\"int256[5]\",\"name\":\"riskParams\",\"type\":\"int256[5]\"}],\"name\":\"CreatePerpetual\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"implementation\",\"type\":\"address\"}],\"name\":\"RevokeVersion\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"trader\",\"type\":\"address\"}],\"name\":\"activeProxy\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"oracle\",\"type\":\"address\"},{\"internalType\":\"int256[7]\",\"name\":\"coreParams\",\"type\":\"int256[7]\"},{\"internalType\":\"int256[5]\",\"name\":\"riskParams\",\"type\":\"int256[5]\"},{\"internalType\":\"int256[5]\",\"name\":\"minRiskParamValues\",\"type\":\"int256[5]\"},{\"internalType\":\"int256[5]\",\"name\":\"maxRiskParamValues\",\"type\":\"int256[5]\"},{\"internalType\":\"uint256\",\"name\":\"nonce\",\"type\":\"uint256\"}],\"name\":\"createPerpetual\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"trader\",\"type\":\"address\"}],\"name\":\"deactiveProxy\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"begin\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"end\",\"type\":\"uint256\"}],\"name\":\"listPerpetuals\",\"outputs\":[{\"internalType\":\"address[]\",\"name\":\"\",\"type\":\"address[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"totalPerpetualCount\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"vault\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]"
+const FactoryABI = "[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"governor\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"shareToken\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"perpetual\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"vault_\",\"type\":\"address\"},{\"internalType\":\"int256\",\"name\":\"vaultFeeRate_\",\"type\":\"int256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"implementation\",\"type\":\"address\"}],\"name\":\"AddVersion\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"perpetual\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"governor\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"shareToken\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"operator\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"collateral\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"oracle\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"int256[7]\",\"name\":\"coreParams\",\"type\":\"int256[7]\"},{\"indexed\":false,\"internalType\":\"int256[5]\",\"name\":\"riskParams\",\"type\":\"int256[5]\"}],\"name\":\"CreatePerpetual\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"implementation\",\"type\":\"address\"}],\"name\":\"RevokeVersion\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"trader\",\"type\":\"address\"}],\"name\":\"activeProxy\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"oracle\",\"type\":\"address\"},{\"internalType\":\"int256[7]\",\"name\":\"coreParams\",\"type\":\"int256[7]\"},{\"internalType\":\"int256[5]\",\"name\":\"riskParams\",\"type\":\"int256[5]\"},{\"internalType\":\"int256[5]\",\"name\":\"minRiskParamValues\",\"type\":\"int256[5]\"},{\"internalType\":\"int256[5]\",\"name\":\"maxRiskParamValues\",\"type\":\"int256[5]\"},{\"internalType\":\"uint256\",\"name\":\"nonce\",\"type\":\"uint256\"}],\"name\":\"createPerpetual\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"trader\",\"type\":\"address\"}],\"name\":\"deactiveProxy\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"begin\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"end\",\"type\":\"uint256\"}],\"name\":\"listPerpetuals\",\"outputs\":[{\"internalType\":\"address[]\",\"name\":\"\",\"type\":\"address[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"totalPerpetualCount\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"vault\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"vaultFeeRate\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]"
 
 // Factory is an auto generated Go binding around an Ethereum contract.
 type Factory struct {
@@ -248,6 +248,32 @@ func (_Factory *FactorySession) Vault() (common.Address, error) {
 // Solidity: function vault() constant returns(address)
 func (_Factory *FactoryCallerSession) Vault() (common.Address, error) {
 	return _Factory.Contract.Vault(&_Factory.CallOpts)
+}
+
+// VaultFeeRate is a free data retrieval call binding the contract method 0x96550e8b.
+//
+// Solidity: function vaultFeeRate() constant returns(int256)
+func (_Factory *FactoryCaller) VaultFeeRate(opts *bind.CallOpts) (*big.Int, error) {
+	var (
+		ret0 = new(*big.Int)
+	)
+	out := ret0
+	err := _Factory.contract.Call(opts, out, "vaultFeeRate")
+	return *ret0, err
+}
+
+// VaultFeeRate is a free data retrieval call binding the contract method 0x96550e8b.
+//
+// Solidity: function vaultFeeRate() constant returns(int256)
+func (_Factory *FactorySession) VaultFeeRate() (*big.Int, error) {
+	return _Factory.Contract.VaultFeeRate(&_Factory.CallOpts)
+}
+
+// VaultFeeRate is a free data retrieval call binding the contract method 0x96550e8b.
+//
+// Solidity: function vaultFeeRate() constant returns(int256)
+func (_Factory *FactoryCallerSession) VaultFeeRate() (*big.Int, error) {
+	return _Factory.Contract.VaultFeeRate(&_Factory.CallOpts)
 }
 
 // ActiveProxy is a paid mutator transaction binding the contract method 0xd3b3eb2b.
@@ -519,15 +545,16 @@ type FactoryCreatePerpetual struct {
 	Governor   common.Address
 	ShareToken common.Address
 	Operator   common.Address
+	Collateral common.Address
 	Oracle     common.Address
 	CoreParams [7]*big.Int
 	RiskParams [5]*big.Int
 	Raw        types.Log // Blockchain specific contextual infos
 }
 
-// FilterCreatePerpetual is a free log retrieval operation binding the contract event 0xae2b8f142b167a20d1b1665341cbe335a28c56f4fadd3d01a784f32218d18850.
+// FilterCreatePerpetual is a free log retrieval operation binding the contract event 0x00fed7a4317354cc24fd703396ae9c240add67e3eb2ca2ebe1400cf9218e0fdd.
 //
-// Solidity: event CreatePerpetual(address perpetual, address governor, address shareToken, address operator, address oracle, int256[7] coreParams, int256[5] riskParams)
+// Solidity: event CreatePerpetual(address perpetual, address governor, address shareToken, address operator, address collateral, address oracle, int256[7] coreParams, int256[5] riskParams)
 func (_Factory *FactoryFilterer) FilterCreatePerpetual(opts *bind.FilterOpts) (*FactoryCreatePerpetualIterator, error) {
 
 	logs, sub, err := _Factory.contract.FilterLogs(opts, "CreatePerpetual")
@@ -537,9 +564,9 @@ func (_Factory *FactoryFilterer) FilterCreatePerpetual(opts *bind.FilterOpts) (*
 	return &FactoryCreatePerpetualIterator{contract: _Factory.contract, event: "CreatePerpetual", logs: logs, sub: sub}, nil
 }
 
-// WatchCreatePerpetual is a free log subscription operation binding the contract event 0xae2b8f142b167a20d1b1665341cbe335a28c56f4fadd3d01a784f32218d18850.
+// WatchCreatePerpetual is a free log subscription operation binding the contract event 0x00fed7a4317354cc24fd703396ae9c240add67e3eb2ca2ebe1400cf9218e0fdd.
 //
-// Solidity: event CreatePerpetual(address perpetual, address governor, address shareToken, address operator, address oracle, int256[7] coreParams, int256[5] riskParams)
+// Solidity: event CreatePerpetual(address perpetual, address governor, address shareToken, address operator, address collateral, address oracle, int256[7] coreParams, int256[5] riskParams)
 func (_Factory *FactoryFilterer) WatchCreatePerpetual(opts *bind.WatchOpts, sink chan<- *FactoryCreatePerpetual) (event.Subscription, error) {
 
 	logs, sub, err := _Factory.contract.WatchLogs(opts, "CreatePerpetual")
@@ -574,9 +601,9 @@ func (_Factory *FactoryFilterer) WatchCreatePerpetual(opts *bind.WatchOpts, sink
 	}), nil
 }
 
-// ParseCreatePerpetual is a log parse operation binding the contract event 0xae2b8f142b167a20d1b1665341cbe335a28c56f4fadd3d01a784f32218d18850.
+// ParseCreatePerpetual is a log parse operation binding the contract event 0x00fed7a4317354cc24fd703396ae9c240add67e3eb2ca2ebe1400cf9218e0fdd.
 //
-// Solidity: event CreatePerpetual(address perpetual, address governor, address shareToken, address operator, address oracle, int256[7] coreParams, int256[5] riskParams)
+// Solidity: event CreatePerpetual(address perpetual, address governor, address shareToken, address operator, address collateral, address oracle, int256[7] coreParams, int256[5] riskParams)
 func (_Factory *FactoryFilterer) ParseCreatePerpetual(log types.Log) (*FactoryCreatePerpetual, error) {
 	event := new(FactoryCreatePerpetual)
 	if err := _Factory.contract.UnpackLog(event, "CreatePerpetual", log); err != nil {

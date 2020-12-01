@@ -126,16 +126,8 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 		order.Status = model.OrderStop
 	}
 
-	amount, _ := decimal.NewFromString(params.Amount)
-	if amount.LessThan(decimal.Zero) {
-		order.OrderParam.Amount = amount.Neg()
-		order.OrderParam.Side = model.SideSell
-	} else {
-		order.OrderParam.Amount = amount
-		order.OrderParam.Side = model.SideBuy
-	}
-
-	order.Version = int32(mai3.ProtocolV3)
+	order.OrderParam.Amount, _ = decimal.NewFromString(params.Amount)
+	order.OrderParam.Version = int32(mai3.ProtocolV3)
 	order.OrderParam.ChainID = params.ChainID
 	order.OrderParam.Price, _ = decimal.NewFromString(params.Price)
 	order.OrderParam.StopPrice, _ = decimal.NewFromString(params.StopPrice)
