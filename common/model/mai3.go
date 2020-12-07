@@ -6,18 +6,14 @@ import (
 
 type GovParams struct {
 	// perpetual
-	UnderlyingSymbol       string
-	CollateralTokenAddress string
-	ShareTokenAddress      string
-	OracleAddress          string
-	InitialMarginRate      decimal.Decimal
-	MaintenanceMarginRate  decimal.Decimal
-	OperatorFeeRate        decimal.Decimal
-	VaultFeeRate           decimal.Decimal
-	LpFeeRate              decimal.Decimal
-	ReferrerRebateRate     decimal.Decimal
-	LiquidatorPenaltyRate  decimal.Decimal
-	KeeperGasReward        decimal.Decimal
+	InitialMarginRate     decimal.Decimal
+	MaintenanceMarginRate decimal.Decimal
+	OperatorFeeRate       decimal.Decimal
+	VaultFeeRate          decimal.Decimal
+	LpFeeRate             decimal.Decimal
+	ReferrerRebateRate    decimal.Decimal
+	LiquidatorPenaltyRate decimal.Decimal
+	KeeperGasReward       decimal.Decimal
 	// amm
 	HalfSpreadRate         decimal.Decimal
 	Beta1                  decimal.Decimal
@@ -56,22 +52,13 @@ type AccountComputed struct {
 	MaxWithdrawable      decimal.Decimal
 	WithdrawableBalance  decimal.Decimal
 	IsSafe               bool
-
-	EntryPrice       decimal.Decimal
-	Pnl1             decimal.Decimal
-	Pnl2             decimal.Decimal
-	LiquidationPrice decimal.Decimal
-}
-
-type AccountDetails struct {
-	AccountStorage  AccountStorage
-	AccountComputed AccountComputed
 }
 
 type TradeCost struct {
-	Account    AccountDetails
-	MarginCost decimal.Decimal
-	Fee        decimal.Decimal
+	AccountStorage  AccountStorage
+	AccountComputed AccountComputed
+	MarginCost      decimal.Decimal
+	Fee             decimal.Decimal
 }
 
 type AMMTradingContext struct {

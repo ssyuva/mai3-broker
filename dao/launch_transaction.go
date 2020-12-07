@@ -18,6 +18,7 @@ type TransactionDAO interface {
 	GetTxsByNonce(user string, nonce *uint64, status ...model.LaunchTransactionStatus) ([]*model.LaunchTransaction, error)
 	GetTxsByBlock(begin *uint64, end *uint64, status ...model.LaunchTransactionStatus) ([]*model.LaunchTransaction, error)
 	GetUsersWithStatus(status ...model.LaunchTransactionStatus) ([]string, error)
+	RollbackLaunchTransactions(beginRollbackHeight int64, endRollbackHeight int64) error
 
 	CreateTx(tx *model.LaunchTransaction) error
 	UpdateTx(tx *model.LaunchTransaction) error
@@ -135,6 +136,24 @@ func (t *transactionDAO) GetUsersWithStatus(status ...model.LaunchTransactionSta
 		users = append(users, tx.FromAddress)
 	}
 	return users, nil
+}
+
+func (t *transactionDAO) RollbackLaunchTransactions(beginRollbackHeight int64, endRollbackHeight int64) error {
+	var txs []*model.LaunchTransaction
+	t.db = t.db.Where("block_number >= ? and block_number <= ?", beginRollbackHeight, endRollbackHeight)
+	if err := t.statusFilter([]model.LaunchTransactionStatus{model.TxSuccess, model.TxFailed, model.TxCanceled}).Find(&txs).Error; err != nil {
+		return errors.Wrap(err, "RollbackLaunchTransactions:fail to find transaction by block")
+	}
+	for _, tx := range txs {
+		tx.BlockHash = nil
+		tx.BlockNumber = nil
+		tx.BlockTime = nil
+		tx.Status = model.TxPending
+		if err := t.db.Save(tx).Error; err != nil {
+			return errors.Wrap(err, "revert transaction failed")
+		}
+	}
+	return nil
 }
 
 // New insert a new record to database

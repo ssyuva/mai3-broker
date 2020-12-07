@@ -26,8 +26,8 @@ func TestGetOrderHash(t *testing.T) {
 		relayer    = "0x0000000000000000000000000000000000000003"
 		perpetual  = "0x0000000000000000000000000000000000000004"
 		referrer   = "0x0000000000000000000000000000000000000005"
-		amount     = decimal.NewFromFloat(1000)
-		priceLimit = decimal.NewFromFloat(2000)
+		amount     = decimal.NewFromFloat(1000).Div(decimal.NewFromInt(1000000000000000000))
+		priceLimit = decimal.NewFromFloat(2000).Div(decimal.NewFromInt(1000000000000000000))
 		orderData  = "0x000000005fbcef60000000010101000000000001e24000000000000000000000"
 		chainID    = 1
 	)

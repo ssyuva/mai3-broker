@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/mcarloai/mai-v3-broker/common/chain"
-	"github.com/mcarloai/mai-v3-broker/common/message"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/mcarloai/mai-v3-broker/common/orderbook"
 	"github.com/mcarloai/mai-v3-broker/conf"
@@ -18,9 +17,9 @@ import (
 
 type match struct {
 	ctx       context.Context
+	cancel    context.CancelFunc
 	mu        sync.Mutex
 	wsChan    chan interface{}
-	msgChan   chan interface{}
 	orderbook *orderbook.Orderbook
 	stopbook  *orderbook.Orderbook
 	perpetual *model.Perpetual
@@ -29,11 +28,12 @@ type match struct {
 	timers    map[string]*time.Timer
 }
 
-func newMatch(ctx context.Context, cli chain.ChainClient, dao dao.DAO, perpetual *model.Perpetual, wsChan, msgChan chan interface{}) *match {
-	return &match{
+func newMatch(ctx context.Context, cli chain.ChainClient, dao dao.DAO, perpetual *model.Perpetual, wsChan chan interface{}) (*match, error) {
+	ctx, cancel := context.WithCancel(ctx)
+	m := &match{
 		ctx:       ctx,
+		cancel:    cancel,
 		wsChan:    wsChan,
-		msgChan:   msgChan,
 		perpetual: perpetual,
 		orderbook: orderbook.NewOrderbook(),
 		stopbook:  orderbook.NewOrderbook(),
@@ -41,15 +41,15 @@ func newMatch(ctx context.Context, cli chain.ChainClient, dao dao.DAO, perpetual
 		dao:       dao,
 		timers:    make(map[string]*time.Timer),
 	}
+	m.run()
+
+	return m, nil
 }
 
 func (m *match) run() error {
-	if err := m.reloadOrderBook(); err != nil {
+	if err := m.reloadActiveOrders(); err != nil {
 		return err
 	}
-
-	// go recieve match message
-	go m.startConsumer()
 
 	// go monitor check user margin gas
 	go m.checkOrdersMargin()
@@ -57,50 +57,7 @@ func (m *match) run() error {
 	// go match order
 	go m.runMatch()
 
-	<-m.ctx.Done()
 	return nil
-}
-
-func (m *match) startConsumer() {
-	for {
-		select {
-		case <-m.ctx.Done():
-			logger.Infof("Match Consumer Exit")
-			return
-		case msg, ok := <-m.msgChan:
-			if !ok {
-				return
-			}
-			m.parseMessage(msg.(message.MatchMessage))
-		}
-	}
-}
-
-func (m *match) parseMessage(msg message.MatchMessage) {
-	switch msg.Type {
-	case message.MatchTypeNewOrder:
-		payload := msg.Payload.(message.MatchNewOrderPayload)
-		order, err := m.dao.GetOrder(payload.OrderHash)
-		if err != nil {
-			logger.Errorf("Match New Order error perpetual:%s, orderHash:%s", msg.PerpetualAddress, payload.OrderHash)
-			return
-		}
-		if err = m.insertNewOrder(order); err != nil {
-			logger.Errorf("Insert New Order error perpetual:%s, orderHash:%s", msg.PerpetualAddress, payload.OrderHash)
-		}
-	case message.MatchTypeCancelOrder:
-		payload := msg.Payload.(message.MatchCancelOrderPayload)
-		if err := m.cancelOrder(payload.OrderHash, model.CancelReasonUserCancel, true, decimal.Zero); err != nil {
-			logger.Errorf("Cancel Order error perpetual:%s, orderHash:%s", msg.PerpetualAddress, payload.OrderHash)
-		}
-	case message.MatchTypeChangeOrder:
-		payload := msg.Payload.(message.MatchChangeOrderPayload)
-		if err := m.changeOrder(payload.OrderHash, payload.Amount); err != nil {
-			logger.Errorf("Match Change Order error perpetual:%s", msg.PerpetualAddress)
-		}
-	default:
-		logger.Errorf("Match unknown message type:%s, perpetual:%s", msg.Type, msg.PerpetualAddress)
-	}
 }
 
 func (m *match) checkOrdersMargin() {
@@ -157,6 +114,13 @@ func (m *match) matchStopOrders(indexPrice decimal.Decimal) {
 	return
 }
 
+func (m *match) Close() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.stopTimers()
+	m.cancel()
+}
+
 func (m *match) changeStopOrder(memoryOrder *orderbook.MemoryOrder) {
 	err := m.dao.Transaction(func(dao dao.DAO) error {
 		dao.ForUpdate()
@@ -211,6 +175,7 @@ func (m *match) matchOrders(indexPrice decimal.Decimal) {
 		ID:               u.String(),
 		Status:           model.TransactionStatusInit,
 		PerpetualAddress: m.perpetual.PerpetualAddress,
+		BrokerAddress:    conf.Conf.BrokerAddress,
 	}
 	err = m.dao.Transaction(func(dao dao.DAO) error {
 		dao.ForUpdate()
@@ -257,18 +222,18 @@ func (m *match) runMatch() {
 		case <-time.After(time.Second):
 			ctxTimeout, ctxTimeoutCancel := context.WithTimeout(m.ctx, conf.Conf.BlockChain.Timeout.Duration)
 			defer ctxTimeoutCancel()
-			indexPrice, err := m.chainCli.GetPrice(ctxTimeout, m.perpetual.OracleAddress)
+			storage, err := m.chainCli.GetPerpetualStorage(ctxTimeout, m.perpetual.PerpetualAddress)
 			if err != nil {
 				logger.Errorf("get index price fail! err:%s", err.Error())
 				continue
 			}
-			m.matchStopOrders(indexPrice)
-			m.matchOrders(indexPrice)
+			m.matchStopOrders(storage.IndexPrice)
+			m.matchOrders(storage.MarkPrice)
 		}
 	}
 }
 
-func (m *match) reloadOrderBook() error {
+func (m *match) reloadActiveOrders() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	orders, err := m.dao.QueryOrder("", m.perpetual.PerpetualAddress, []model.OrderStatus{model.OrderPending, model.OrderStop}, 0, 0, 0)
@@ -276,17 +241,28 @@ func (m *match) reloadOrderBook() error {
 		return err
 	}
 	for _, order := range orders {
-		if err := m.insertNewOrder(order); err != nil {
-			return err
+		if !order.AvailableAmount.IsZero() {
+			memoryOrder := m.getMemoryOrder(order)
+			if order.Type == model.StopLimitOrder {
+				if err := m.stopbook.InsertOrder(memoryOrder); err != nil {
+					return fmt.Errorf("reloadActiveOrders:%w", err)
+				}
+			} else {
+				if err := m.orderbook.InsertOrder(memoryOrder); err != nil {
+					return fmt.Errorf("reloadActiveOrders:%w", err)
+				}
+			}
+
+			if err := m.setExpirationTimer(order.OrderHash, order.ExpiresAt); err != nil {
+				return fmt.Errorf("reloadActiveOrders:%w", err)
+			}
 		}
 	}
 	return nil
 }
 
-func (m *match) insertNewOrder(order *model.Order) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	memoryOrder := &orderbook.MemoryOrder{
+func (m *match) getMemoryOrder(order *model.Order) *orderbook.MemoryOrder {
+	return &orderbook.MemoryOrder{
 		ID:               order.OrderHash,
 		PerpetualAddress: order.PerpetualAddress,
 		Price:            order.Price,
@@ -294,115 +270,5 @@ func (m *match) insertNewOrder(order *model.Order) error {
 		Amount:           order.Amount,
 		Type:             order.Type,
 		Trader:           order.TraderAddress,
-		GasFeeAmount:     order.GasFeeAmount,
 	}
-	if order.Status == model.OrderPending {
-		memoryOrder.ComparePrice = order.Price
-		if err := m.orderbook.InsertOrder(memoryOrder); err != nil {
-			return err
-		}
-	} else {
-		memoryOrder.ComparePrice = order.StopPrice
-		if err := m.stopbook.InsertOrder(memoryOrder); err != nil {
-			return err
-		}
-	}
-	if err := m.setExpirationTimer(order.OrderHash, order.ExpiresAt); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (m *match) cancelOrder(orderID string, reason model.CancelReasonType, cancelAll bool, cancelAmount decimal.Decimal) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	var order *model.Order
-	cancelBookAmount := cancelAmount
-	cancelDBAmount := cancelAmount
-	err := m.dao.Transaction(func(dao dao.DAO) error {
-		var err error
-		dao.ForUpdate()
-		order, err = dao.GetOrder(orderID)
-		if err != nil {
-			return err
-		}
-		bookOrder, ok := m.orderbook.GetOrder(orderID, order.Amount.IsNegative(), order.Price)
-		if !ok {
-			if !order.AvailableAmount.IsPositive() {
-				logger.Warnf("cancel order:order[%s] is closed.", orderID)
-				order = nil
-				return nil
-			} else {
-				logger.Errorf("cancel order: order[%s] not exists in book, cancel all in db!", orderID)
-				cancelDBAmount = order.AvailableAmount
-				cancelBookAmount = decimal.Zero
-			}
-		} else {
-			if !order.AvailableAmount.Equal(bookOrder.Amount) {
-				logger.Errorf("cancel order: order[%s] amount mismatch between db[%s] and book[%s] cancel all!", orderID, order.AvailableAmount, bookOrder.Amount)
-				cancelAll = true
-			}
-			if cancelAll {
-				cancelDBAmount = order.AvailableAmount
-				cancelBookAmount = bookOrder.Amount
-			}
-			if order.AvailableAmount.LessThan(cancelAmount) {
-				logger.Warnf("cancel amount[%s] larger than db available amount[%s]", cancelAmount, order.AvailableAmount)
-				cancelDBAmount = order.AvailableAmount
-			}
-			if bookOrder.Amount.LessThan(cancelAmount) {
-				logger.Warnf("cancel amount[%s] larger than book available amount[%s]", cancelAmount, bookOrder.Amount)
-				cancelBookAmount = order.AvailableAmount
-			}
-		}
-
-		if cancelBookAmount.IsPositive() {
-			if err := m.orderbook.ChangeOrder(bookOrder, cancelBookAmount.Neg()); err != nil {
-				return err
-			}
-		}
-
-		if cancelDBAmount.IsPositive() {
-			if err = model.CancelOrder(order, reason, cancelDBAmount); err != nil {
-				return err
-			}
-
-			if err = dao.UpdateOrder(order); err != nil {
-				return err
-			}
-		}
-
-		m.deleteOrderTimer(orderID)
-		return nil
-	})
-	if err == nil && order != nil && cancelDBAmount.IsPositive() {
-		// notice websocket for cancel order
-		wsMsg := message.WebSocketMessage{
-			ChannelID: message.GetAccountChannelID(order.TraderAddress),
-			Payload: message.WebSocketOrderChangePayload{
-				Type:  message.WsTypeOrderChange,
-				Order: order,
-			},
-		}
-		m.wsChan <- wsMsg
-	}
-	return err
-}
-
-func (m *match) changeOrder(orderID string, changeAmount decimal.Decimal) error {
-	order, err := m.dao.GetOrder(orderID)
-	if err != nil {
-		return err
-	}
-	bookOrder, ok := m.orderbook.GetOrder(orderID, order.Amount.IsNegative(), order.Price)
-	if ok {
-		if err = m.orderbook.ChangeOrder(bookOrder, changeAmount); err != nil {
-			return err
-		}
-	} else {
-		if err = m.orderbook.InsertOrder(bookOrder); err != nil {
-			return err
-		}
-	}
-	return nil
 }

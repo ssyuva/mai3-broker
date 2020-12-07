@@ -18,8 +18,9 @@ type ChainClient interface {
 	SendTransaction(ctx context.Context, tx *model.LaunchTransaction) (string, error)
 	WaitTransactionReceipt(ctx context.Context, txHash string) (*model.Receipt, error)
 	GetMarginAccount(ctx context.Context, perpetualAddress, account string) (*model.AccountStorage, error)
-	GetPrice(ctx context.Context, oracle string) (decimal.Decimal, error)
+	GetPerpetualStorage(ctx context.Context, perpetualAddress string) (*model.PerpetualStorage, error)
 	FilterCreatePerpetual(ctx context.Context, factoryAddress string, start, end uint64) ([]*model.PerpetualEvent, error)
 	FilterTradeSuccess(ctx context.Context, perpetualAddress string, start, end uint64) ([]*model.TradeSuccessEvent, error)
 	BatchTradeDataPack(orderParams []*model.WalletOrderParam, matchAmounts []decimal.Decimal, gasRewards []*big.Int) ([]byte, error)
+	GetPerpetualGovParams(ctx context.Context, perpetualAddress string) (*model.GovParams, error)
 }

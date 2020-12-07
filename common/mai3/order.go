@@ -79,27 +79,14 @@ func GetOrderHash(traderAddress, brokerAddress, relayerAddress, contractAddress,
 		return nil, fmt.Errorf("GetOrderHash:%w", err)
 	}
 
-	amountBin := utils.BytesToHash(utils.MustDecimalToBigInt(amount).Bytes())
-	priceBin := utils.BytesToHash(utils.MustDecimalToBigInt(price).Bytes())
+	amountBin := utils.BytesToHash(utils.MustDecimalToBigInt(utils.ToWad(amount)).Bytes())
+	priceBin := utils.BytesToHash(utils.MustDecimalToBigInt(utils.ToWad(price)).Bytes())
 	orderDataBin, err := utils.HexToHash(orderData)
 	if err != nil {
 		return nil, fmt.Errorf("GetOrderHash:%w", err)
 	}
 	chainIDBin := utils.BytesToHash(big.NewInt(chainID).Bytes())
 
-	fmt.Println(utils.Bytes2HexP(EIP712_MAI3_ORDER_TYPE))
-	fmt.Println(utils.Bytes2HexP(crypto.Keccak256(
-		EIP712_MAI3_ORDER_TYPE,
-		trader.Bytes(),
-		broker.Bytes(),
-		relayer.Bytes(),
-		contract.Bytes(),
-		referrer.Bytes(),
-		amountBin.Bytes(),
-		priceBin.Bytes(),
-		orderDataBin.Bytes(),
-		chainIDBin.Bytes(),
-	)))
 	hash := getEIP712MessageHash(
 		crypto.Keccak256(
 			EIP712_MAI3_ORDER_TYPE,

@@ -34,7 +34,7 @@ func (o *dbOrder) setStatusByAmounts() {
 		o.Status = model.OrderFullFilled
 	} else if o.CanceledAmount.Equal(o.Amount) {
 		o.Status = model.OrderCanceled
-	} else if o.AvailableAmount.Add(o.PendingAmount).GreaterThan(decimal.Zero) {
+	} else if o.AvailableAmount.Add(o.PendingAmount).Abs().GreaterThan(decimal.Zero) {
 		o.Status = model.OrderPending
 	} else {
 		o.Status = model.OrderPartialFilled

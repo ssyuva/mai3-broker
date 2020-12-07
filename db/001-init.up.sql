@@ -2,15 +2,17 @@ create table perpetuals
 (
   id SERIAL PRIMARY KEY,
   perpetual_address text not null,
+  governor_address text not null,
+  share_token text not null,
+  operator_address text not null,
   oracle_address text not null,
   collateral_address text not null,
-  operator_address text not null,
-  version integer not null,
   is_published boolean not null default true,
   block_number bigint not null
 );
 
 create unique index idx_perpetual_address on perpetuals (perpetual_address);
+create index idx_perpetuals_height on perpetuals (block_number);
 
 -- orders table
 create table orders
@@ -53,6 +55,7 @@ create table match_transactions
 (
   id text PRIMARY KEY,
   perpetual_address text not null,
+  broker_address text not null,
   match_json text not null,
   status text not null,
   block_confirmed bool not null,

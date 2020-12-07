@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/mcarloai/mai-v3-broker/common/chain"
 	"github.com/mcarloai/mai-v3-broker/common/model"
+	"github.com/mcarloai/mai-v3-broker/common/utils"
 	"github.com/mcarloai/mai-v3-broker/conf"
 	"github.com/mcarloai/mai-v3-broker/dao"
 	"github.com/mcarloai/mai-v3-broker/syncer"
@@ -19,26 +20,23 @@ const MatureBlocks = 1000
 type Watcher struct {
 	ctx            context.Context
 	factoryAddress string
-	wsChan         chan interface{}
-	matchChan      chan interface{}
 	chainCli       chain.ChainClient
+	rpcClient      *utils.HttpClient
 	dao            dao.DAO
 	blockSyncers   []syncer.BlockSyncer
 }
 
-func New(ctx context.Context, cli chain.ChainClient, dao dao.DAO, factoryAddress string, wsChan, matchChan chan interface{}) *Watcher {
+func New(ctx context.Context, cli chain.ChainClient, dao dao.DAO, rpcClient *utils.HttpClient) *Watcher {
 	watcher := &Watcher{
-		ctx:            ctx,
-		factoryAddress: factoryAddress,
-		wsChan:         wsChan,
-		matchChan:      matchChan,
-		chainCli:       cli,
-		dao:            dao,
-		blockSyncers:   make([]syncer.BlockSyncer, 0),
+		ctx:          ctx,
+		chainCli:     cli,
+		rpcClient:    rpcClient,
+		dao:          dao,
+		blockSyncers: make([]syncer.BlockSyncer, 0),
 	}
 
-	watcher.AddBlockSyncer(syncer.NewCreatePerpetualSyncer(factoryAddress, cli, matchChan))
-	watcher.AddBlockSyncer(syncer.NewPerpetualMatchSyncer(cli, matchChan))
+	watcher.AddBlockSyncer(syncer.NewCreatePerpetualSyncer(conf.Conf.FactoryAddress, cli))
+	watcher.AddBlockSyncer(syncer.NewPerpetualMatchSyncer(cli, rpcClient))
 
 	return watcher
 }

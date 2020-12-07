@@ -5,7 +5,58 @@ import (
 	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/shopspring/decimal"
+	logger "github.com/sirupsen/logrus"
 )
+
+func ComputeAMMTrade(g *model.GovParams, p *model.PerpetualStorage, trader, amm *model.AccountStorage, amount decimal.Decimal) (lpFee, vaultFee, operatorFee, tradingPirce decimal.Decimal, err error) {
+	if amount.IsZero() {
+		return
+	}
+
+	// amm
+	deltaAMMAmount, _, tradingPrice, err := ComputeAMMPrice(g, p, amm, amount)
+	if err != nil {
+		logger.Errorf("ComputeAMMPrice error:%s", err)
+		return
+	}
+	if !deltaAMMAmount.Neg().Equal(amount) {
+		logger.Errorf("trading amount mismatched %s != %s", deltaAMMAmount, amount)
+		return
+	}
+	lpFee, err = ComputeFee(tradingPrice, deltaAMMAmount, g.LpFeeRate)
+	if err != nil {
+		return
+	}
+	vaultFee, err = ComputeFee(tradingPrice, deltaAMMAmount, g.VaultFeeRate)
+	if err != nil {
+		return
+	}
+	operatorFee, err = ComputeFee(tradingPrice, deltaAMMAmount, g.OperatorFeeRate)
+	if err != nil {
+		return
+	}
+	amm.CashBalance = amm.CashBalance.Add(lpFee)
+
+	// trader
+	err = ComputeTradeWithPrice(p, trader, tradingPrice, deltaAMMAmount.Neg(), g.LpFeeRate.Add(g.VaultFeeRate).Add(g.OperatorFeeRate))
+	return
+}
+
+func ComputeAMMPrice(g *model.GovParams, p *model.PerpetualStorage, amm *model.AccountStorage, amount decimal.Decimal) (deltaAMMAmount, deltaAMMMargin, tradingPrice decimal.Decimal, err error) {
+	if amount.IsZero() {
+		return
+	}
+	ammComputed := ComputeAccount(g, p, amm)
+	ammTrading, err := ComputeAMMInternalTrade(g, p, ammComputed, amm, amount.Neg())
+	if err != nil {
+		return _0, _0, _0, err
+	}
+	deltaAMMMargin = ammTrading.DeltaMargin
+	deltaAMMAmount = ammTrading.DeltaPosition
+	tradingPrice = deltaAMMMargin.Div(deltaAMMAmount).Abs()
+	ComputeTradeWithPrice(p, amm, tradingPrice, amount.Neg(), _0)
+	return
+}
 
 func ComputeTradeWithPrice(p *model.PerpetualStorage, a *model.AccountStorage, price, amount, feeRate decimal.Decimal) error {
 	close, open := utils.SplitAmount(a.PositionAmount, amount)

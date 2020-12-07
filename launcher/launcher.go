@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"github.com/mcarloai/mai-v3-broker/common/chain"
 	"github.com/mcarloai/mai-v3-broker/common/mai3"
-	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
+	mai3Utils "github.com/mcarloai/mai-v3-broker/common/mai3/utils"
 	"github.com/mcarloai/mai-v3-broker/common/model"
+	"github.com/mcarloai/mai-v3-broker/common/utils"
 	"github.com/mcarloai/mai-v3-broker/dao"
 	"github.com/shopspring/decimal"
 	logger "github.com/sirupsen/logrus"
@@ -16,23 +17,19 @@ import (
 
 type Launcher struct {
 	ctx       context.Context
-	addr      string
 	dao       dao.DAO
 	chainCli  chain.ChainClient
-	wsChan    chan interface{}
-	matchChan chan interface{}
+	rpcClient *utils.HttpClient
 	execChan  chan interface{}
 	syncChan  chan interface{}
 }
 
-func NewLaunch(ctx context.Context, addr string, dao dao.DAO, chainCli chain.ChainClient, wsChan, matchChan chan interface{}) *Launcher {
+func NewLaunch(ctx context.Context, dao dao.DAO, chainCli chain.ChainClient, rpcClient *utils.HttpClient) *Launcher {
 	return &Launcher{
 		ctx:       ctx,
-		addr:      addr,
 		dao:       dao,
 		chainCli:  chainCli,
-		wsChan:    wsChan,
-		matchChan: matchChan,
+		rpcClient: rpcClient,
 		execChan:  make(chan interface{}, 100),
 		syncChan:  make(chan interface{}, 100),
 	}
@@ -40,13 +37,8 @@ func NewLaunch(ctx context.Context, addr string, dao dao.DAO, chainCli chain.Cha
 
 func (l *Launcher) Start() error {
 	logger.Infof("Launcher start")
-	//TODO private key aes crypto
-	err := l.chainCli.AddAccount("")
-	if err != nil {
-		return err
-	}
 	// start syncer for sync pending transactions
-	syncer := NewSyncer(l.ctx, l.dao, l.chainCli, l.matchChan, l.syncChan)
+	syncer := NewSyncer(l.ctx, l.dao, l.chainCli, l.syncChan, l.rpcClient)
 	go syncer.Run()
 
 	// start executor for execute launch transactions
@@ -120,7 +112,7 @@ func (l *Launcher) createLaunchTransaction(matchTx *model.MatchTransaction) erro
 		TxID:        matchTx.ID,
 		Type:        model.TxNormal,
 		FromAddress: signAccount,
-		ToAddress:   l.addr,
+		ToAddress:   matchTx.BrokerAddress,
 		Inputs:      inputs,
 		Status:      model.TxInitial,
 		CommitTime:  time.Now(),
@@ -147,7 +139,7 @@ func getWalletOrderParam(order *model.Order) (*model.WalletOrderParam, error) {
 	if order == nil {
 		return nil, fmt.Errorf("getWalletOrderParam:nil order")
 	}
-	signature, err := utils.Hex2Bytes(order.Signature)
+	signature, err := mai3Utils.Hex2Bytes(order.Signature)
 	if err != nil {
 		return nil, fmt.Errorf("getWalletOrderParam:%w", err)
 	}

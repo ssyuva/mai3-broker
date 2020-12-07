@@ -1,12 +1,14 @@
 package api
 
 import (
+	"github.com/mcarloai/mai-v3-broker/common/mai3"
+	"github.com/mcarloai/mai-v3-broker/conf"
 	"github.com/mcarloai/mai-v3-broker/dao"
 )
 
 func (s *Server) GetPerpetual(p Param) (interface{}, error) {
 	params := p.(*GetPerpetualReq)
-	perpetual, err := s.dao.GetPerpetualByAddress(params.PerpetualAddress)
+	perpetual, err := s.dao.GetPerpetualByAddress(params.PerpetualAddress, true)
 	if err != nil {
 		if dao.IsRecordNotFound(err) {
 			return nil, PerpetualNotFoundError(params.PerpetualAddress)
@@ -20,7 +22,7 @@ func (s *Server) GetPerpetual(p Param) (interface{}, error) {
 
 func (s *Server) GetBrokerRelay(p Param) (interface{}, error) {
 	params := p.(*GetBrokerRelayReq)
-	perpetual, err := s.dao.GetPerpetualByAddress(params.PerpetualAddress)
+	_, err := s.dao.GetPerpetualByAddress(params.PerpetualAddress, true)
 	if err != nil {
 		if dao.IsRecordNotFound(err) {
 			return nil, PerpetualNotFoundError(params.PerpetualAddress)
@@ -28,10 +30,14 @@ func (s *Server) GetBrokerRelay(p Param) (interface{}, error) {
 		return nil, InternalError(err)
 	}
 
-	//TODO relayer address
+	relayer, err := s.chainCli.GetSignAccount()
+	if err != nil {
+		return nil, InternalError(err)
+	}
+
 	return &GetBrokerRelayResp{
-		BrokerAddress:  perpetual.BrokerAddress,
-		RelayerAddress: "0xd595f7c2c071d3fd8f5587931edf34e92f9ad39f",
-		Version:        perpetual.Version,
+		BrokerAddress:  conf.Conf.BrokerAddress,
+		RelayerAddress: relayer,
+		Version:        int(mai3.ProtocolV3),
 	}, nil
 }

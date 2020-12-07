@@ -2,123 +2,146 @@ package match
 
 import (
 	"context"
+	"fmt"
 	"github.com/mcarloai/mai-v3-broker/common/chain"
-	"github.com/mcarloai/mai-v3-broker/common/message"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/mcarloai/mai-v3-broker/dao"
+	"github.com/shopspring/decimal"
 	logger "github.com/sirupsen/logrus"
 	"sync"
 )
 
 type Server struct {
-	ctx          context.Context
-	wsChan       chan interface{}
-	msgChan      chan interface{}
-	matchErrChan chan error
-	subChans     sync.Map
-	subCancel    map[string]context.CancelFunc
-	chainCli     chain.ChainClient
-	dao          dao.DAO
+	ctx             context.Context
+	mu              sync.Mutex
+	matchHandlerMap map[string]*match
+	wsChan          chan interface{}
+	matchErrChan    chan error
+	chainCli        chain.ChainClient
+	dao             dao.DAO
 }
 
-func New(ctx context.Context, cli chain.ChainClient, dao dao.DAO, wsChan, matchChan chan interface{}) *Server {
-	return &Server{
+func New(ctx context.Context, cli chain.ChainClient, dao dao.DAO, wsChan chan interface{}) (*Server, error) {
+	server := &Server{
 		ctx:          ctx,
 		wsChan:       wsChan,
-		msgChan:      matchChan,
 		matchErrChan: make(chan error, 1),
-		subCancel:    make(map[string]context.CancelFunc),
 		chainCli:     cli,
 		dao:          dao,
 	}
-}
-
-func (s *Server) Start() error {
-	logger.Infof("Match start")
-	perpetuals, err := s.dao.QueryPerpetuals(true)
+	perpetuals, err := dao.QueryPerpetuals(true)
 	if err != nil {
-		return err
+		logger.Errorf("New Match Server QueryPerpetuals:%w", err)
+		return nil, err
 	}
 
 	for _, perpetual := range perpetuals {
-		s.startSubMatch(perpetual)
+		if err := server.newMatch(perpetual); err != nil {
+			logger.Errorf("New SubMatch Server newMatch:%w", err)
+			return nil, err
+		}
 	}
-
-	go s.startConsumer()
-
-	select {
-	case <-s.ctx.Done():
-		logger.Infof("Match Server receive context done")
-		return nil
-	case err := <-s.matchErrChan:
-		logger.Infof("Match Server sub match error:%s", err.Error())
-		return err
-	}
+	return server, nil
 }
 
-func (s *Server) startConsumer() {
-	for {
-		select {
-		case <-s.ctx.Done():
-			logger.Infof("Match Server Consumer Exit")
-			return
-		case msg, ok := <-s.msgChan:
-			if !ok {
-				return
-			}
-			s.parseMessage(msg.(message.MatchMessage))
-		}
-	}
-}
-
-func (s *Server) parseMessage(msg message.MatchMessage) {
-	if msg.Type == message.MatchTypeNewPerpetual {
-		logger.Infof("Match Server start submatch perpetual %s", msg.PerpetualAddress)
-		err := s.newPerpetual(msg.PerpetualAddress)
-		if err != nil {
-			logger.Infof("Match Server start new perpetual match error:%s", err.Error())
-		}
-		return
-	} else if msg.Type == message.MatchTypePerpetualRollBack {
-		logger.Infof("Match Server stop submatch perpetual %s", msg.PerpetualAddress)
-		if cancel, ok := s.subCancel[msg.PerpetualAddress]; ok {
-			cancel()
-			delete(s.subCancel, msg.PerpetualAddress)
-		}
-		v, ok := s.subChans.Load(msg.PerpetualAddress)
-		if ok {
-			close(v.(chan interface{}))
-			s.subChans.Delete(msg.PerpetualAddress)
-		}
-		return
-	}
-
-	v, ok := s.subChans.Load(msg.PerpetualAddress)
-	if !ok {
-		logger.Infof("Match Server subchan not fund perpetual address:%s, type:%s", msg.PerpetualAddress, msg.Type)
-	}
-	msgChan := v.(chan interface{})
-	msgChan <- msg
-}
-
-func (s *Server) newPerpetual(perpetualAddress string) error {
-	perpetual, err := s.dao.GetPerpetualByAddress(perpetualAddress)
+func (s *Server) newMatch(perpetual *model.Perpetual) error {
+	m, err := newMatch(s.ctx, s.chainCli, s.dao, perpetual, s.wsChan)
 	if err != nil {
 		return err
 	}
-	s.startSubMatch(perpetual)
+	s.setMatchHandler(perpetual.PerpetualAddress, m)
 	return nil
 }
 
-func (s *Server) startSubMatch(perpetual *model.Perpetual) {
-	matchChan := make(chan interface{}, 100)
-	ctx, cancel := context.WithCancel(s.ctx)
-	m := newMatch(ctx, s.chainCli, s.dao, perpetual, s.wsChan, matchChan)
-	go func(m *match) {
-		if err := m.run(); err != nil {
-			s.matchErrChan <- err
+func (s *Server) NewOrder(order *model.Order) error {
+	handler := s.getMatchHandler(order.PerpetualAddress)
+	if handler == nil {
+		perpetual, err := s.dao.GetPerpetualByAddress(order.PerpetualAddress, true)
+		if err != nil {
+			return err
 		}
-	}(m)
-	s.subChans.Store(perpetual.PerpetualAddress, matchChan)
-	s.subCancel[perpetual.PerpetualAddress] = cancel
+		err = s.newMatch(perpetual)
+		return fmt.Errorf("NewOrder:%w", err)
+	}
+	return handler.NewOrder(order)
+}
+
+func (s *Server) CancelOrder(perpetualAddress, orderHash string) error {
+	handler := s.getMatchHandler(perpetualAddress)
+	if handler == nil {
+		return fmt.Errorf("NewOrder error: perpetual[%s] is not open.", perpetualAddress)
+	}
+	return handler.CancelOrder(orderHash, model.CancelReasonUserCancel, true, decimal.Zero)
+}
+
+func (s *Server) CancelAllOrders(perpetualAddress, trader string) error {
+	handler := s.getMatchHandler(perpetualAddress)
+	if handler == nil {
+		return fmt.Errorf("NewOrder error: perpetual[%s] is not open.", perpetualAddress)
+	}
+	return handler.CancelAllOrders(perpetualAddress, trader)
+}
+
+func (s *Server) ClosePerpetual(perpetualAddress string) error {
+	handler := s.getMatchHandler(perpetualAddress)
+	if handler == nil {
+		return fmt.Errorf("ClosePerpetual error: perpetual[%s] is not open.", perpetualAddress)
+	}
+	perpetual, err := s.dao.GetPerpetualByAddress(perpetualAddress, true)
+	if err != nil {
+		return err
+	}
+	perpetual.IsPublished = false
+	err = s.dao.UpdatePerpetual(perpetual)
+	if err != nil {
+		return err
+	}
+	handler.Close()
+	return s.deleteMatchHandler(perpetualAddress)
+}
+
+func (s *Server) BatchTradeOrders(txID, status, transactionHash, blockHash string, blockNumber, blockTime uint64) error {
+	matchTx, err := s.dao.GetMatchTransaction(txID)
+	if err != nil {
+		return err
+	}
+	handler := s.getMatchHandler(matchTx.PerpetualAddress)
+	if handler == nil {
+		return fmt.Errorf("BatchTradeOrders error: perpetual[%s] is not open.", matchTx.PerpetualAddress)
+	}
+	err = handler.BatchTradeOrders(txID, status, transactionHash, blockHash, blockNumber, blockTime)
+	return err
+}
+
+func (s *Server) getMatchHandler(perpetualAddress string) *match {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	h, ok := s.matchHandlerMap[perpetualAddress]
+	if !ok {
+		return nil
+	}
+	return h
+}
+
+func (s *Server) setMatchHandler(perpetualAddress string, h *match) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	_, ok := s.matchHandlerMap[perpetualAddress]
+	if ok {
+		return fmt.Errorf("setMatchHandler error:perpetualAddress[%s] exists!", perpetualAddress)
+	}
+	s.matchHandlerMap[perpetualAddress] = h
+	return nil
+}
+
+func (s *Server) deleteMatchHandler(perpetualAddress string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	_, ok := s.matchHandlerMap[perpetualAddress]
+	if ok {
+		delete(s.matchHandlerMap, perpetualAddress)
+	} else {
+		return fmt.Errorf("deleteMatchHandler:perpetualAddress[%s] do not exists", perpetualAddress)
+	}
+	return nil
 }

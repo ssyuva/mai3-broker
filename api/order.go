@@ -2,15 +2,14 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/mcarloai/mai-v3-broker/common/mai3"
 	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
-	"github.com/mcarloai/mai-v3-broker/common/message"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/mcarloai/mai-v3-broker/conf"
 	"github.com/mcarloai/mai-v3-broker/dao"
-	// "github.com/mcarloai/mai-v3-broker/perp"
 	"github.com/shopspring/decimal"
 	"strings"
 	"time"
@@ -47,7 +46,7 @@ func (s *Server) GetOrders(p Param) (interface{}, error) {
 	}
 
 	if params.PerpetualAddress != "" {
-		_, err := s.dao.GetPerpetualByAddress(params.PerpetualAddress)
+		_, err := s.dao.GetPerpetualByAddress(params.PerpetualAddress, true)
 		if err != nil {
 			if dao.IsRecordNotFound(err) {
 				return nil, PerpetualNotFoundError(params.PerpetualAddress)
@@ -115,7 +114,7 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 		return nil, err
 	}
 
-	order := &model.Order{}
+	order := model.Order{}
 	order.OrderHash = params.OrderHash
 	order.OrderParam.TraderAddress = strings.ToLower(params.Address)
 	if params.OrderType == int(model.LimitOrder) {
@@ -132,7 +131,7 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 	order.OrderParam.Price, _ = decimal.NewFromString(params.Price)
 	order.OrderParam.StopPrice, _ = decimal.NewFromString(params.StopPrice)
 	order.OrderParam.IsCloseOnly = params.IsCloseOnly
-	expiresAt := getExpiresAt(params.Expires)
+	expiresAt := params.Timestamp + params.Expires
 	order.OrderParam.ExpiresAt = time.Unix(expiresAt, 0).UTC()
 	order.OrderParam.Salt = params.Salt
 	order.PerpetualAddress = strings.ToLower(params.PerpetualAddress)
@@ -152,7 +151,7 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 	// check orderhash
 	orderData := mai3.GenerateOrderData(expiresAt, order.Version, int8(order.Type), order.IsCloseOnly, order.OrderParam.Salt)
 	orderHash, err := mai3.GetOrderHash(order.TraderAddress, order.BrokerAddress, order.RelayerAddress, order.PerpetualAddress, order.ReferrerAddress,
-		orderData, amount, order.Price, order.OrderParam.ChainID)
+		orderData, order.Amount, order.Price, order.ChainID)
 	if err != nil {
 		return nil, InternalError(fmt.Errorf("get order hash fail err:%s", err))
 	}
@@ -170,7 +169,7 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 		return nil, BadSignatureError()
 	}
 
-	_, err = s.dao.GetPerpetualByAddress(strings.ToLower(params.PerpetualAddress))
+	_, err = s.dao.GetPerpetualByAddress(strings.ToLower(params.PerpetualAddress), true)
 	if err != nil {
 		if dao.IsRecordNotFound(err) {
 			return nil, PerpetualNotFoundError(params.PerpetualAddress)
@@ -193,58 +192,8 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 		return nil, InternalError(err)
 	}
 
-	// get accountStorage
-	// ctx, cancel := context.WithTimeout(s.ctx, conf.Conf.BlockChain.Timeout.Duration)
-	// defer cancel()
-	// accountContext, err := s.chainCli.GetMarginAccount(ctx, order.PerpetualAddress, order.TraderAddress)
-	// if err != nil {
-	// 	return nil, InternalError(err)
-	// }
-
-	// // TODO perp storage
-	// orderContext := &perp.OrderContext{Account: accountContext}
-
-	// check margin balance
-	// actives, err := s.dao.QueryOrder(order.TraderAddress, order.PerpetualAddress, []model.OrderStatus{model.OrderPending, model.OrderStop}, 0, 0, 0)
-	// if err != nil {
-	// 	return nil, InternalError(fmt.Errorf("QueryOrder:%w", err))
-	// }
-	//3. close only
-
-	if err := s.dao.CreateOrder(order); err != nil {
-		return nil, InternalError(err)
-	}
-
-	// notice websocket for new order
-	wsMsg := message.WebSocketMessage{
-		ChannelID: message.GetAccountChannelID(order.TraderAddress),
-		Payload: message.WebSocketOrderChangePayload{
-			Type:  message.WsTypeOrderChange,
-			Order: order,
-		},
-	}
-	s.wsChan <- wsMsg
-	// notice match for new order
-	message := message.MatchMessage{
-		PerpetualAddress: order.PerpetualAddress,
-		Type:             message.MatchTypeNewOrder,
-		Payload: message.MatchNewOrderPayload{
-			OrderHash: order.OrderHash,
-		},
-	}
-	s.matchChan <- message
-	return PlaceOrderResp{OrderHash: order.OrderHash}, nil
-}
-
-func (s *Server) checkActiveOrders(orders []*model.Order) error {
-	return nil
-}
-
-func getExpiresAt(expiresInSeconds int64) int64 {
-	now := time.Now().UTC()
-	expire := time.Second * time.Duration(expiresInSeconds)
-
-	return now.Add(expire).Unix()
+	err, code, resp := s.rpcClient.Post(fmt.Sprintf("http://%s/orders", conf.Conf.RPCHost), nil, order, nil)
+	return nil, matchRPCError(err, code, resp)
 }
 
 func validatePlaceOrder(req *PlaceOrderReq) error {
@@ -303,6 +252,9 @@ func (s *Server) CancelOrder(p Param) (interface{}, error) {
 	params := p.(*CancelOrderReq)
 	order, err := s.dao.GetOrder(params.OrderHash)
 	if err != nil {
+		if dao.IsRecordNotFound(err) {
+			return nil, OrderIDNotExistError(params.OrderHash)
+		}
 		return nil, InternalError(err)
 	}
 
@@ -310,35 +262,41 @@ func (s *Server) CancelOrder(p Param) (interface{}, error) {
 		return nil, OrderAuthError(params.OrderHash)
 	}
 
-	// notice match for cancel order
-	message := message.MatchMessage{
-		PerpetualAddress: order.PerpetualAddress,
-		Type:             message.MatchTypeCancelOrder,
-		Payload: message.MatchCancelOrderPayload{
-			OrderHash: order.OrderHash,
-		},
+	var matchReq struct {
+		PerpetualAddress string `json:"perpetual_address" query:"perpetual_address"`
 	}
-	s.matchChan <- message
-	return nil, nil
+	matchReq.PerpetualAddress = order.PerpetualAddress
+	err, code, resp := s.rpcClient.Delete(fmt.Sprintf("http://%s/orders/%s", conf.Conf.RPCHost, order.OrderHash), nil, &matchReq, nil)
+	return nil, matchRPCError(err, code, resp)
 }
 
 func (s *Server) CancelAllOrders(p Param) (interface{}, error) {
 	params := p.(*CancelAllOrdersReq)
-	orders, err := s.dao.QueryOrder(params.Address, params.PerpetualAddress, []model.OrderStatus{model.OrderPending, model.OrderStop}, 0, 0, 0)
-	if err != nil {
-		return nil, InternalError(err)
+	var matchReq struct {
+		PerpetualAddress string `json:"perpetual_address" query:"perpetual_address" validate:"required"`
+		Trader           string `json:"trader" query:"trader" validate:"required"`
+	}
+	matchReq.PerpetualAddress = params.PerpetualAddress
+	matchReq.Trader = params.Address
+	err, code, resp := s.rpcClient.Delete(fmt.Sprintf("http://%s/orders", conf.Conf.RPCHost), nil, &matchReq, nil)
+	return nil, matchRPCError(err, code, resp)
+}
+
+func matchRPCError(rpcErr error, code int, resp []byte) error {
+	if rpcErr != nil {
+		return fmt.Errorf("match rpc:%w", rpcErr)
 	}
 
-	for _, order := range orders {
-		// notice match for cancel order
-		message := message.MatchMessage{
-			PerpetualAddress: order.PerpetualAddress,
-			Type:             message.MatchTypeCancelOrder,
-			Payload: message.MatchCancelOrderPayload{
-				OrderHash: order.OrderHash,
-			},
-		}
-		s.matchChan <- message
+	if code != 200 {
+		return fmt.Errorf("match rpc error status:[%d]", code)
 	}
-	return nil, nil
+	var response Response
+	if err := json.Unmarshal(resp, &response); err != nil {
+		return fmt.Errorf("unmarshal match rpc response error:%w", err)
+	}
+
+	if response.Status != 0 {
+		return fmt.Errorf("match rpc error:%s", response.Desc)
+	}
+	return nil
 }

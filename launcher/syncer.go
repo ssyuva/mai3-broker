@@ -4,13 +4,12 @@ import (
 	"context"
 	"fmt"
 	"github.com/mcarloai/mai-v3-broker/common/chain"
-	"github.com/mcarloai/mai-v3-broker/common/message"
 	"github.com/mcarloai/mai-v3-broker/common/model"
+	"github.com/mcarloai/mai-v3-broker/common/utils"
 	"github.com/mcarloai/mai-v3-broker/conf"
 	"github.com/mcarloai/mai-v3-broker/dao"
 	"github.com/pkg/errors"
 	logger "github.com/sirupsen/logrus"
-	"gopkg.in/guregu/null.v3"
 	"sync"
 	"time"
 )
@@ -19,17 +18,17 @@ type Syncer struct {
 	ctx       context.Context
 	dao       dao.DAO
 	chainCli  chain.ChainClient
-	matchChan chan interface{}
+	rpcClient *utils.HttpClient
 	syncChan  chan interface{}
 }
 
-func NewSyncer(ctx context.Context, dao dao.DAO, chainCli chain.ChainClient, matchChan, syncChan chan interface{}) *Syncer {
+func NewSyncer(ctx context.Context, dao dao.DAO, chainCli chain.ChainClient, syncChan chan interface{}, rpcClient *utils.HttpClient) *Syncer {
 	return &Syncer{
 		ctx:       ctx,
 		dao:       dao,
 		chainCli:  chainCli,
-		matchChan: matchChan,
 		syncChan:  syncChan,
+		rpcClient: rpcClient,
 	}
 }
 
@@ -82,10 +81,9 @@ func (s *Syncer) updateStatusByUser(user string) {
 
 	for i, tx := range txs {
 		if tx.TransactionHash == nil {
-			logger.Errorf("transaction hash is nill txID:%s", tx.ID)
+			logger.Errorf("transaction hash is nill txID:%s", tx.TxID)
 			return
 		}
-		undoOrderMsgs := make([]message.MatchMessage, 0)
 		err = s.dao.Transaction(func(dao dao.DAO) error {
 			dao.ForUpdate()
 			receipt, err := s.chainCli.WaitTransactionReceipt(ctx, *tx.TransactionHash)
@@ -119,75 +117,29 @@ func (s *Syncer) updateStatusByUser(user string) {
 					dao.UpdateTx(candidate)
 				}
 			}
-			// update match_transaction
-			matchTx, err := dao.GetMatchTransaction(tx.TxID)
-			if err != nil {
-				return err
-			}
-			matchTx.BlockConfirmed = true
-			matchTx.BlockHash = null.StringFrom(*tx.BlockHash)
-			matchTx.BlockNumber = null.IntFrom(int64(*tx.BlockNumber))
-			matchTx.ExecutedAt = null.TimeFrom(time.Unix(int64(*tx.BlockTime), 0).UTC())
-			matchTx.Status = tx.Status.TransactionStatus()
 
-			// update orders
-			matchEvents, err := s.chainCli.FilterTradeSuccess(ctx, matchTx.PerpetualAddress, *tx.BlockNumber, *tx.BlockNumber)
-			if err != nil {
-				return err
+			var matchReq struct {
+				TxID            string `json:"tx_id"`
+				TransactionHash string `json:"transactionHash"`
+				BlockNumber     uint64 `json:"blockNumber"`
+				BlockHash       string `json:"blockHash"`
+				BlockTime       uint64 `json:"blockTime"`
+				Status          string `json:"status"`
 			}
-			orderSucc := make(map[string]bool)
-			for _, event := range matchEvents {
-				matchInfo := &model.MatchItem{
-					OrderHash: event.OrderHash,
-					Amount:    event.Amount,
-				}
-				matchTx.MatchResult.ReceiptItems = append(matchTx.MatchResult.ReceiptItems, matchInfo)
-				order, err := dao.GetOrder(event.OrderHash)
-				if err != nil {
-					return err
-				}
-				order.PendingAmount = order.PendingAmount.Sub(event.Amount)
-				order.ConfirmedAmount = order.ConfirmedAmount.Add(event.Amount)
-				if err := dao.UpdateOrder(order); err != nil {
-					return err
-				}
-				orderSucc[event.OrderHash] = true
-			}
+			matchReq.TxID = tx.TxID
+			matchReq.TransactionHash = *tx.TransactionHash
+			matchReq.BlockNumber = *tx.BlockNumber
+			matchReq.BlockHash = *tx.BlockHash
+			matchReq.BlockTime = *tx.BlockTime
+			matchReq.Status = string(tx.Status.TransactionStatus())
 
-			for _, item := range matchTx.MatchResult.MatchItems {
-				if _, ok := orderSucc[item.OrderHash]; ok {
-					continue
-				}
-				// order failed
-				order, err := dao.GetOrder(item.OrderHash)
-				if err != nil {
-					return err
-				}
-				order.PendingAmount = order.PendingAmount.Sub(item.Amount)
-				order.AvailableAmount = order.AvailableAmount.Add(item.Amount)
-				if err := dao.UpdateOrder(order); err != nil {
-					return err
-				}
-				matchMsg := message.MatchMessage{
-					Type:             message.MatchTypeChangeOrder,
-					PerpetualAddress: order.PerpetualAddress,
-					Payload: message.MatchChangeOrderPayload{
-						OrderHash: order.OrderHash,
-						Amount:    item.Amount,
-					},
-				}
-				undoOrderMsgs = append(undoOrderMsgs, matchMsg)
-			}
-
-			if err = dao.UpdateMatchTransaction(matchTx); err != nil {
-				return err
+			err, code, _ := s.rpcClient.Post(fmt.Sprintf("http://%s/batch_trade/", conf.Conf.RPCHost), nil, &matchReq, nil)
+			if code != 200 || err != nil {
+				return fmt.Errorf("updateStatusByUser rpc batch_trade code:%d err:%w ", code, err)
 			}
 
 			return nil
 		})
-		for _, msg := range undoOrderMsgs {
-			s.matchChan <- msg
-		}
 		// this case is to handle accelarate
 		if next := i + 1; next < len(txs) && *tx.Nonce == *txs[next].Nonce {
 			continue

@@ -2,17 +2,17 @@ package ethereum
 
 import (
 	"context"
-        "fmt"
+	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	ethBind "github.com/ethereum/go-ethereum/accounts/abi/bind"
 	gethCommon "github.com/ethereum/go-ethereum/common"
 	"github.com/shopspring/decimal"
 	"math/big"
-        "strings"
+	"strings"
 
 	"github.com/mcarloai/mai-v3-broker/common/chain/ethereum/broker"
-	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
 	"github.com/mcarloai/mai-v3-broker/common/mai3"
+	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 )
 

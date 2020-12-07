@@ -3,6 +3,7 @@ package dao
 import (
 	"encoding/json"
 	"fmt"
+	"gopkg.in/guregu/null.v3"
 	"time"
 
 	"github.com/jinzhu/gorm"
@@ -16,7 +17,7 @@ type MatchTransactionDAO interface {
 	QueryUnconfirmedTransactionsByContract(address string) (transactions []*model.MatchTransaction, err error)
 	GetMatchTransaction(ID string) (*model.MatchTransaction, error)
 	UpdateMatchTransaction(transaction *model.MatchTransaction) error
-	RollbackTransactions(beginRollbackHeight int64, endRollbackHeight int64) (transactions []*model.MatchItem, err error)
+	RollbackMatchTransactions(beginRollbackHeight int64, endRollbackHeight int64) (transactions []*model.MatchItem, err error)
 }
 
 type matchTransactionDAO struct {
@@ -101,7 +102,7 @@ func (t *matchTransactionDAO) QueryUnconfirmedTransactionsByContract(address str
 	return
 }
 
-func (t *matchTransactionDAO) RollbackTransactions(beginRollbackHeight int64, endRollbackHeight int64) (items []*model.MatchItem, err error) {
+func (t *matchTransactionDAO) RollbackMatchTransactions(beginRollbackHeight int64, endRollbackHeight int64) (items []*model.MatchItem, err error) {
 	transactions := make([]*model.MatchTransaction, 0)
 	if err = t.db.Where("block_confirmed = ?", true).Where("block_number >= ? AND block_number < ?", beginRollbackHeight, endRollbackHeight).Find(&transactions).Error; err != nil {
 		err = fmt.Errorf("QueryTransactions:%w", err)
@@ -112,6 +113,11 @@ func (t *matchTransactionDAO) RollbackTransactions(beginRollbackHeight int64, en
 			return items, fmt.Errorf("QueryMatchTransaction:%w", err)
 		}
 
+		transaction.BlockConfirmed = false
+		transaction.BlockNumber = null.Int{}
+		transaction.BlockHash = null.String{}
+		transaction.TransactionHash = null.String{}
+		transaction.ExecutedAt = null.Time{}
 		transaction.Status = model.TransactionStatusPending
 		if err = t.db.Save(transaction).Error; err != nil {
 			return items, fmt.Errorf("UpdateMatchTransaction status:%w", err)

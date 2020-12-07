@@ -38,6 +38,7 @@ type MatchItem struct {
 type MatchTransaction struct {
 	ID               string            `json:"id" db:"id" primaryKey:"true" gorm:"primary_key"`
 	PerpetualAddress string            `json:"perpetualAddress" db:"perpetual_address"`
+	BrokerAddress    string            `json:"brokerAddress" db:"broker_address"`
 	MatchJson        string            `json:"-" db:"match_json"`
 	Status           TransactionStatus `json:"status" db:"status"`
 	BlockConfirmed   bool              `json:"blockConfirmed" db:"block_confirmed"`

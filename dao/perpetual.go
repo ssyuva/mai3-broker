@@ -13,7 +13,7 @@ type PerpetualDAO interface {
 	// Query all the perpetuals
 	// if isPublished is true, return published perpetuals only otherwise return all the perpetuals
 	QueryPerpetuals(publishedOnly bool) ([]*model.Perpetual, error)
-	GetPerpetualByAddress(address string) (*model.Perpetual, error)
+	GetPerpetualByAddress(address string, publishedOnly bool) (*model.Perpetual, error)
 	UpdatePerpetual(*model.Perpetual) error
 	RollbackPerpetual(beginRollbackHeight int64, endRollbackHeight int64) ([]*model.Perpetual, error)
 }
@@ -42,9 +42,13 @@ func (m *perpetualDAO) GetPerpetual(ID int64) (*model.Perpetual, error) {
 	return &perpetual.Perpetual, nil
 }
 
-func (m *perpetualDAO) GetPerpetualByAddress(address string) (*model.Perpetual, error) {
+func (m *perpetualDAO) GetPerpetualByAddress(address string, publishedOnly bool) (*model.Perpetual, error) {
 	var perpetual dbPerpetual
-	if err := m.db.Where("perpetual_address = ?", address).First(&perpetual).Error; err != nil {
+	db := m.db
+	if publishedOnly {
+		db = m.db.Where("is_published = ?", publishedOnly)
+	}
+	if err := db.Where("perpetual_address = ?", address).First(&perpetual).Error; err != nil {
 		return nil, fmt.Errorf("GetPerpetualByAddress:%w", err)
 	}
 	return &perpetual.Perpetual, nil

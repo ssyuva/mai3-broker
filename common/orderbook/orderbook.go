@@ -33,7 +33,6 @@ type (
 		Amount           decimal.Decimal `json:"amount"`
 		Type             model.OrderType `json:"type"`
 		Trader           string          `json:"trader"`
-		GasFeeAmount     decimal.Decimal `json:"gasFeeAmount"`
 	}
 )
 
