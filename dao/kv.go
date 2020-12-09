@@ -1,54 +1,48 @@
 package dao
 
 import (
+	"github.com/mcarloai/mai-v3-broker/common/model"
 	"time"
 
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 )
 
-type KVStore struct {
-	Key        string `gorm:"primary_key"`
-	Category   string `gorm:"primary_key"`
-	Value      []byte
-	UpdateTime time.Time
-}
-
 type KVStoreDAO interface {
-	Get(db *gorm.DB, key, category string) (*KVStore, error)
-	Put(db *gorm.DB, value *KVStore) error
-	Del(db *gorm.DB, key string) error
-	List(db *gorm.DB, category ...string) ([]*KVStore, error)
+	Get(key, category string) (*model.KVStore, error)
+	Put(value *model.KVStore) error
+	Del(key string) error
+	List(category ...string) ([]*model.KVStore, error)
 }
 
 type kvstoreDAO struct {
+	db *gorm.DB
 }
 
-func NewKVStoreDAO() KVStoreDAO {
-	return &kvstoreDAO{}
+func NewKVStoreDAO(db *gorm.DB) KVStoreDAO {
+	return &kvstoreDAO{db: db}
 }
 
-func (n *kvstoreDAO) Get(db *gorm.DB, key, category string) (*KVStore, error) {
-	kv := new(KVStore)
-	if err := db.Where("key = ? and category = ?", key, category).First(kv).Error; err != nil {
+func (n *kvstoreDAO) Get(key, category string) (*model.KVStore, error) {
+	kv := new(model.KVStore)
+	if err := n.db.Where("key = ? and category = ?", key, category).First(kv).Error; err != nil {
 		return nil, errors.Wrap(err, "get kvstore entry failed")
 	}
 	return kv, nil
 }
 
-func (n *kvstoreDAO) Put(db *gorm.DB, value *KVStore) error {
+func (n *kvstoreDAO) Put(value *model.KVStore) error {
 	value.UpdateTime = time.Now()
-	// return db.Where("key = ? and category = ?", value.Key, value.Category).Assign(value).FirstOrCreate(&KVStore{}).Error
-	return db.Save(value).Error
+	return n.db.Save(value).Error
 }
 
-func (n *kvstoreDAO) Del(db *gorm.DB, key string) error {
-	return db.Delete(&KVStore{}, "key = ?", key).Error
+func (n *kvstoreDAO) Del(key string) error {
+	return n.db.Delete(&model.KVStore{}, "key = ?", key).Error
 }
 
-func (n *kvstoreDAO) List(db *gorm.DB, category ...string) ([]*KVStore, error) {
-	var kvs []*KVStore
-	if err := db.Where("category in (?)", category).Find(&kvs).Error; err != nil {
+func (n *kvstoreDAO) List(category ...string) ([]*model.KVStore, error) {
+	var kvs []*model.KVStore
+	if err := n.db.Where("category in (?)", category).Find(&kvs).Error; err != nil {
 		return nil, errors.Wrap(err, "list kvs failed")
 	}
 	return kvs, nil

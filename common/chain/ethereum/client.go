@@ -2,12 +2,16 @@ package ethereum
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"fmt"
 	ethCommon "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/mcarloai/mai-v3-broker/common/mai3"
 	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/pkg/errors"
+	"github.com/shopspring/decimal"
 	"math/big"
 	"math/rand"
 	"strings"
@@ -48,14 +52,13 @@ func (c *Client) GetSignAccount() (string, error) {
 	return c.aliases[idx], nil
 }
 
-func (c *Client) AddAccount(pk string) error {
+func (c *Client) AddAccount(private *ecdsa.PrivateKey) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	private, err := HexToPrivate(pk)
-	if err != nil {
-		return err
-	}
 	account := PrivateToAccount(private)
+	if _, ok := c.accounts[account.Address()]; ok {
+		return errors.New("account duplicated")
+	}
 	c.accounts[account.Address()] = account
 	c.aliases = append(c.aliases, account.String())
 	return nil
@@ -70,6 +73,15 @@ func (c *Client) GetAccount(account string) (*Account, error) {
 		return nil, errors.New("account not exists")
 	}
 	return acc, nil
+}
+
+func (c *Client) GetBalance(ctx context.Context, address string) (decimal.Decimal, error) {
+	addr := ethCommon.HexToAddress(address)
+	b, err := c.ethCli.BalanceAt(ctx, addr, nil)
+	if err != nil {
+		return decimal.Zero, fmt.Errorf("read eth balance failed:%w", err)
+	}
+	return decimal.NewFromBigInt(b, -mai3.DECIMALS), nil
 }
 
 func (c *Client) GetChainID(ctx context.Context) (*big.Int, error) {

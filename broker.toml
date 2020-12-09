@@ -7,13 +7,21 @@ jwt_secret = "test"
 factory_address = "0x00000000000000000000000000"
 broker_address = "0x00000000000000000000000000"
 watcher_id = 1
-
 rpc_host = "127.0.0.1:4003"
 
+[gas_station]
+url = "https://ethgasstation.info/api/ethgasAPI.json"
+timeout = "5s"
+gas_level = "average"
+gas_limit = 5000000
+
+
 [blockchain]
+chain_type = "ethereum"
 interval = "5s"
 timeout = "5s"
 provider_url = "http://server10.jy.mcarlo.com:8747"
+password = "qedaxzop"
 
 [token_min_amounts]
     [token_min_amounts.ETH] 

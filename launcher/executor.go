@@ -6,24 +6,27 @@ import (
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/mcarloai/mai-v3-broker/conf"
 	"github.com/mcarloai/mai-v3-broker/dao"
+	"github.com/mcarloai/mai-v3-broker/pricemonitor"
 	"github.com/pkg/errors"
 	logger "github.com/sirupsen/logrus"
 	"time"
 )
 
 type Executor struct {
-	ctx      context.Context
-	dao      dao.DAO
-	chainCli chain.ChainClient
-	execChan chan interface{}
+	ctx          context.Context
+	dao          dao.DAO
+	chainCli     chain.ChainClient
+	priceMonitor *pricemonitor.PriceMonitor
+	execChan     chan interface{}
 }
 
-func NewExecutor(ctx context.Context, dao dao.DAO, chainCli chain.ChainClient, execChan chan interface{}) *Executor {
+func NewExecutor(ctx context.Context, dao dao.DAO, chainCli chain.ChainClient, execChan chan interface{}, pt *pricemonitor.PriceMonitor) *Executor {
 	return &Executor{
-		ctx:      ctx,
-		dao:      dao,
-		chainCli: chainCli,
-		execChan: execChan,
+		ctx:          ctx,
+		dao:          dao,
+		chainCli:     chainCli,
+		priceMonitor: pt,
+		execChan:     execChan,
 	}
 }
 
@@ -157,24 +160,10 @@ func (s *Executor) prepare(ctx context.Context, tx *model.LaunchTransaction) err
 		return errors.New("missing nonce")
 	}
 
-	limit := uint64(5000000)
+	limit := conf.Conf.GasStation.GasLimit
 	tx.GasLimit = &limit
-	price := uint64(20) * 1e9
+	price := s.priceMonitor.GetGasPrice() * 1e9
 	tx.GasPrice = &price
-
-	//TODO gasprice gas limit
-	// if tx.GasLimit == nil || *tx.GasLimit == 0 {
-	// 	l := s.limiter.GasLimit(ctx, tx)
-	// 	tx.GasLimit = &l
-	// }
-	// if tx.GasPrice == nil || *tx.GasPrice == 0 {
-	// 	if t.pricer == nil {
-	// 		return errors.New("gas pricer not ready")
-	// 	}
-	// 	p := s.pricer.GasPrice(tx.Type)
-	// 	tx.GasPrice = &p
-	// }
-
 	return nil
 }
 

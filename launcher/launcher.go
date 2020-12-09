@@ -8,7 +8,9 @@ import (
 	mai3Utils "github.com/mcarloai/mai-v3-broker/common/mai3/utils"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/mcarloai/mai-v3-broker/common/utils"
+	"github.com/mcarloai/mai-v3-broker/conf"
 	"github.com/mcarloai/mai-v3-broker/dao"
+	"github.com/mcarloai/mai-v3-broker/pricemonitor"
 	"github.com/shopspring/decimal"
 	logger "github.com/sirupsen/logrus"
 	"math/big"
@@ -16,33 +18,40 @@ import (
 )
 
 type Launcher struct {
-	ctx       context.Context
-	dao       dao.DAO
-	chainCli  chain.ChainClient
-	rpcClient *utils.HttpClient
-	execChan  chan interface{}
-	syncChan  chan interface{}
+	ctx          context.Context
+	dao          dao.DAO
+	chainCli     chain.ChainClient
+	priceMonitor *pricemonitor.PriceMonitor
+	rpcClient    *utils.HttpClient
+	execChan     chan interface{}
+	syncChan     chan interface{}
 }
 
-func NewLaunch(ctx context.Context, dao dao.DAO, chainCli chain.ChainClient, rpcClient *utils.HttpClient) *Launcher {
+func NewLaunch(ctx context.Context, dao dao.DAO, chainCli chain.ChainClient, rpcClient *utils.HttpClient, pt *pricemonitor.PriceMonitor) *Launcher {
 	return &Launcher{
-		ctx:       ctx,
-		dao:       dao,
-		chainCli:  chainCli,
-		rpcClient: rpcClient,
-		execChan:  make(chan interface{}, 100),
-		syncChan:  make(chan interface{}, 100),
+		ctx:          ctx,
+		dao:          dao,
+		chainCli:     chainCli,
+		priceMonitor: pt,
+		rpcClient:    rpcClient,
+		execChan:     make(chan interface{}, 100),
+		syncChan:     make(chan interface{}, 100),
 	}
 }
 
 func (l *Launcher) Start() error {
 	logger.Infof("Launcher start")
+	err := l.reloadAccount()
+	if err != nil {
+		logger.Errorf("reload account error %s", err)
+		return err
+	}
 	// start syncer for sync pending transactions
 	syncer := NewSyncer(l.ctx, l.dao, l.chainCli, l.syncChan, l.rpcClient)
 	go syncer.Run()
 
 	// start executor for execute launch transactions
-	executor := NewExecutor(l.ctx, l.dao, l.chainCli, l.execChan)
+	executor := NewExecutor(l.ctx, l.dao, l.chainCli, l.execChan, l.priceMonitor)
 	go executor.Run()
 
 	for {
@@ -57,6 +66,47 @@ func (l *Launcher) Start() error {
 			}
 		}
 	}
+}
+
+func (l *Launcher) reloadAccount() error {
+	stores, err := l.dao.List("keystore")
+	if err != nil {
+		return err
+	}
+	for _, s := range stores {
+		p, err := l.chainCli.DecryptKey(s.Value, conf.Conf.BlockChain.Password)
+		if err != nil {
+			return err
+		}
+		err = l.chainCli.AddAccount(p)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (l *Launcher) ImportPrivateKey(pk string) (string, error) {
+	p, address, err := l.chainCli.HexToPrivate(pk)
+	if err != nil {
+		return address, err
+	}
+
+	b, err := l.chainCli.EncryptKey(p, conf.Conf.BlockChain.Password)
+	if err != nil {
+		return address, fmt.Errorf("fail to encrypt key", err)
+	}
+	err = l.dao.Put(&model.KVStore{
+		Key:      address,
+		Category: "keystore",
+		Value:    b,
+	})
+	if err != nil {
+		return address, err
+	}
+
+	err = l.chainCli.AddAccount(p)
+	return address, err
 }
 
 func (l *Launcher) checkMatchTransaction() error {
@@ -87,7 +137,6 @@ func (l *Launcher) createLaunchTransaction(matchTx *model.MatchTransaction) erro
 
 	orderParams := make([]*model.WalletOrderParam, len(matchTx.MatchResult.MatchItems))
 	matchAmounts := make([]decimal.Decimal, len(matchTx.MatchResult.MatchItems))
-	//TODO gas price
 	gasRewards := make([]*big.Int, len(matchTx.MatchResult.MatchItems))
 	for _, item := range matchTx.MatchResult.MatchItems {
 		param, err := getWalletOrderParam(item.Order)
@@ -96,7 +145,8 @@ func (l *Launcher) createLaunchTransaction(matchTx *model.MatchTransaction) erro
 		}
 		orderParams = append(orderParams, param)
 		matchAmounts = append(matchAmounts, item.Amount)
-		gasRewards = append(gasRewards, big.NewInt(1000000))
+		gasReward := l.priceMonitor.GetGasPrice() * 1e9 * conf.Conf.GasStation.GasLimit
+		gasRewards = append(gasRewards, big.NewInt(int64(gasReward)))
 	}
 	inputs, err := l.chainCli.BatchTradeDataPack(orderParams, matchAmounts, gasRewards)
 	if err != nil {

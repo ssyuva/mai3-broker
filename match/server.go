@@ -6,6 +6,7 @@ import (
 	"github.com/mcarloai/mai-v3-broker/common/chain"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/mcarloai/mai-v3-broker/dao"
+	"github.com/mcarloai/mai-v3-broker/pricemonitor"
 	"github.com/shopspring/decimal"
 	logger "github.com/sirupsen/logrus"
 	"sync"
@@ -18,16 +19,19 @@ type Server struct {
 	wsChan          chan interface{}
 	matchErrChan    chan error
 	chainCli        chain.ChainClient
+	priceMonitor    *pricemonitor.PriceMonitor
 	dao             dao.DAO
 }
 
-func New(ctx context.Context, cli chain.ChainClient, dao dao.DAO, wsChan chan interface{}) (*Server, error) {
+func New(ctx context.Context, cli chain.ChainClient, dao dao.DAO, wsChan chan interface{}, pt *pricemonitor.PriceMonitor) (*Server, error) {
 	server := &Server{
-		ctx:          ctx,
-		wsChan:       wsChan,
-		matchErrChan: make(chan error, 1),
-		chainCli:     cli,
-		dao:          dao,
+		ctx:             ctx,
+		wsChan:          wsChan,
+		matchHandlerMap: make(map[string]*match),
+		matchErrChan:    make(chan error, 1),
+		chainCli:        cli,
+		priceMonitor:    pt,
+		dao:             dao,
 	}
 	perpetuals, err := dao.QueryPerpetuals(true)
 	if err != nil {
@@ -45,7 +49,7 @@ func New(ctx context.Context, cli chain.ChainClient, dao dao.DAO, wsChan chan in
 }
 
 func (s *Server) newMatch(perpetual *model.Perpetual) error {
-	m, err := newMatch(s.ctx, s.chainCli, s.dao, perpetual, s.wsChan)
+	m, err := newMatch(s.ctx, s.chainCli, s.dao, perpetual, s.wsChan, s.priceMonitor)
 	if err != nil {
 		return err
 	}
@@ -128,7 +132,7 @@ func (s *Server) setMatchHandler(perpetualAddress string, h *match) error {
 	defer s.mu.Unlock()
 	_, ok := s.matchHandlerMap[perpetualAddress]
 	if ok {
-		return fmt.Errorf("setMatchHandler error:perpetualAddress[%s] exists!", perpetualAddress)
+		return fmt.Errorf("setMatchHandler error:perpetualAddress[%s] exists", perpetualAddress)
 	}
 	s.matchHandlerMap[perpetualAddress] = h
 	return nil

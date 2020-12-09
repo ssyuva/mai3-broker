@@ -20,6 +20,7 @@ import (
 	"github.com/mcarloai/mai-v3-broker/conf"
 	"github.com/mcarloai/mai-v3-broker/launcher"
 	"github.com/mcarloai/mai-v3-broker/match"
+	"github.com/mcarloai/mai-v3-broker/pricemonitor"
 	"github.com/mcarloai/mai-v3-broker/rpc"
 	"github.com/mcarloai/mai-v3-broker/watcher"
 	"github.com/mcarloai/mai-v3-broker/websocket"
@@ -51,16 +52,13 @@ func main() {
 	dao := dao.New()
 
 	var chainCli chain.ChainClient
-	chainCli, err = ethereum.NewClient(ctx, conf.Conf.BlockChain.ProviderURL)
-	if err != nil {
-		logger.Errorf("init ethereum client error:%s", err.Error())
-		os.Exit(-3)
+	if conf.Conf.BlockChain.ChainType == "ethereum" {
+		chainCli, err = ethereum.NewClient(ctx, conf.Conf.BlockChain.ProviderURL)
+		if err != nil {
+			logger.Errorf("init ethereum client error:%s", err.Error())
+			os.Exit(-3)
+		}
 	}
-	//TODO private key aes crypto
-	// err := l.chainCli.AddAccount("")
-	// if err != nil {
-	// 	return err
-	// }
 
 	transport := &http.Transport{
 		DialContext: (&net.Dialer{
@@ -72,6 +70,7 @@ func main() {
 	}
 	rpcClient := utils.NewHttpClient(transport)
 
+	priceMonitor := pricemonitor.NewPriceMonitor(ctx)
 	// msg chan for websocket message
 	wsChan := make(chan interface{}, 100)
 
@@ -104,7 +103,7 @@ func main() {
 	}()
 
 	// new match server
-	matchServer, err := match.New(ctx, chainCli, dao, wsChan)
+	matchServer, err := match.New(ctx, chainCli, dao, wsChan, priceMonitor)
 	if err != nil {
 		logger.Errorf("new match server error:%s", err)
 		os.Exit(-4)
@@ -113,7 +112,7 @@ func main() {
 	// start launcher
 	launcherErrChan := make(chan error, 1)
 	wg.Add(1)
-	launch := launcher.NewLaunch(ctx, dao, chainCli, rpcClient)
+	launch := launcher.NewLaunch(ctx, dao, chainCli, rpcClient, priceMonitor)
 	go func() {
 		defer wg.Done()
 		if err := launch.Start(); err != nil {

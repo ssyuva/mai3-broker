@@ -4,6 +4,7 @@ create table perpetuals
   perpetual_address text not null,
   governor_address text not null,
   share_token text not null,
+  collateral_symbol text not null,
   operator_address text not null,
   oracle_address text not null,
   collateral_address text not null,

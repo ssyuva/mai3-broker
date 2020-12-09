@@ -14,16 +14,6 @@ import (
 )
 
 type (
-	MatchItem struct {
-		Order              *MemoryOrder // NOTE: mutable! should only be modified where execute match
-		OrderOriginAmount  decimal.Decimal
-		OrderCancelAmounts []decimal.Decimal
-		OrderCancelReasons []model.CancelReasonType
-		OrderTotalCancel   decimal.Decimal
-
-		MatchedAmount decimal.Decimal
-	}
-
 	MemoryOrder struct {
 		ID               string          `json:"id"`
 		PerpetualAddress string          `json:"perpetualAddress"`
@@ -357,13 +347,5 @@ func (book *Orderbook) GetBidOrdersByPrice(price decimal.Decimal) (orders []*Mem
 	}
 
 	orders = pl.(*priceLevel).GetOrders()
-	return
-}
-
-func (book *Orderbook) MatchOrder(price decimal.Decimal) (items []*MatchItem) {
-	book.lock.Lock()
-	defer book.lock.Unlock()
-	items = make([]*MatchItem, 0)
-	//TODO match
 	return
 }

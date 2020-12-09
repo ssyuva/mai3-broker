@@ -58,11 +58,16 @@ func PrivateToAccount(p *ecdsa.PrivateKey) *Account {
 	}
 }
 
-func HexToPrivate(pk string) (*ecdsa.PrivateKey, error) {
-	return crypto.HexToECDSA(pk)
+func (c *Client) HexToPrivate(pk string) (*ecdsa.PrivateKey, string, error) {
+	private, err := crypto.HexToECDSA(pk)
+	if err != nil {
+		return nil, "", err
+	}
+	addr := crypto.PubkeyToAddress(private.PublicKey).Hex()
+	return private, addr, nil
 }
 
-func EncryptKey(pk *ecdsa.PrivateKey, password string) ([]byte, error) {
+func (c *Client) EncryptKey(pk *ecdsa.PrivateKey, password string) ([]byte, error) {
 	key := &keystore.Key{
 		Id:         uuid.NewRandom(),
 		Address:    crypto.PubkeyToAddress(pk.PublicKey),
@@ -75,7 +80,7 @@ func EncryptKey(pk *ecdsa.PrivateKey, password string) ([]byte, error) {
 	return keyjson, err
 }
 
-func DecryptKey(cipher []byte, password string) (*ecdsa.PrivateKey, error) {
+func (c *Client) DecryptKey(cipher []byte, password string) (*ecdsa.PrivateKey, error) {
 	key, err := keystore.DecryptKey(cipher, password)
 	if err != nil {
 		return nil, err

@@ -9,6 +9,7 @@ import (
 	"github.com/mcarloai/mai-v3-broker/common/orderbook"
 	"github.com/mcarloai/mai-v3-broker/conf"
 	"github.com/mcarloai/mai-v3-broker/dao"
+	"github.com/mcarloai/mai-v3-broker/pricemonitor"
 	"github.com/shopspring/decimal"
 	logger "github.com/sirupsen/logrus"
 	"sync"
@@ -16,32 +17,48 @@ import (
 )
 
 type match struct {
-	ctx       context.Context
-	cancel    context.CancelFunc
-	mu        sync.Mutex
-	wsChan    chan interface{}
-	orderbook *orderbook.Orderbook
-	stopbook  *orderbook.Orderbook
-	perpetual *model.Perpetual
-	chainCli  chain.ChainClient
-	dao       dao.DAO
-	timers    map[string]*time.Timer
+	ctx              context.Context
+	cancel           context.CancelFunc
+	mu               sync.Mutex
+	wsChan           chan interface{}
+	orderbook        *orderbook.Orderbook
+	stopbook         *orderbook.Orderbook
+	perpetual        *model.Perpetual
+	minTradeAmount   decimal.Decimal
+	perpetualContext *PerpetualContext
+	chainCli         chain.ChainClient
+	priceMonitor     *pricemonitor.PriceMonitor
+	dao              dao.DAO
+	timers           map[string]*time.Timer
 }
 
-func newMatch(ctx context.Context, cli chain.ChainClient, dao dao.DAO, perpetual *model.Perpetual, wsChan chan interface{}) (*match, error) {
+func newMatch(ctx context.Context, cli chain.ChainClient, dao dao.DAO, perpetual *model.Perpetual, wsChan chan interface{}, pt *pricemonitor.PriceMonitor) (*match, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	m := &match{
-		ctx:       ctx,
-		cancel:    cancel,
-		wsChan:    wsChan,
-		perpetual: perpetual,
-		orderbook: orderbook.NewOrderbook(),
-		stopbook:  orderbook.NewOrderbook(),
-		chainCli:  cli,
-		dao:       dao,
-		timers:    make(map[string]*time.Timer),
+		ctx:            ctx,
+		cancel:         cancel,
+		wsChan:         wsChan,
+		perpetual:      perpetual,
+		orderbook:      orderbook.NewOrderbook(),
+		stopbook:       orderbook.NewOrderbook(),
+		chainCli:       cli,
+		priceMonitor:   pt,
+		dao:            dao,
+		minTradeAmount: decimal.Zero,
+		timers:         make(map[string]*time.Timer),
 	}
-	m.run()
+	if item, ok := conf.Conf.TokenMinAmount[perpetual.CollateralSymbol]; ok {
+		m.minTradeAmount = decimal.NewFromFloat(item.Amount)
+	}
+	perpContext, err := m.getPerpetualContext()
+	if err != nil {
+		return nil, err
+	}
+	m.perpetualContext = perpContext
+	err = m.run()
+	if err != nil {
+		return nil, err
+	}
 
 	return m, nil
 }
@@ -50,6 +67,9 @@ func (m *match) run() error {
 	if err := m.reloadActiveOrders(); err != nil {
 		return err
 	}
+
+	// go update perpetual context
+	go m.updatePerpetualContext()
 
 	// go monitor check user margin gas
 	go m.checkOrdersMargin()
@@ -60,23 +80,11 @@ func (m *match) run() error {
 	return nil
 }
 
-func (m *match) checkOrdersMargin() {
-	for {
-		select {
-		case <-m.ctx.Done():
-			return
-		case <-time.After(10 * time.Second):
-			// TODO
-			// check margin
-			// check gas
-		}
-	}
-}
-
-func (m *match) matchStopOrders(indexPrice decimal.Decimal) {
+func (m *match) matchStopOrders() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	wg := sync.WaitGroup{}
+	indexPrice := m.perpetualContext.PerpStorage.IndexPrice
 
 	wg.Add(1)
 	go func() {
@@ -148,7 +156,7 @@ func (m *match) changeStopOrder(memoryOrder *orderbook.MemoryOrder) {
 	}
 }
 
-func (m *match) matchOrders(indexPrice decimal.Decimal) {
+func (m *match) matchOrders() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	transactions, err := m.dao.QueryUnconfirmedTransactionsByContract(m.perpetual.PerpetualAddress)
@@ -160,9 +168,8 @@ func (m *match) matchOrders(indexPrice decimal.Decimal) {
 		logger.Errorf("Match: unconfirmed transaction exists. wait for it to be confirmed perpetual:%s", m.perpetual.PerpetualAddress)
 		return
 	}
-	//TODO
-	// 1. compute match orders by index price
-	matchItems := m.orderbook.MatchOrder(indexPrice)
+	// compute match orders
+	matchItems := m.MatchOrderSideBySide()
 	if len(matchItems) == 0 {
 		return
 	}
@@ -190,6 +197,17 @@ func (m *match) matchOrders(indexPrice decimal.Decimal) {
 			}
 			order.AvailableAmount = newAmount
 			order.PendingAmount = order.PendingAmount.Add(item.MatchedAmount)
+			if !item.OrderTotalCancel.IsZero() {
+				order.CanceledAmount = order.CanceledAmount.Add(item.OrderTotalCancel)
+				order.AvailableAmount = order.AvailableAmount.Sub(item.OrderTotalCancel)
+				for i := 0; i < len(item.OrderCancelAmounts); i++ {
+					order.CancelReasons = append(order.CancelReasons, &model.OrderCancelReason{
+						Reason:     item.OrderCancelReasons[i],
+						Amount:     item.OrderCancelAmounts[i],
+						CanceledAt: time.Now().UTC(),
+					})
+				}
+			}
 			matchTransaction.MatchResult.MatchItems = append(matchTransaction.MatchResult.MatchItems, &model.MatchItem{
 				OrderHash: order.OrderHash,
 				Amount:    item.MatchedAmount,
@@ -220,15 +238,8 @@ func (m *match) runMatch() {
 		case <-m.ctx.Done():
 			return
 		case <-time.After(time.Second):
-			ctxTimeout, ctxTimeoutCancel := context.WithTimeout(m.ctx, conf.Conf.BlockChain.Timeout.Duration)
-			defer ctxTimeoutCancel()
-			storage, err := m.chainCli.GetPerpetualStorage(ctxTimeout, m.perpetual.PerpetualAddress)
-			if err != nil {
-				logger.Errorf("get index price fail! err:%s", err.Error())
-				continue
-			}
-			m.matchStopOrders(storage.IndexPrice)
-			m.matchOrders(storage.MarkPrice)
+			m.matchStopOrders()
+			m.matchOrders()
 		}
 	}
 }

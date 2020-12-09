@@ -42,14 +42,22 @@ func (c *CreatePerpetualSyncer) Forward(syncCtx *SyncBlockContext) error {
 			logger.Errorf("watcher perpetual already exists:%s", event.PerpetualAddress)
 			continue
 		}
+		symbol, err := c.chainCli.GetTokenSymbol(syncCtx.Context, event.CollateralAddress)
+		if err != nil {
+			logger.Errorf("watcher GetTokenSymbol failed:%w", err)
+			continue
+		}
+
 		dbPerpetual := &model.Perpetual{
 			PerpetualAddress:  event.PerpetualAddress,
 			GovernorAddress:   event.GovernorAddress,
 			ShareToken:        event.ShareToken,
 			OperatorAddress:   event.OperatorAddress,
 			CollateralAddress: event.CollateralAddress,
+			CollateralSymbol:  symbol,
 			OracleAddress:     event.OracleAddress,
 			BlockNumber:       event.BlockNumber,
+			IsPublished:       true,
 		}
 		err = syncCtx.Dao.CreatePerpetual(dbPerpetual)
 		if err != nil {

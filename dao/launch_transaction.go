@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-type TransactionDAO interface {
+type LaunchTransactionDAO interface {
 	FirstTx(status ...model.LaunchTransactionStatus) (*model.LaunchTransaction, error)
 	FirstTxByUser(addr string, status ...model.LaunchTransactionStatus) (*model.LaunchTransaction, error)
 	GetTxsByUser(addr string, status ...model.LaunchTransactionStatus) ([]*model.LaunchTransaction, error)
@@ -24,15 +24,15 @@ type TransactionDAO interface {
 	UpdateTx(tx *model.LaunchTransaction) error
 }
 
-func NewTransactionDAO(db *gorm.DB) TransactionDAO {
-	return &transactionDAO{db: db}
+func NewLaunchTransactionDAO(db *gorm.DB) LaunchTransactionDAO {
+	return &launchTransactionDAO{db: db}
 }
 
-type transactionDAO struct {
+type launchTransactionDAO struct {
 	db *gorm.DB
 }
 
-func (t *transactionDAO) FirstTx(status ...model.LaunchTransactionStatus) (*model.LaunchTransaction, error) {
+func (t *launchTransactionDAO) FirstTx(status ...model.LaunchTransactionStatus) (*model.LaunchTransaction, error) {
 	tx := new(model.LaunchTransaction)
 	err := t.statusFilter(status).
 		Order("commit_time", true).
@@ -43,7 +43,7 @@ func (t *transactionDAO) FirstTx(status ...model.LaunchTransactionStatus) (*mode
 	return tx, nil
 }
 
-func (t *transactionDAO) FirstTxByUser(
+func (t *launchTransactionDAO) FirstTxByUser(
 	addr string,
 	status ...model.LaunchTransactionStatus) (*model.LaunchTransaction, error) {
 
@@ -58,7 +58,7 @@ func (t *transactionDAO) FirstTxByUser(
 	return tx, nil
 }
 
-func (t *transactionDAO) GetTxsByUser(
+func (t *launchTransactionDAO) GetTxsByUser(
 	addr string,
 	status ...model.LaunchTransactionStatus) ([]*model.LaunchTransaction, error) {
 
@@ -73,7 +73,7 @@ func (t *transactionDAO) GetTxsByUser(
 	return txs, nil
 }
 
-func (t *transactionDAO) GetTxByID(txID string) (*model.LaunchTransaction, error) {
+func (t *launchTransactionDAO) GetTxByID(txID string) (*model.LaunchTransaction, error) {
 	txs, err := t.findAll(&txID, nil, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "find all transaction failed")
@@ -89,11 +89,11 @@ func (t *transactionDAO) GetTxByID(txID string) (*model.LaunchTransaction, error
 	return txs[0], nil
 }
 
-func (t *transactionDAO) GetTxByHash(txHash string) (*model.LaunchTransaction, error) {
+func (t *launchTransactionDAO) GetTxByHash(txHash string) (*model.LaunchTransaction, error) {
 	return t.find(nil, &txHash, nil)
 }
 
-func (t *transactionDAO) GetTxsByNonce(addr string, nonce *uint64, status ...model.LaunchTransactionStatus) ([]*model.LaunchTransaction, error) {
+func (t *launchTransactionDAO) GetTxsByNonce(addr string, nonce *uint64, status ...model.LaunchTransactionStatus) ([]*model.LaunchTransaction, error) {
 	if nonce == nil {
 		return nil, fmt.Errorf("Missing nonce")
 	}
@@ -107,7 +107,7 @@ func (t *transactionDAO) GetTxsByNonce(addr string, nonce *uint64, status ...mod
 	return txs, nil
 }
 
-func (t *transactionDAO) GetTxsByBlock(begin *uint64, end *uint64, status ...model.LaunchTransactionStatus) ([]*model.LaunchTransaction, error) {
+func (t *launchTransactionDAO) GetTxsByBlock(begin *uint64, end *uint64, status ...model.LaunchTransactionStatus) ([]*model.LaunchTransaction, error) {
 
 	var txs []*model.LaunchTransaction
 	if begin != nil {
@@ -122,7 +122,7 @@ func (t *transactionDAO) GetTxsByBlock(begin *uint64, end *uint64, status ...mod
 	return txs, nil
 }
 
-func (t *transactionDAO) GetUsersWithStatus(status ...model.LaunchTransactionStatus) ([]string, error) {
+func (t *launchTransactionDAO) GetUsersWithStatus(status ...model.LaunchTransactionStatus) ([]string, error) {
 
 	var (
 		txs   []*model.LaunchTransaction
@@ -138,7 +138,7 @@ func (t *transactionDAO) GetUsersWithStatus(status ...model.LaunchTransactionSta
 	return users, nil
 }
 
-func (t *transactionDAO) RollbackLaunchTransactions(beginRollbackHeight int64, endRollbackHeight int64) error {
+func (t *launchTransactionDAO) RollbackLaunchTransactions(beginRollbackHeight int64, endRollbackHeight int64) error {
 	var txs []*model.LaunchTransaction
 	t.db = t.db.Where("block_number >= ? and block_number <= ?", beginRollbackHeight, endRollbackHeight)
 	if err := t.statusFilter([]model.LaunchTransactionStatus{model.TxSuccess, model.TxFailed, model.TxCanceled}).Find(&txs).Error; err != nil {
@@ -157,17 +157,17 @@ func (t *transactionDAO) RollbackLaunchTransactions(beginRollbackHeight int64, e
 }
 
 // New insert a new record to database
-func (t *transactionDAO) CreateTx(tx *model.LaunchTransaction) error {
+func (t *launchTransactionDAO) CreateTx(tx *model.LaunchTransaction) error {
 	tx.UpdateTime = time.Now()
 	return t.db.Create(tx).Error
 }
 
-func (t *transactionDAO) UpdateTx(tx *model.LaunchTransaction) error {
+func (t *launchTransactionDAO) UpdateTx(tx *model.LaunchTransaction) error {
 	tx.UpdateTime = time.Now()
 	return t.db.Save(tx).Error
 }
 
-func (t *transactionDAO) find(txID *string, txHash *string, status []model.LaunchTransactionStatus) (*model.LaunchTransaction, error) {
+func (t *launchTransactionDAO) find(txID *string, txHash *string, status []model.LaunchTransactionStatus) (*model.LaunchTransaction, error) {
 
 	if txID == nil && txHash == nil {
 		return nil, fmt.Errorf("txID, txHash cannot be nil")
@@ -186,7 +186,7 @@ func (t *transactionDAO) find(txID *string, txHash *string, status []model.Launc
 	return tx, nil
 }
 
-func (t *transactionDAO) findAll(txID *string, txHash *string, status []model.LaunchTransactionStatus) ([]*model.LaunchTransaction, error) {
+func (t *launchTransactionDAO) findAll(txID *string, txHash *string, status []model.LaunchTransactionStatus) ([]*model.LaunchTransaction, error) {
 
 	if txID == nil && txHash == nil {
 		return nil, fmt.Errorf("txID, txHash cannot be nil")
@@ -205,7 +205,7 @@ func (t *transactionDAO) findAll(txID *string, txHash *string, status []model.La
 	return txs, nil
 }
 
-func (t *transactionDAO) statusFilter(status []model.LaunchTransactionStatus) *gorm.DB {
+func (t *launchTransactionDAO) statusFilter(status []model.LaunchTransactionStatus) *gorm.DB {
 	if len(status) > 0 {
 		return t.db.Where("status in (?)", status)
 	}

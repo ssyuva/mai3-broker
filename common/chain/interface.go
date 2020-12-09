@@ -2,14 +2,22 @@ package chain
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/shopspring/decimal"
 	"math/big"
 )
 
 type ChainClient interface {
-	AddAccount(pk string) error
+	// account
+	EncryptKey(pk *ecdsa.PrivateKey, password string) ([]byte, error)
+	DecryptKey(cipher []byte, password string) (*ecdsa.PrivateKey, error)
+	HexToPrivate(pk string) (*ecdsa.PrivateKey, string, error)
+	AddAccount(private *ecdsa.PrivateKey) error
 	GetSignAccount() (string, error)
+
+	GetTokenSymbol(ctx context.Context, address string) (string, error)
+	GetBalance(ctx context.Context, address string) (decimal.Decimal, error)
 	GetChainID(ctx context.Context) (*big.Int, error)
 	HeaderByNumber(ctx context.Context, number *big.Int) (*model.BlockHeader, error)
 	HeaderByHash(ctx context.Context, hash string) (*model.BlockHeader, error)

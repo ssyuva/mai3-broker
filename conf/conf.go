@@ -17,6 +17,7 @@ type Config struct {
 	FactoryAddress string                    `toml:"factory_address"`
 	BrokerAddress  string                    `toml:"broker_address"`
 	WatcherID      int                       `toml:"watcher_id"`
+	GasStation     gasStation                `toml:"gas_station"`
 	BlockChain     blockchain                `toml:"blockchain"`
 	TokenMinAmount map[string]tokenMinAmount `toml:"token_min_amounts"`
 }
@@ -26,9 +27,18 @@ type tokenMinAmount struct {
 }
 
 type blockchain struct {
+	ChainType   string   `toml:"chain_type"`
 	Interval    duration `toml:"interval"`
 	Timeout     duration `toml:"timeout"`
 	ProviderURL string   `toml:"provider_url"`
+	Password    string   `toml:"password"`
+}
+
+type gasStation struct {
+	URL      string   `toml:"url"`
+	GasLevel string   `toml:"gas_level"`
+	Timeout  duration `toml:"timeout"`
+	GasLimit uint64   `toml:"gas_limit"`
 }
 
 var (

@@ -26,6 +26,7 @@ func (r *RPCHandler) Bind(e *echo.Echo) {
 	e.Add("POST", "/orders", r.NewOrder)
 	e.Add("DELETE", "/orders", r.CancelOrders)
 	e.Add("POST", "/batch_trade", r.BatchTradeOrders)
+	e.Add("POST", "/import_key", r.ImportPrivateKey)
 }
 
 func (r *RPCHandler) NewOrder(e echo.Context) (err error) {
@@ -109,11 +110,26 @@ func (r *RPCHandler) BatchTradeOrders(e echo.Context) error {
 	}
 	err := e.Bind(&req)
 	if err != nil {
-		return fmt.Errorf("CancelOrders: %w", err)
+		return fmt.Errorf("BatchTradeOrder: %w", err)
 	}
 	err = r.match.BatchTradeOrders(req.TxID, req.Status, req.TransactionHash, req.BlockHash, req.BlockNumber, req.BlockTime)
 	if err != nil {
 		return fmt.Errorf("BatchTradeOrder:%w", err)
 	}
 	return CmdResponse(e, nil)
+}
+
+func (r *RPCHandler) ImportPrivateKey(e echo.Context) error {
+	var req struct {
+		Key string `json:"key" query:"key" validate:"required"`
+	}
+	err := e.Bind(&req)
+	if err != nil {
+		return fmt.Errorf("ImportPrivateKey:%w", err)
+	}
+	address, err := r.launcher.ImportPrivateKey(req.Key)
+	if err != nil {
+		return fmt.Errorf("ImportPrivateKey:%w", err)
+	}
+	return CmdResponse(e, address)
 }
