@@ -9,12 +9,17 @@ import (
 	"github.com/mcarloai/mai-v3-broker/common/orderbook"
 	"github.com/shopspring/decimal"
 	"sort"
-	"time"
 
 	logger "github.com/sirupsen/logrus"
 )
 
-func (m *match) CheckNewOrder(order *model.Order, activeOrders []*model.Order) (modifys []*model.Order, err error) {
+type OrderCancel struct {
+	OrderHash string
+	Status    model.OrderStatus
+	ToCancel  decimal.Decimal
+}
+
+func (m *match) CheckNewOrder(order *model.Order, activeOrders []*model.Order) (modifys []*OrderCancel, err error) {
 	account, err := m.chainCli.GetMarginAccount(m.ctx, m.perpetual.PerpetualAddress, order.TraderAddress)
 	if err != nil {
 		return
@@ -26,38 +31,65 @@ func (m *match) CheckNewOrder(order *model.Order, activeOrders []*model.Order) (
 
 	activeOrders = append(activeOrders, order)
 	modifys = m.CheckAndModifyCloseOnly(account, activeOrders)
-	cancels, err := m.ComputeOrderBalance(account, activeOrders)
+	computeCancels, err := m.ComputeOrderMargin(account, activeOrders)
 	if err != nil {
 		return
 	}
-	if len(cancels) > 0 {
+	if len(computeCancels) > 0 {
 		err = errors.New("insufficient balance")
 		return
 	}
+
 	return
 }
 
-func (m *match) ComputeOrderBalance(account *model.AccountStorage, orders []*model.Order) (cancels []*model.Order, err error) {
+func (m *match) ComputeOrderMargin(account *model.AccountStorage, orders []*model.Order) (cancels []*OrderCancel, err error) {
+	// bids, asks := normalizeOrders(orders)
+
 	return
 }
 
-func (m *match) CheckAndModifyCloseOnly(account *model.AccountStorage, activeOrders []*model.Order) []*model.Order {
-	modifys := make([]*model.Order, 0)
+// func oneSideOrderMargin() {
+
+// }
+
+// func computeCloseOrders(closeOrders []*model.Order) {
+// 	for _, order := range closeOrders {
+
+// 	}
+// }
+
+func normalizeOrders(orders []*model.Order) (bids []*model.Order, asks []*model.Order) {
+	for _, order := range orders {
+		amount := order.AvailableAmount.Add(order.PendingAmount)
+		if amount.IsPositive() {
+			bids = append(bids, order)
+		} else {
+			asks = append(asks, order)
+		}
+	}
+	sort.Slice(bids, func(i, j int) bool {
+		return bids[i].Price.GreaterThan(bids[j].Price)
+	})
+	sort.Slice(asks, func(i, j int) bool {
+		return asks[i].Price.LessThan(asks[j].Price)
+	})
+	return
+}
+
+func (m *match) CheckAndModifyCloseOnly(account *model.AccountStorage, activeOrders []*model.Order) []*OrderCancel {
+	cancels := make([]*OrderCancel, 0)
 	closeOnlyOrders := make([]*model.Order, 0)
 	closeOnlyTotalAmount := decimal.Zero
 	for _, order := range activeOrders {
 		if order.IsCloseOnly {
 			if utils.HasTheSameSign(account.PositionAmount, order.AvailableAmount) {
-				cancelAmount := order.AvailableAmount
-				order.CanceledAmount = order.CanceledAmount.Add(cancelAmount)
-				order.AvailableAmount = decimal.Zero
-				order.CancelReasons = append(order.CancelReasons, &model.OrderCancelReason{
-					Reason:          model.CancelReasonAdminCancel,
-					Amount:          cancelAmount,
-					CanceledAt:      time.Now().UTC(),
-					TransactionHash: "",
-				})
-				modifys = append(modifys, order)
+				cancel := &OrderCancel{
+					OrderHash: order.OrderHash,
+					Status:    order.Status,
+					ToCancel:  order.AvailableAmount,
+				}
+				cancels = append(cancels, cancel)
 				continue
 			}
 			closeOnlyOrders = append(closeOnlyOrders, order)
@@ -83,33 +115,26 @@ func (m *match) CheckAndModifyCloseOnly(account *model.AccountStorage, activeOrd
 		}
 		for _, order := range closeOnlyOrders {
 			if !amountToBeCanceled.IsZero() && amountToBeCanceled.Abs().GreaterThanOrEqual(order.AvailableAmount.Abs()) {
-				cancelAmount := order.AvailableAmount
-				order.CanceledAmount = order.CanceledAmount.Add(cancelAmount)
-				order.AvailableAmount = decimal.Zero
-				order.CancelReasons = append(order.CancelReasons, &model.OrderCancelReason{
-					Reason:          model.CancelReasonAdminCancel,
-					Amount:          cancelAmount,
-					CanceledAt:      time.Now().UTC(),
-					TransactionHash: "",
-				})
-				modifys = append(modifys, order)
+				cancel := &OrderCancel{
+					OrderHash: order.OrderHash,
+					Status:    order.Status,
+					ToCancel:  order.AvailableAmount,
+				}
+				cancels = append(cancels, cancel)
 				amountToBeCanceled = amountToBeCanceled.Sub(order.AvailableAmount)
 			} else if !amountToBeCanceled.IsZero() && amountToBeCanceled.Abs().LessThan(order.AvailableAmount.Abs()) {
-				cancelAmount := amountToBeCanceled
-				order.CanceledAmount = order.CanceledAmount.Add(cancelAmount)
-				order.AvailableAmount = order.AvailableAmount.Sub(cancelAmount)
-				order.CancelReasons = append(order.CancelReasons, &model.OrderCancelReason{
-					Reason:          model.CancelReasonAdminCancel,
-					Amount:          cancelAmount,
-					CanceledAt:      time.Now().UTC(),
-					TransactionHash: "",
-				})
-				modifys = append(modifys, order)
-				amountToBeCanceled = amountToBeCanceled.Sub(cancelAmount)
+				cancel := &OrderCancel{
+					OrderHash: order.OrderHash,
+					Status:    order.Status,
+					ToCancel:  amountToBeCanceled,
+				}
+				cancels = append(cancels, cancel)
+				amountToBeCanceled = amountToBeCanceled.Sub(amountToBeCanceled)
+				break
 			}
 		}
 	}
-	return modifys
+	return cancels
 }
 
 // func normalizeOrders(orders []*model.Order) (bids, asks, cancels, closeOnly []*model.Orders) {

@@ -23,6 +23,7 @@ create table orders
   trader_address text not null,
   type integer not null,
   price numeric(32,18) not null,
+  stop_price numeric(32,18),
   amount numeric(32,18) not null,
   version integer not null,
   expires_at timestamp,

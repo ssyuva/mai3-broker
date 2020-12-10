@@ -15,6 +15,7 @@ import (
 type OrderDAO interface {
 	CreateOrder(order *model.Order) error
 	GetOrder(orderHash string) (*model.Order, error)
+	GetPendingOrderUsers(perpetualAddress string, status []model.OrderStatus) ([]string, error)
 	QueryOrder(traderAddress string, perpetualAddress string, status []model.OrderStatus, beforeOrderID, afterOrderID int64, limit int) ([]*model.Order, error)
 	GetOrderByHashs(hashs []string) ([]*model.Order, error)
 	UpdateOrder(order *model.Order) error
@@ -75,6 +76,31 @@ func (o *orderDAO) GetOrder(orderHash string) (*model.Order, error) {
 		logger.Warnf("load order cancel reason error:%v", err)
 	}
 	return &order.Order, nil
+}
+
+func (o *orderDAO) GetPendingOrderUsers(perpetualAddress string, status []model.OrderStatus) ([]string, error) {
+
+	var (
+		orders []*dbOrder
+		users  []string
+	)
+	where := o.db.Table("orders")
+
+	if perpetualAddress != "" {
+		where = where.Where("perpetual_address = ?", perpetualAddress)
+	}
+
+	if len(status) > 0 {
+		where = where.Where("status in (?)", status)
+	}
+	err := where.Select("DISTINCT(trader_address)").Find(&orders).Error
+	if err != nil {
+		return nil, fmt.Errorf("fail to get pending users: %w", err)
+	}
+	for _, order := range orders {
+		users = append(users, order.TraderAddress)
+	}
+	return users, nil
 }
 
 func (o *orderDAO) QueryOrder(traderAddress string, perpetualAddress string, status []model.OrderStatus, beforeOrderID, afterOrderID int64, limit int) (orders []*model.Order, err error) {

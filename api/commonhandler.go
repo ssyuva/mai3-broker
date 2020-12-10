@@ -61,7 +61,9 @@ func CommonHandler(params Param, fn func(Param) (interface{}, error)) echo.Handl
 
 		if reqParam != nil {
 			cc := c.(*MaiApiContext)
-			reqParam.SetAddress(cc.Address)
+			if cc.Address != "" {
+				reqParam.SetAddress(cc.Address)
+			}
 		}
 		resp, err := fn(reqParam)
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/mcarloai/mai-v3-broker/common/chain"
+	"github.com/mcarloai/mai-v3-broker/common/message"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/mcarloai/mai-v3-broker/common/orderbook"
 	"github.com/mcarloai/mai-v3-broker/conf"
@@ -184,6 +185,7 @@ func (m *match) matchOrders() {
 		PerpetualAddress: m.perpetual.PerpetualAddress,
 		BrokerAddress:    conf.Conf.BrokerAddress,
 	}
+	orders := make([]*model.Order, 0)
 	err = m.dao.Transaction(func(dao dao.DAO) error {
 		dao.ForUpdate()
 		for _, item := range matchItems {
@@ -218,6 +220,7 @@ func (m *match) matchOrders() {
 			if err := m.orderbook.ChangeOrder(item.Order, item.MatchedAmount.Neg()); err != nil {
 				return fmt.Errorf("Match: order[%s] orderbook ChangeOrder failed error:%w", order.OrderHash, err)
 			}
+			orders = append(orders, order)
 		}
 		if err := dao.CreateMatchTransaction(matchTransaction); err != nil {
 			return fmt.Errorf("Match: matchTransaction create failed error:%w", err)
@@ -226,7 +229,17 @@ func (m *match) matchOrders() {
 	})
 
 	if err == nil {
-		// 4. send ws msg
+		// notice websocket for new order
+		for _, order := range orders {
+			wsMsg := message.WebSocketMessage{
+				ChannelID: message.GetAccountChannelID(order.TraderAddress),
+				Payload: message.WebSocketOrderChangePayload{
+					Type:  message.WsTypeOrderChange,
+					Order: order,
+				},
+			}
+			m.wsChan <- wsMsg
+		}
 	}
 
 	return
