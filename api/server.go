@@ -6,9 +6,9 @@ import (
 	"github.com/labstack/echo/middleware"
 	"github.com/mcarloai/mai-v3-broker/common/chain"
 	redis "github.com/mcarloai/mai-v3-broker/common/redis"
-	"github.com/mcarloai/mai-v3-broker/common/utils"
 	"github.com/mcarloai/mai-v3-broker/conf"
 	"github.com/mcarloai/mai-v3-broker/dao"
+	"github.com/mcarloai/mai-v3-broker/match"
 	logger "github.com/sirupsen/logrus"
 	limiter_redis "github.com/ulule/limiter/v3/drivers/store/redis"
 	"net/http"
@@ -16,15 +16,15 @@ import (
 )
 
 type Server struct {
-	ctx       context.Context
-	e         *echo.Echo
-	wsChan    chan interface{}
-	rpcClient *utils.HttpClient
-	chainCli  chain.ChainClient
-	dao       dao.DAO
+	ctx      context.Context
+	e        *echo.Echo
+	wsChan   chan interface{}
+	match    *match.Server
+	chainCli chain.ChainClient
+	dao      dao.DAO
 }
 
-func New(ctx context.Context, cli chain.ChainClient, dao dao.DAO, rpcClient *utils.HttpClient) (*Server, error) {
+func New(ctx context.Context, cli chain.ChainClient, dao dao.DAO, match *match.Server) (*Server, error) {
 	e := echo.New()
 	e.HideBanner = true
 
@@ -54,11 +54,11 @@ func New(ctx context.Context, cli chain.ChainClient, dao dao.DAO, rpcClient *uti
 	}))
 
 	s := &Server{
-		ctx:       ctx,
-		e:         e,
-		rpcClient: rpcClient,
-		chainCli:  cli,
-		dao:       dao,
+		ctx:      ctx,
+		e:        e,
+		match:    match,
+		chainCli: cli,
+		dao:      dao,
 	}
 	s.initRouter()
 	return s, nil

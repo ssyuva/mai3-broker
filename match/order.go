@@ -9,8 +9,6 @@ import (
 	"github.com/mcarloai/mai-v3-broker/common/orderbook"
 	"github.com/shopspring/decimal"
 	"sort"
-
-	logger "github.com/sirupsen/logrus"
 )
 
 type OrderCancel struct {
@@ -160,34 +158,22 @@ func (m *match) MatchOrderSideBySide() []*MatchItem {
 	leverage := m.perpetualContext.GovParams.TargetLeverage
 	feeRate := m.perpetualContext.GovParams.VaultFeeRate.Add(m.perpetualContext.GovParams.LpFeeRate).Add(m.perpetualContext.GovParams.OperatorFeeRate)
 
-	markPrice := m.perpetualContext.PerpStorage.MarkPrice
-	minAsk := m.orderbook.MinAsk()
-	maxBid := m.orderbook.MaxBid()
-
-	if maxBid == nil && minAsk == nil {
-		return result
-	}
-	if minAsk != nil {
-		tradePrice = *minAsk
-		isBuy = false
-	}
-	if maxBid != nil && (markPrice.Sub(*maxBid).LessThan((*minAsk).Sub(markPrice))) {
-		tradePrice = *maxBid
-		isBuy = true
-	}
-
-	result = m.matchOneSide(tradePrice, leverage, feeRate, isBuy, result)
-	if len(result) < mai3.MaiV3MaxMatchGroup {
-		isBuy = !isBuy
-		if isBuy && maxBid != nil {
-			tradePrice = *maxBid
-		} else if !isBuy && minAsk != nil {
-			tradePrice = *minAsk
-		} else {
-			tradePrice = decimal.Zero
+	for {
+		if len(result) == mai3.MaiV3MaxMatchGroup {
+			break
 		}
-		if !tradePrice.IsZero() {
+
+		minAsk := m.orderbook.MinAsk()
+		maxBid := m.orderbook.MaxBid()
+
+		if maxBid != nil && isBuy {
+			tradePrice = *maxBid
 			result = m.matchOneSide(tradePrice, leverage, feeRate, isBuy, result)
+		} else if minAsk != nil && !isBuy {
+			tradePrice = *minAsk
+			result = m.matchOneSide(tradePrice, leverage, feeRate, isBuy, result)
+		} else {
+			break
 		}
 	}
 
@@ -206,14 +192,9 @@ func (m *match) matchOneSide(tradePrice, leverage, feeRate decimal.Decimal, isBu
 		if len(result) == mai3.MaiV3MaxMatchGroup {
 			return result
 		}
-		account, err := m.chainCli.GetMarginAccount(m.ctx, m.perpetual.PerpetualAddress, order.Trader)
-		if err != nil {
-			logger.Errorf("GetMarginAccount fail! err:%s", err.Error())
-			continue
-		}
-
+		// compute with amm account, if trader is buy, amm is sell
 		amount := mai3.ComputeMaxTradeAmountWithPrice(m.perpetualContext.GovParams, m.perpetualContext.PerpStorage,
-			account, tradePrice, leverage, feeRate, isBuy)
+			m.perpetualContext.Amm, tradePrice, leverage, feeRate, !isBuy)
 		amount = decimal.Min(amount.Abs(), order.Amount.Abs())
 		if !isBuy {
 			amount = amount.Neg()

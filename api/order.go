@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/mcarloai/mai-v3-broker/common/mai3"
@@ -192,8 +191,8 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 		return nil, InternalError(err)
 	}
 
-	err, code, resp := s.rpcClient.Post(fmt.Sprintf("http://%s/orders", conf.Conf.RPCHost), nil, order, nil)
-	return nil, matchRPCError(err, code, resp)
+	err = s.match.NewOrder(&order)
+	return nil, InternalError(err)
 }
 
 func validatePlaceOrder(req *PlaceOrderReq) error {
@@ -262,41 +261,12 @@ func (s *Server) CancelOrder(p Param) (interface{}, error) {
 		return nil, OrderAuthError(params.OrderHash)
 	}
 
-	var matchReq struct {
-		PerpetualAddress string `json:"perpetual_address" query:"perpetual_address"`
-	}
-	matchReq.PerpetualAddress = order.PerpetualAddress
-	err, code, resp := s.rpcClient.Delete(fmt.Sprintf("http://%s/orders/%s", conf.Conf.RPCHost, order.OrderHash), nil, &matchReq, nil)
-	return nil, matchRPCError(err, code, resp)
+	err = s.match.CancelOrder(order.PerpetualAddress, order.OrderHash)
+	return nil, InternalError(err)
 }
 
 func (s *Server) CancelAllOrders(p Param) (interface{}, error) {
 	params := p.(*CancelAllOrdersReq)
-	var matchReq struct {
-		PerpetualAddress string `json:"perpetual_address" query:"perpetual_address" validate:"required"`
-		Trader           string `json:"trader" query:"trader" validate:"required"`
-	}
-	matchReq.PerpetualAddress = params.PerpetualAddress
-	matchReq.Trader = params.Address
-	err, code, resp := s.rpcClient.Delete(fmt.Sprintf("http://%s/orders", conf.Conf.RPCHost), nil, &matchReq, nil)
-	return nil, matchRPCError(err, code, resp)
-}
-
-func matchRPCError(rpcErr error, code int, resp []byte) error {
-	if rpcErr != nil {
-		return fmt.Errorf("match rpc:%w", rpcErr)
-	}
-
-	if code != 200 {
-		return fmt.Errorf("match rpc error status:[%d]", code)
-	}
-	var response Response
-	if err := json.Unmarshal(resp, &response); err != nil {
-		return fmt.Errorf("unmarshal match rpc response error:%w", err)
-	}
-
-	if response.Status != 0 {
-		return fmt.Errorf("match rpc error:%s", response.Desc)
-	}
-	return nil
+	err := s.match.CancelAllOrders(params.PerpetualAddress, params.Address)
+	return nil, InternalError(err)
 }

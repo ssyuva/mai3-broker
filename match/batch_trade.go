@@ -13,7 +13,7 @@ import (
 	logger "github.com/sirupsen/logrus"
 )
 
-func (m *match) BatchTradeOrders(txID, status, transactionHash, blockHash string, blockNumber, blockTime uint64) error {
+func (m *match) BatchTradeOrders(txID string, status model.TransactionStatus, transactionHash, blockHash string, blockNumber, blockTime uint64) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -26,7 +26,7 @@ func (m *match) BatchTradeOrders(txID, status, transactionHash, blockHash string
 			return err
 		}
 		matchTx.BlockConfirmed = true
-		matchTx.Status = model.TransactionStatus(status)
+		matchTx.Status = status
 		matchTx.TransactionHash = null.StringFrom(transactionHash)
 		if (matchTx.Status == model.TransactionStatusExcFail || matchTx.Status == model.TransactionStatusSuccess) && blockNumber > 0 {
 			matchTx.BlockHash = null.StringFrom(blockHash)

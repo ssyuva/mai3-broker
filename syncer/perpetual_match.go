@@ -3,19 +3,19 @@ package syncer
 import (
 	"fmt"
 	"github.com/mcarloai/mai-v3-broker/common/chain"
-	"github.com/mcarloai/mai-v3-broker/common/utils"
+	"github.com/mcarloai/mai-v3-broker/match"
 	"github.com/shopspring/decimal"
 )
 
 type PerpetualMatchSyncer struct {
-	chainCli  chain.ChainClient
-	rpcClient *utils.HttpClient
+	chainCli chain.ChainClient
+	match    *match.Server
 }
 
-func NewPerpetualMatchSyncer(chainCli chain.ChainClient, rpcClient *utils.HttpClient) *PerpetualMatchSyncer {
+func NewPerpetualMatchSyncer(chainCli chain.ChainClient, match *match.Server) *PerpetualMatchSyncer {
 	return &PerpetualMatchSyncer{
-		chainCli:  chainCli,
-		rpcClient: rpcClient,
+		chainCli: chainCli,
+		match:    match,
 	}
 }
 

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"github.com/mcarloai/mai-v3-broker/common/chain"
 	"github.com/mcarloai/mai-v3-broker/common/model"
-	"github.com/mcarloai/mai-v3-broker/common/utils"
 	"github.com/mcarloai/mai-v3-broker/conf"
 	"github.com/mcarloai/mai-v3-broker/dao"
+	"github.com/mcarloai/mai-v3-broker/match"
 	"github.com/mcarloai/mai-v3-broker/syncer"
 	logger "github.com/sirupsen/logrus"
 	"math/big"
@@ -21,22 +21,22 @@ type Watcher struct {
 	ctx            context.Context
 	factoryAddress string
 	chainCli       chain.ChainClient
-	rpcClient      *utils.HttpClient
+	match          *match.Server
 	dao            dao.DAO
 	blockSyncers   []syncer.BlockSyncer
 }
 
-func New(ctx context.Context, cli chain.ChainClient, dao dao.DAO, rpcClient *utils.HttpClient) *Watcher {
+func New(ctx context.Context, cli chain.ChainClient, dao dao.DAO, match *match.Server) *Watcher {
 	watcher := &Watcher{
 		ctx:          ctx,
 		chainCli:     cli,
-		rpcClient:    rpcClient,
+		match:        match,
 		dao:          dao,
 		blockSyncers: make([]syncer.BlockSyncer, 0),
 	}
 
 	watcher.AddBlockSyncer(syncer.NewCreatePerpetualSyncer(conf.Conf.FactoryAddress, cli))
-	watcher.AddBlockSyncer(syncer.NewPerpetualMatchSyncer(cli, rpcClient))
+	watcher.AddBlockSyncer(syncer.NewPerpetualMatchSyncer(cli, match))
 
 	return watcher
 }

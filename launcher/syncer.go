@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"github.com/mcarloai/mai-v3-broker/common/chain"
 	"github.com/mcarloai/mai-v3-broker/common/model"
-	"github.com/mcarloai/mai-v3-broker/common/utils"
 	"github.com/mcarloai/mai-v3-broker/conf"
 	"github.com/mcarloai/mai-v3-broker/dao"
+	"github.com/mcarloai/mai-v3-broker/match"
 	"github.com/pkg/errors"
 	logger "github.com/sirupsen/logrus"
 	"sync"
@@ -15,20 +15,20 @@ import (
 )
 
 type Syncer struct {
-	ctx       context.Context
-	dao       dao.DAO
-	chainCli  chain.ChainClient
-	rpcClient *utils.HttpClient
-	syncChan  chan interface{}
+	ctx      context.Context
+	dao      dao.DAO
+	chainCli chain.ChainClient
+	match    *match.Server
+	syncChan chan interface{}
 }
 
-func NewSyncer(ctx context.Context, dao dao.DAO, chainCli chain.ChainClient, syncChan chan interface{}, rpcClient *utils.HttpClient) *Syncer {
+func NewSyncer(ctx context.Context, dao dao.DAO, chainCli chain.ChainClient, syncChan chan interface{}, match *match.Server) *Syncer {
 	return &Syncer{
-		ctx:       ctx,
-		dao:       dao,
-		chainCli:  chainCli,
-		syncChan:  syncChan,
-		rpcClient: rpcClient,
+		ctx:      ctx,
+		dao:      dao,
+		chainCli: chainCli,
+		syncChan: syncChan,
+		match:    match,
 	}
 }
 
@@ -118,27 +118,8 @@ func (s *Syncer) updateStatusByUser(user string) {
 				}
 			}
 
-			var matchReq struct {
-				TxID            string `json:"tx_id"`
-				TransactionHash string `json:"transactionHash"`
-				BlockNumber     uint64 `json:"blockNumber"`
-				BlockHash       string `json:"blockHash"`
-				BlockTime       uint64 `json:"blockTime"`
-				Status          string `json:"status"`
-			}
-			matchReq.TxID = tx.TxID
-			matchReq.TransactionHash = *tx.TransactionHash
-			matchReq.BlockNumber = *tx.BlockNumber
-			matchReq.BlockHash = *tx.BlockHash
-			matchReq.BlockTime = *tx.BlockTime
-			matchReq.Status = string(tx.Status.TransactionStatus())
-
-			err, code, _ := s.rpcClient.Post(fmt.Sprintf("http://%s/batch_trade/", conf.Conf.RPCHost), nil, &matchReq, nil)
-			if code != 200 || err != nil {
-				return fmt.Errorf("updateStatusByUser rpc batch_trade code:%d err:%w ", code, err)
-			}
-
-			return nil
+			err = s.match.BatchTradeOrders(tx.TxID, tx.Status.TransactionStatus(), *tx.TransactionHash, *tx.BlockHash, *tx.BlockNumber, *tx.BlockTime)
+			return err
 		})
 		// this case is to handle accelarate
 		if next := i + 1; next < len(txs) && *tx.Nonce == *txs[next].Nonce {

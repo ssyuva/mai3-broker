@@ -104,7 +104,7 @@ func (s *Server) ClosePerpetual(perpetualAddress string) error {
 	return s.deleteMatchHandler(perpetualAddress)
 }
 
-func (s *Server) BatchTradeOrders(txID, status, transactionHash, blockHash string, blockNumber, blockTime uint64) error {
+func (s *Server) BatchTradeOrders(txID string, status model.TransactionStatus, transactionHash, blockHash string, blockNumber, blockTime uint64) error {
 	matchTx, err := s.dao.GetMatchTransaction(txID)
 	if err != nil {
 		return err

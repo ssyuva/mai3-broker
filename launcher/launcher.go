@@ -7,9 +7,9 @@ import (
 	"github.com/mcarloai/mai-v3-broker/common/mai3"
 	mai3Utils "github.com/mcarloai/mai-v3-broker/common/mai3/utils"
 	"github.com/mcarloai/mai-v3-broker/common/model"
-	"github.com/mcarloai/mai-v3-broker/common/utils"
 	"github.com/mcarloai/mai-v3-broker/conf"
 	"github.com/mcarloai/mai-v3-broker/dao"
+	"github.com/mcarloai/mai-v3-broker/match"
 	"github.com/mcarloai/mai-v3-broker/pricemonitor"
 	"github.com/shopspring/decimal"
 	logger "github.com/sirupsen/logrus"
@@ -22,18 +22,18 @@ type Launcher struct {
 	dao          dao.DAO
 	chainCli     chain.ChainClient
 	priceMonitor *pricemonitor.PriceMonitor
-	rpcClient    *utils.HttpClient
+	match        *match.Server
 	execChan     chan interface{}
 	syncChan     chan interface{}
 }
 
-func NewLaunch(ctx context.Context, dao dao.DAO, chainCli chain.ChainClient, rpcClient *utils.HttpClient, pt *pricemonitor.PriceMonitor) *Launcher {
+func NewLaunch(ctx context.Context, dao dao.DAO, chainCli chain.ChainClient, match *match.Server, pt *pricemonitor.PriceMonitor) *Launcher {
 	return &Launcher{
 		ctx:          ctx,
 		dao:          dao,
 		chainCli:     chainCli,
 		priceMonitor: pt,
-		rpcClient:    rpcClient,
+		match:        match,
 		execChan:     make(chan interface{}, 100),
 		syncChan:     make(chan interface{}, 100),
 	}
@@ -47,7 +47,7 @@ func (l *Launcher) Start() error {
 		return err
 	}
 	// start syncer for sync pending transactions
-	syncer := NewSyncer(l.ctx, l.dao, l.chainCli, l.syncChan, l.rpcClient)
+	syncer := NewSyncer(l.ctx, l.dao, l.chainCli, l.syncChan, l.match)
 	go syncer.Run()
 
 	// start executor for execute launch transactions
