@@ -7,7 +7,6 @@ jwt_secret = "test"
 factory_address = "0x00000000000000000000000000"
 broker_address = "0x00000000000000000000000000"
 watcher_id = 1
-rpc_host = "127.0.0.1:4003"
 
 [gas_station]
 url = "https://ethgasstation.info/api/ethgasAPI.json"

@@ -5,13 +5,9 @@ import (
 	"flag"
 	"github.com/mcarloai/mai-v3-broker/common/redis"
 	"github.com/mcarloai/mai-v3-broker/dao"
-	"net"
-	"net/http"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
-	"time"
 
 	"github.com/mcarloai/mai-v3-broker/api"
 	"github.com/mcarloai/mai-v3-broker/common/chain"
@@ -22,12 +18,16 @@ import (
 	"github.com/mcarloai/mai-v3-broker/pricemonitor"
 	"github.com/mcarloai/mai-v3-broker/watcher"
 	"github.com/mcarloai/mai-v3-broker/websocket"
+	"golang.org/x/sync/errgroup"
+
 	logger "github.com/sirupsen/logrus"
 )
 
 func main() {
-	ctx, stop := context.WithCancel(context.Background())
+	backgroundCtx, stop := context.WithCancel(context.Background())
 	go WaitExitSignal(stop)
+
+	group, ctx := errgroup.WithContext(backgroundCtx)
 
 	flag.Parse()
 	if err := conf.Init(); err != nil {
@@ -62,8 +62,6 @@ func main() {
 	// msg chan for websocket message
 	wsChan := make(chan interface{}, 100)
 
-	wg := &sync.WaitGroup{}
-
 	// new match server
 	matchServer, err := match.New(ctx, chainCli, dao, wsChan, priceMonitor)
 	if err != nil {
@@ -77,64 +75,32 @@ func main() {
 		logger.Errorf("create api server fail:%s", err.Error())
 		os.Exit(-3)
 	}
-	apiErrChan := make(chan error, 1)
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		if err := apiServer.Start(); err != nil {
-			apiErrChan <- err
-		}
-	}()
+
+	group.Go(func() error {
+		return apiServer.Start()
+	})
 
 	// start websocket server
-	wsErrChan := make(chan error, 1)
-	wg.Add(1)
 	wsServer := websocket.New(ctx, wsChan)
-	go func() {
-		defer wg.Done()
-		if err := wsServer.Start(); err != nil {
-			wsErrChan <- err
-		}
-	}()
+	group.Go(func() error {
+		return wsServer.Start()
+	})
 
 	// start launcher
-	launcherErrChan := make(chan error, 1)
-	wg.Add(1)
 	launch := launcher.NewLaunch(ctx, dao, chainCli, matchServer, priceMonitor)
-	go func() {
-		defer wg.Done()
-		if err := launch.Start(); err != nil {
-			launcherErrChan <- err
-		}
-	}()
+	group.Go(func() error {
+		return launch.Start()
+	})
 
 	// start watcher
-	watcherErrChan := make(chan error, 1)
-	wg.Add(1)
 	watcherSrv := watcher.New(ctx, chainCli, dao, matchServer)
-	go func() {
-		defer wg.Done()
-		if err := watcherSrv.Start(); err != nil {
-			watcherErrChan <- err
-		}
-	}()
+	group.Go(func() error {
+		return watcherSrv.Start()
+	})
 
-	select {
-	case <-ctx.Done():
-		wg.Wait()
-		os.Exit(0)
-	case err := <-apiErrChan:
-		logger.Errorf("api server stop error:%s", err.Error())
-		stop()
-	case err := <-wsErrChan:
-		logger.Errorf("websocket server stop error:%s", err.Error())
-		stop()
-	case err := <-watcherErrChan:
-		logger.Errorf("watcher server stop error:%s", err.Error())
-		stop()
+	if err := group.Wait(); err != nil {
+		logger.Fatalf("service stopped: %s", err)
 	}
-	wg.Wait()
-	os.Exit(1)
 }
 
 func WaitExitSignal(ctxStop context.CancelFunc) {

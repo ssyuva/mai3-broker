@@ -27,6 +27,7 @@ require (
 	github.com/valyala/fasttemplate v1.2.1 // indirect
 	golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897
 	golang.org/x/net v0.0.0-20200301022130-244492dfa37a
+	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
 	gopkg.in/go-playground/validator.v9 v9.31.0
 	gopkg.in/guregu/null.v3 v3.5.0
 )

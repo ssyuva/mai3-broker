@@ -17,7 +17,7 @@ func (m *match) BatchTradeOrders(txID string, status model.TransactionStatus, tr
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	ordersForNotity := make([]*model.Order, 0)
+	ordersToNotify := make([]*model.Order, 0)
 	err := m.dao.Transaction(func(dao dao.DAO) error {
 		dao.ForUpdate()
 		// update match_transaction
@@ -104,7 +104,7 @@ func (m *match) BatchTradeOrders(txID string, status model.TransactionStatus, tr
 
 			}
 
-			ordersForNotity = append(ordersForNotity, order)
+			ordersToNotify = append(ordersToNotify, order)
 		}
 
 		if err = dao.UpdateMatchTransaction(matchTx); err != nil {
@@ -115,7 +115,7 @@ func (m *match) BatchTradeOrders(txID string, status model.TransactionStatus, tr
 	})
 
 	if err == nil {
-		for _, order := range ordersForNotity {
+		for _, order := range ordersToNotify {
 			// notice websocket for order change
 			wsMsg := message.WebSocketMessage{
 				ChannelID: message.GetAccountChannelID(order.TraderAddress),

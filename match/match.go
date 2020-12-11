@@ -106,9 +106,9 @@ func (m *match) matchStopOrders() {
 	wg.Add(1)
 	go func() {
 		for {
-			MaxAskPrice := m.stopbook.MaxAsk()
-			if MaxAskPrice != nil && MaxAskPrice.GreaterThanOrEqual(indexPrice) {
-				orders := m.stopbook.GetAskOrdersByPrice(*MaxAskPrice)
+			maxAskPrice := m.stopbook.MaxAsk()
+			if maxAskPrice != nil && maxAskPrice.GreaterThanOrEqual(indexPrice) {
+				orders := m.stopbook.GetAskOrdersByPrice(*maxAskPrice)
 				for _, order := range orders {
 					m.changeStopOrder(order)
 				}

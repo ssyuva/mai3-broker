@@ -49,7 +49,7 @@ func (m *match) cancelOrderWithoutLock(orderHash string, reason model.CancelReas
 		}
 		bookOrder, ok := orderbook.GetOrder(orderHash, order.Amount.IsNegative(), order.Price)
 		if !ok {
-			if !order.AvailableAmount.IsPositive() {
+			if order.AvailableAmount.IsZero() {
 				logger.Warnf("cancel order:order[%s] is closed.", orderHash)
 				order = nil
 				return nil
@@ -67,23 +67,23 @@ func (m *match) cancelOrderWithoutLock(orderHash string, reason model.CancelReas
 				cancelDBAmount = order.AvailableAmount
 				cancelBookAmount = bookOrder.Amount
 			}
-			if order.AvailableAmount.LessThan(cancelAmount) {
+			if order.AvailableAmount.Abs().LessThan(cancelAmount.Abs()) {
 				logger.Warnf("cancel amount[%s] larger than db available amount[%s]", cancelAmount, order.AvailableAmount)
 				cancelDBAmount = order.AvailableAmount
 			}
-			if bookOrder.Amount.LessThan(cancelAmount) {
+			if bookOrder.Amount.Abs().LessThan(cancelAmount.Abs()) {
 				logger.Warnf("cancel amount[%s] larger than book available amount[%s]", cancelAmount, bookOrder.Amount)
 				cancelBookAmount = order.AvailableAmount
 			}
 		}
 
-		if cancelBookAmount.IsPositive() {
+		if !cancelBookAmount.IsZero() {
 			if err := orderbook.ChangeOrder(bookOrder, cancelBookAmount.Neg()); err != nil {
 				return err
 			}
 		}
 
-		if cancelDBAmount.IsPositive() {
+		if !cancelDBAmount.IsZero() {
 			if err = model.CancelOrder(order, reason, cancelDBAmount); err != nil {
 				return err
 			}
@@ -96,7 +96,7 @@ func (m *match) cancelOrderWithoutLock(orderHash string, reason model.CancelReas
 		m.deleteOrderTimer(orderHash)
 		return nil
 	})
-	if err == nil && order != nil && cancelDBAmount.IsPositive() {
+	if err == nil && order != nil && !cancelDBAmount.IsZero() {
 		// notice websocket for cancel order
 		wsMsg := message.WebSocketMessage{
 			ChannelID: message.GetAccountChannelID(order.TraderAddress),

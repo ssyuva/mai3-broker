@@ -58,12 +58,12 @@ func (c *Client) FilterTradeSuccess(ctx context.Context, brokerAddress string, s
 
 	address, err := HexToAddress(brokerAddress)
 	if err != nil {
-		return rsp, fmt.Errorf("invalid perpetual address:%w", err)
+		return rsp, fmt.Errorf("invalid broker address:%w", err)
 	}
 
 	contract, err := broker.NewBroker(address, c.ethCli)
 	if err != nil {
-		return rsp, fmt.Errorf("init perpetual contract failed:%w", err)
+		return rsp, fmt.Errorf("init broker contract failed:%w", err)
 	}
 
 	iter, err := contract.FilterTradeSuccess(opts)
@@ -87,4 +87,30 @@ func (c *Client) FilterTradeSuccess(ctx context.Context, brokerAddress string, s
 	}
 
 	return rsp, nil
+}
+
+func (c *Client) GetGasBalance(ctx context.Context, brokerAddress string, address string) (decimal.Decimal, error) {
+	var opts *ethBind.CallOpts
+
+	account, err := HexToAddress(address)
+	if err != nil {
+		return rsp, fmt.Errorf("invalid user address:%w", err)
+	}
+
+	address, err := HexToAddress(brokerAddress)
+	if err != nil {
+		return rsp, fmt.Errorf("invalid broker address:%w", err)
+	}
+
+	contract, err := broker.NewBroker(address, c.ethCli)
+	if err != nil {
+		return rsp, fmt.Errorf("init broker contract failed:%w", err)
+	}
+
+	b, err := c.ethCli.BalanceAt(ctx, account, nil)
+	if err != nil {
+		return decimal.Zero, fmt.Errorf("read broker deposit gas balance failed:%w", err)
+	}
+
+	return decimal.NewFromBigInt(b, -mai3.DECIMALS), nil
 }

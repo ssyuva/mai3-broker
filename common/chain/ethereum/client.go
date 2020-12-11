@@ -75,15 +75,6 @@ func (c *Client) GetAccount(account string) (*Account, error) {
 	return acc, nil
 }
 
-func (c *Client) GetBalance(ctx context.Context, address string) (decimal.Decimal, error) {
-	addr := ethCommon.HexToAddress(address)
-	b, err := c.ethCli.BalanceAt(ctx, addr, nil)
-	if err != nil {
-		return decimal.Zero, fmt.Errorf("read eth balance failed:%w", err)
-	}
-	return decimal.NewFromBigInt(b, -mai3.DECIMALS), nil
-}
-
 func (c *Client) GetChainID(ctx context.Context) (*big.Int, error) {
 	return c.ethCli.ChainID(ctx)
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/mcarloai/mai-v3-broker/common/orderbook"
 	"github.com/shopspring/decimal"
+	logger "github.com/sirupsen/logrus"
 	"sort"
 )
 
@@ -154,9 +155,7 @@ type MatchItem struct {
 func (m *match) MatchOrderSideBySide() []*MatchItem {
 	result := make([]*MatchItem, 0)
 	var tradePrice decimal.Decimal
-	var isBuy bool
-	leverage := m.perpetualContext.GovParams.TargetLeverage
-	feeRate := m.perpetualContext.GovParams.VaultFeeRate.Add(m.perpetualContext.GovParams.LpFeeRate).Add(m.perpetualContext.GovParams.OperatorFeeRate)
+	isBuy := true
 
 	for {
 		if len(result) == mai3.MaiV3MaxMatchGroup {
@@ -168,56 +167,84 @@ func (m *match) MatchOrderSideBySide() []*MatchItem {
 
 		if maxBid != nil && isBuy {
 			tradePrice = *maxBid
-			result = m.matchOneSide(tradePrice, leverage, feeRate, isBuy, result)
+			result = m.matchOneSide(tradePrice, isBuy, result)
 		} else if minAsk != nil && !isBuy {
 			tradePrice = *minAsk
-			result = m.matchOneSide(tradePrice, leverage, feeRate, isBuy, result)
+			result = m.matchOneSide(tradePrice, isBuy, result)
 		} else {
 			break
 		}
+		isBuy = !isBuy
 	}
 
 	return result
 }
 
-func (m *match) matchOneSide(tradePrice, leverage, feeRate decimal.Decimal, isBuy bool, result []*MatchItem) []*MatchItem {
+func (m *match) matchOneSide(tradePrice decimal.Decimal, isBuy bool, result []*MatchItem) []*MatchItem {
 	orders := make([]*orderbook.MemoryOrder, 0)
 	if isBuy {
 		orders = append(orders, m.orderbook.GetBidOrdersByPrice(tradePrice)...)
 	} else {
 		orders = append(orders, m.orderbook.GetAskOrdersByPrice(tradePrice)...)
 	}
+	if len(orders) == 0 {
+		return result
+	}
 
+	maxTradeAmount := mai3.ComputeAMMAmountWithPrice(m.perpetualContext.GovParams, m.perpetualContext.PerpStorage,
+		m.perpetualContext.Amm, isBuy, tradePrice)
+	if maxTradeAmount.IsZero() || maxTradeAmount.Abs().LessThan(m.minTradeAmount) || !utils.HasTheSameSign(maxTradeAmount, orders[0].Amount) {
+		return result
+	}
 	for _, order := range orders {
 		if len(result) == mai3.MaiV3MaxMatchGroup {
 			return result
 		}
-		// compute with amm account, if trader is buy, amm is sell
-		amount := mai3.ComputeMaxTradeAmountWithPrice(m.perpetualContext.GovParams, m.perpetualContext.PerpStorage,
-			m.perpetualContext.Amm, tradePrice, leverage, feeRate, !isBuy)
-		amount = decimal.Min(amount.Abs(), order.Amount.Abs())
-		if !isBuy {
-			amount = amount.Neg()
+		account, err := m.chainCli.GetMarginAccount(m.ctx, m.perpetual.PerpetualAddress, order.Trader)
+		if err != nil {
+			logger.Errorf("matchOneSide: GetMarginAccount fail! err:%s", err.Error())
+			return result
 		}
-		if !amount.IsZero() && amount.Abs().GreaterThanOrEqual(m.minTradeAmount) {
+
+		if maxTradeAmount.Abs().GreaterThanOrEqual(order.Amount.Abs()) {
 			matchItem := &MatchItem{
 				Order:              order,
 				OrderCancelAmounts: make([]decimal.Decimal, 0),
 				OrderCancelReasons: make([]model.CancelReasonType, 0),
 				OrderTotalCancel:   decimal.Zero,
 				OrderOriginAmount:  order.Amount,
-				MatchedAmount:      amount,
+				MatchedAmount:      order.Amount,
 			}
 			result = append(result, matchItem)
-			// full match
-			if order.Amount.Abs().GreaterThanOrEqual(amount.Abs()) {
-				if order.Amount.Sub(amount).Abs().LessThan(m.minTradeAmount) {
-					matchItem.OrderCancelAmounts = append(matchItem.OrderCancelAmounts, order.Amount.Sub(amount))
-					matchItem.OrderCancelReasons = append(matchItem.OrderCancelReasons, model.CancelReasonRemainTooSmall)
-					matchItem.OrderTotalCancel = order.Amount.Sub(amount)
-				}
-				break
+			_, _, _, _, err = mai3.ComputeAMMTrade(m.perpetualContext.GovParams, m.perpetualContext.PerpStorage, account,
+				m.perpetualContext.Amm, order.Amount)
+			if err != nil {
+				logger.Errorf("matchOneSide: ComputeAMMTrade fail. err:%s", err)
+				return result
 			}
+			maxTradeAmount = maxTradeAmount.Sub(order.Amount)
+		} else {
+			matchItem := &MatchItem{
+				Order:              order,
+				OrderCancelAmounts: make([]decimal.Decimal, 0),
+				OrderCancelReasons: make([]model.CancelReasonType, 0),
+				OrderTotalCancel:   decimal.Zero,
+				OrderOriginAmount:  order.Amount,
+				MatchedAmount:      maxTradeAmount,
+			}
+			result = append(result, matchItem)
+			_, _, _, _, err = mai3.ComputeAMMTrade(m.perpetualContext.GovParams, m.perpetualContext.PerpStorage, account,
+				m.perpetualContext.Amm, maxTradeAmount)
+			if err != nil {
+				logger.Errorf("matchOneSide: ComputeAMMTrade fail. err:%s", err)
+				return result
+			}
+			if order.Amount.Sub(maxTradeAmount).Abs().LessThan(m.minTradeAmount) {
+				matchItem.OrderCancelAmounts = append(matchItem.OrderCancelAmounts, order.Amount.Sub(maxTradeAmount))
+				matchItem.OrderCancelReasons = append(matchItem.OrderCancelReasons, model.CancelReasonRemainTooSmall)
+				matchItem.OrderTotalCancel = order.Amount.Sub(maxTradeAmount)
+			}
+			break
 		}
 
 	}

@@ -26,10 +26,10 @@ func CancelOrder(order *Order, reason CancelReasonType, amount decimal.Decimal) 
 	if reason == "" {
 		return fmt.Errorf("cancel order, empty reason")
 	}
-	if !amount.IsPositive() {
+	if !amount.IsZero() {
 		return fmt.Errorf("cancel order fail, bad amount[%s]", amount)
 	}
-	if order.AvailableAmount.LessThan(amount) {
+	if order.AvailableAmount.Abs().LessThan(amount.Abs()) {
 		return fmt.Errorf("cancel order fail, cancel amount[%s] larger than available[%s]", amount, order.AvailableAmount)
 	}
 	order.AvailableAmount = order.AvailableAmount.Sub(amount)

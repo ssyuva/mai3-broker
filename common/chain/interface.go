@@ -17,7 +17,7 @@ type ChainClient interface {
 	GetSignAccount() (string, error)
 
 	GetTokenSymbol(ctx context.Context, address string) (string, error)
-	GetBalance(ctx context.Context, address string) (decimal.Decimal, error)
+	GetGasBalance(ctx context.Context, brokerAddress string, address string) (decimal.Decimal, error)
 	GetChainID(ctx context.Context) (*big.Int, error)
 	HeaderByNumber(ctx context.Context, number *big.Int) (*model.BlockHeader, error)
 	HeaderByHash(ctx context.Context, hash string) (*model.BlockHeader, error)

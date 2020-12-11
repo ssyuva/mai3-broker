@@ -1,10 +1,15 @@
 package match
 
 import (
+	"errors"
 	"fmt"
+	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
 	"github.com/mcarloai/mai-v3-broker/common/message"
 	"github.com/mcarloai/mai-v3-broker/common/model"
+	"github.com/mcarloai/mai-v3-broker/conf"
 	"github.com/mcarloai/mai-v3-broker/dao"
+	"github.com/shopspring/decimal"
+	logger "github.com/sirupsen/logrus"
 )
 
 func (m *match) NewOrder(order *model.Order) error {
@@ -16,6 +21,17 @@ func (m *match) NewOrder(order *model.Order) error {
 	if err != nil {
 		return fmt.Errorf("NewOrder:%w", err)
 	}
+	// check gas
+	gasBalance, err := m.chainCli.GetGasBalance(m.ctx, conf.Conf.BrokerAddress, order.TraderAddress)
+	if err != nil {
+		logger.Errorf("checkUserPendingOrders:%w", err)
+		return err
+	}
+	gasReward := m.priceMonitor.GetGasPrice() * 1e9 * conf.Conf.GasStation.GasLimit * uint64(len(activeOrders)+1)
+	if utils.ToWad(gasBalance).LessThan(decimal.NewFromInt(int64(gasReward))) {
+		return errors.New("Gas not enough")
+	}
+
 	_, err = m.CheckNewOrder(order, activeOrders)
 	// update close only order and insert new order and orderbook
 	err = m.dao.Transaction(func(dao dao.DAO) error {

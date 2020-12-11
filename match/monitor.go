@@ -37,7 +37,7 @@ func (m *match) checkUserPendingOrders(user string) {
 	if err != nil {
 		return
 	}
-	gasBalance, err := m.chainCli.GetBalance(m.ctx, user)
+	gasBalance, err := m.chainCli.GetGasBalance(m.ctx, conf.Conf.BrokerAddress, user)
 	if err != nil {
 		logger.Errorf("checkUserPendingOrders:%w", err)
 		return
@@ -81,7 +81,7 @@ func (m *match) checkUserPendingOrders(user string) {
 		return
 	}
 
-	ordersForNotify := make([]*model.Order, 0)
+	ordersToNotify := make([]*model.Order, 0)
 
 	err = m.dao.Transaction(func(dao dao.DAO) error {
 		for _, cancel := range cancels {
@@ -94,14 +94,14 @@ func (m *match) checkUserPendingOrders(user string) {
 			if err = dao.UpdateOrder(order); err != nil {
 				return err
 			}
-			ordersForNotify = append(ordersForNotify, order)
+			ordersToNotify = append(ordersToNotify, order)
 		}
 		return nil
 	})
 
 	if err != nil {
 		// notice websocket for new order
-		for _, order := range orders {
+		for _, order := range ordersToNotify {
 			wsMsg := message.WebSocketMessage{
 				ChannelID: message.GetAccountChannelID(order.TraderAddress),
 				Payload: message.WebSocketOrderChangePayload{
