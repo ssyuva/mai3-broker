@@ -95,7 +95,7 @@ func (p *priceLevel) ChangeOrder(orderID string, changeAmount decimal.Decimal) e
 	order := orderItem.(*MemoryOrder)
 	oldAmount := order.Amount
 	newAmount := order.Amount.Add(changeAmount)
-	if !utils.HasTheSameSign(newAmount, oldAmount) {
+	if !newAmount.IsZero() && !utils.HasTheSameSign(newAmount, oldAmount) {
 		return fmt.Errorf("can't change order[%s], after change the amount is negative. old amount=%s change amount=%s",
 			order.ID, order.Amount, changeAmount)
 	}

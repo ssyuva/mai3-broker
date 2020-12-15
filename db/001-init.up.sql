@@ -63,6 +63,7 @@ create table match_transactions
   status text not null,
   block_confirmed bool not null,
   block_number int,
+  block_hash text,
   transaction_hash text,
   created_at timestamp not null,
   executed_at timestamp
@@ -75,7 +76,7 @@ create table broker_nonces
 (
   address text not null PRIMARY KEY,
   nonce integer not null,
-  updated_at timestamp not null
+  update_time timestamp not null
 );
 
 create table launch_transactions

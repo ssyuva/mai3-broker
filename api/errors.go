@@ -156,3 +156,11 @@ func ChainIDError(chainID int64) *ApiError {
 func OrderExpired() *ApiError {
 	return &ApiError{Code: -21, Desc: "order expired"}
 }
+
+func GasBalanceError() *ApiError {
+	return &ApiError{Code: -22, Desc: "gas balance not enough for trade"}
+}
+
+func CloseOnlyError() *ApiError {
+	return &ApiError{Code: -23, Desc: "amount is not right for close only order"}
+}

@@ -2,7 +2,6 @@ package match
 
 import (
 	"context"
-	"fmt"
 	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
 	"github.com/mcarloai/mai-v3-broker/common/message"
 	"github.com/mcarloai/mai-v3-broker/common/model"
@@ -12,37 +11,39 @@ import (
 	logger "github.com/sirupsen/logrus"
 )
 
-func (m *match) NewOrder(order *model.Order) error {
+func (m *match) NewOrder(order *model.Order) string {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	account, err := m.chainCli.GetMarginAccount(m.ctx, m.perpetual.PerpetualAddress, order.TraderAddress)
 	if err != nil {
-		return err
+		logger.Errorf("GetMarginAccount err:%s", err)
+		return model.MatchInternalErrorID
 	}
 
-	if err = m.CheckCloseOnly(account, order); err != nil {
-		return err
+	if !m.CheckCloseOnly(account, order) {
+		return model.MatchCloseOnlyErrorID
 	}
 
-	if err = m.CheckOrderMargin(account, order); err != nil {
-		return err
+	if !m.CheckOrderMargin(account, order) {
+		return model.MatchInsufficientBalanceErrorID
 	}
 
 	activeOrders, err := m.dao.QueryOrder(order.TraderAddress, order.PerpetualAddress, []model.OrderStatus{model.OrderPending, model.OrderStop}, 0, 0, 0)
 	if err != nil {
-		return err
+		logger.Errorf("QueryOrder err:%s", err)
+		return model.MatchInternalErrorID
 	}
 
 	// check gas
 	gasBalance, err := m.chainCli.GetGasBalance(m.ctx, conf.Conf.BrokerAddress, order.TraderAddress)
 	if err != nil {
 		logger.Errorf("checkUserPendingOrders:%w", err)
-		return fmt.Errorf("GetGasBalance error")
+		return model.MatchInternalErrorID
 	}
 	gasReward := m.gasMonitor.GetGasPrice() * 1e9 * conf.Conf.GasStation.GasLimit * uint64(len(activeOrders)+1)
 	if utils.ToWad(gasBalance).LessThan(decimal.NewFromInt(int64(gasReward))) {
-		return fmt.Errorf("Gas not enough")
+		return model.MatchGasNotEnoughErrorID
 	}
 
 	// create order and insert to db and orderbook
@@ -80,6 +81,7 @@ func (m *match) NewOrder(order *model.Order) error {
 			},
 		}
 		m.wsChan <- wsMsg
+		return model.MatchOK
 	}
-	return err
+	return model.MatchInternalErrorID
 }

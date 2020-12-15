@@ -134,9 +134,9 @@ func (l *Launcher) createLaunchTransaction(matchTx *model.MatchTransaction) erro
 		return fmt.Errorf("Transaction already launched ID:%s", matchTx.ID)
 	}
 
-	orderParams := make([]*model.WalletOrderParam, len(matchTx.MatchResult.MatchItems))
-	matchAmounts := make([]decimal.Decimal, len(matchTx.MatchResult.MatchItems))
-	gasRewards := make([]*big.Int, len(matchTx.MatchResult.MatchItems))
+	orderParams := make([]*model.WalletOrderParam, 0)
+	matchAmounts := make([]decimal.Decimal, 0)
+	gasRewards := make([]*big.Int, 0)
 	for _, item := range matchTx.MatchResult.MatchItems {
 		param, err := getWalletOrderParam(item.Order)
 		if err != nil {
@@ -167,7 +167,8 @@ func (l *Launcher) createLaunchTransaction(matchTx *model.MatchTransaction) erro
 		CommitTime:  time.Now(),
 	}
 
-	err = l.dao.Transaction(func(dao dao.DAO) error {
+	err = l.dao.Transaction(context.Background(), false /* readonly */, func(dao dao.DAO) error {
+		dao.ForUpdate()
 		if err := dao.CreateTx(tx); err != nil {
 			return fmt.Errorf("create transaction failed error:%w", err)
 		}

@@ -72,7 +72,7 @@ func (m *match) checkUserPendingOrders(user string) []*OrderCancel {
 	}
 
 	for _, order := range orders[num:] {
-		if err := m.CheckCloseOnly(account, order); err != nil {
+		if !m.CheckCloseOnly(account, order) {
 			cancel := &OrderCancel{
 				OrderHash: order.OrderHash,
 				Status:    order.Status,
@@ -82,7 +82,7 @@ func (m *match) checkUserPendingOrders(user string) []*OrderCancel {
 			continue
 		}
 
-		if err := m.CheckOrderMargin(account, order); err != nil {
+		if !m.CheckOrderMargin(account, order) {
 			cancel := &OrderCancel{
 				OrderHash: order.OrderHash,
 				Status:    order.Status,

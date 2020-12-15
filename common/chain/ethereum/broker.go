@@ -21,9 +21,9 @@ func (c *Client) BatchTradeDataPack(orderParams []*model.WalletOrderParam, match
 	if err != nil {
 		return nil, err
 	}
-	orders := make([]broker.Order, len(orderParams))
-	signatures := make([][]byte, len(orderParams))
-	amounts := make([]*big.Int, len(orderParams))
+	orders := make([]broker.Order, 0)
+	signatures := make([][]byte, 0)
+	amounts := make([]*big.Int, 0)
 	for _, param := range orderParams {
 		order := broker.Order{
 			Trader:     gethCommon.HexToAddress(param.Trader),
@@ -91,26 +91,28 @@ func (c *Client) FilterTradeSuccess(ctx context.Context, brokerAddress string, s
 
 func (c *Client) GetGasBalance(ctx context.Context, brokerAddress string, address string) (decimal.Decimal, error) {
 	var opts *ethBind.CallOpts
+	var rsp decimal.Decimal
 
 	account, err := HexToAddress(address)
 	if err != nil {
 		return rsp, fmt.Errorf("invalid user address:%w", err)
 	}
 
-	address, err := HexToAddress(brokerAddress)
+	brokerAddr, err := HexToAddress(brokerAddress)
 	if err != nil {
 		return rsp, fmt.Errorf("invalid broker address:%w", err)
 	}
 
-	contract, err := broker.NewBroker(address, c.ethCli)
+	contract, err := broker.NewBroker(brokerAddr, c.ethCli)
 	if err != nil {
 		return rsp, fmt.Errorf("init broker contract failed:%w", err)
 	}
 
-	b, err := c.ethCli.BalanceAt(ctx, account, nil)
+	b, err := contract.BalanceOf(opts, account)
 	if err != nil {
-		return decimal.Zero, fmt.Errorf("read broker deposit gas balance failed:%w", err)
+		return rsp, fmt.Errorf("read broker deposit gas balance failed:%w", err)
 	}
 
-	return decimal.NewFromBigInt(b, -mai3.DECIMALS), nil
+	rsp = decimal.NewFromBigInt(b, -mai3.DECIMALS)
+	return rsp, nil
 }

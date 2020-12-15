@@ -2,7 +2,6 @@ package launcher
 
 import (
 	"context"
-	"fmt"
 	"github.com/mcarloai/mai-v3-broker/common/chain"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/mcarloai/mai-v3-broker/conf"
@@ -96,14 +95,13 @@ func (s *Syncer) updateStatusByUser(user string) {
 			tx.BlockTime = &receipt.BlockTime
 			tx.Status = receipt.Status
 			tx.GasUsed = &receipt.GasUsed
-			// check block header
-			bh, err := dao.FindBlock(conf.Conf.WatcherID, int64(*tx.BlockNumber))
-			if err != nil {
-				return errors.Wrap(err, "get block header fail")
-			}
-			if bh.BlockHash != *tx.BlockHash {
-				return fmt.Errorf("block hash check failed, blocknumber:%d", *tx.BlockNumber)
-			}
+			// bh, err := dao.FindBlock(conf.Conf.WatcherID, int64(*tx.BlockNumber))
+			// if err != nil {
+			// 	return errors.Wrap(err, "get block header fail")
+			// }
+			// if bh.BlockHash != *tx.BlockHash {
+			// 	return fmt.Errorf("block hash check failed, blocknumber:%d", *tx.BlockNumber)
+			// }
 			if err = dao.UpdateTx(tx); err != nil {
 				return errors.Wrap(err, "fail to update transaction status")
 			}

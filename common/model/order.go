@@ -23,6 +23,15 @@ const (
 	CancelReasonContractSettled              CancelReasonType = "CONTRACT_SETTLED"
 )
 
+const (
+	MatchOK                         = "match.ok"
+	MatchInternalErrorID            = "match.error.InternalError"
+	MatchGasNotEnoughErrorID        = "match.error.GasNotEnough"
+	MatchCloseOnlyErrorID           = "match.error.CloseOnly"
+	MatchInsufficientBalanceErrorID = "match.error.InsufficientBalance"
+	MatchMaxOrderNumReachID         = "match.error.MaxOrderNumReach"
+)
+
 type OrderType int
 
 const (
@@ -56,6 +65,7 @@ type OrderParam struct {
 	Salt             int64           `json:"salt" db:"salt"`
 	IsCloseOnly      bool            `json:"isCloseOnly" db:"is_close_only"`
 	ChainID          int64           `json:"chainID" db:"chain_id"`
+	Signature        string          `json:"signature" db:"signature"`
 }
 
 type Order struct {
@@ -72,7 +82,6 @@ type Order struct {
 	GasFeeAmount    decimal.Decimal      `json:"gasFeeAmount" db:"gas_fee_amount"`
 	CreatedAt       time.Time            `json:"createdAt" db:"created_at"`
 	UpdatedAt       time.Time            `json:"updatedAt" db:"updated_at"`
-	Signature       string               `json:"-" db:"signature"`
 	CancelReasons   []*OrderCancelReason `json:"cancelReasons" sql:"-"`
 }
 

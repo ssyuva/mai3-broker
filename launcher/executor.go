@@ -98,7 +98,8 @@ func (s *Executor) sendTransaction(ctx context.Context, tx *model.LaunchTransact
 		return nil
 	}
 	// allocate nonce
-	if err := s.dao.Transaction(func(dao dao.DAO) error {
+	if err := s.dao.Transaction(context.Background(), false /* readonly */, func(dao dao.DAO) error {
+		dao.ForUpdate()
 		tx.Nonce = model.Uint64(expNonce)
 		if err := dao.UpdateTx(tx); err != nil {
 			return errors.Wrap(err, "save nonce failed")
@@ -168,7 +169,8 @@ func (s *Executor) prepare(ctx context.Context, tx *model.LaunchTransaction) err
 }
 
 func (s *Executor) send(ctx context.Context, tx *model.LaunchTransaction) error {
-	return s.dao.Transaction(func(dao dao.DAO) error {
+	return s.dao.Transaction(context.Background(), false /* readonly */, func(dao dao.DAO) error {
+		dao.ForUpdate()
 		prevHash := tx.TransactionHash
 		err := s.prepare(ctx, tx)
 		if err != nil {
@@ -179,6 +181,7 @@ func (s *Executor) send(ctx context.Context, tx *model.LaunchTransaction) error 
 			return errors.Wrap(err, "send transaction failed")
 		}
 		tx.Status = model.TxPending
+		tx.TransactionHash = &currHash
 		if prevHash != nil && model.MustString(prevHash) != currHash {
 			logger.Infof("resend tx, former tx: %s => %s", model.MustString(prevHash), currHash)
 			tx.ID = 0

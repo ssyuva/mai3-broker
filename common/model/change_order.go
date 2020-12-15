@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
 	"github.com/shopspring/decimal"
 	logger "github.com/sirupsen/logrus"
 	"gopkg.in/guregu/null.v3"
@@ -26,7 +27,7 @@ func CancelOrder(order *Order, reason CancelReasonType, amount decimal.Decimal) 
 	if reason == "" {
 		return fmt.Errorf("cancel order, empty reason")
 	}
-	if !amount.IsZero() {
+	if amount.IsZero() || !utils.HasTheSameSign(amount, order.Amount) {
 		return fmt.Errorf("cancel order fail, bad amount[%s]", amount)
 	}
 	if order.AvailableAmount.Abs().LessThan(amount.Abs()) {

@@ -24,7 +24,7 @@ type match struct {
 	orderbook        *orderbook.Orderbook
 	stopbook         *orderbook.Orderbook
 	perpetual        *model.Perpetual
-	perpetualContext *PerpetualContext
+	perpetualContext PerpetualContext
 	chainCli         chain.ChainClient
 	gasMonitor       *gasmonitor.GasMonitor
 	dao              dao.DAO

@@ -1,7 +1,6 @@
 package match
 
 import (
-	"fmt"
 	"github.com/mcarloai/mai-v3-broker/common/mai3"
 	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
 	"github.com/mcarloai/mai-v3-broker/common/model"
@@ -17,30 +16,30 @@ type OrderCancel struct {
 	ToCancel  decimal.Decimal
 }
 
-func (m *match) CheckOrderMargin(account *model.AccountStorage, order *model.Order) error {
+func (m *match) CheckOrderMargin(account *model.AccountStorage, order *model.Order) bool {
 	g := m.perpetualContext.GovParams
 	storage := m.perpetualContext.PerpStorage
 	err := mai3.ComputeTradeWithPrice(storage, account, order.Price, order.Amount, g.LpFeeRate.Add(g.VaultFeeRate).Add(g.OperatorFeeRate))
 	if err != nil {
-		return err
+		return true
 	}
 	computedAccount := mai3.ComputeAccount(g, storage, account)
 	if !computedAccount.IsSafe {
-		return fmt.Errorf("account is not safe after trade")
+		return false
 	}
 
-	return nil
+	return false
 }
 
-func (m *match) CheckCloseOnly(account *model.AccountStorage, order *model.Order) error {
+func (m *match) CheckCloseOnly(account *model.AccountStorage, order *model.Order) bool {
 	if order.IsCloseOnly {
 		if account.PositionAmount.IsZero() {
-			return fmt.Errorf("account's position is 0")
+			return false
 		} else if !account.PositionAmount.IsZero() && utils.HasTheSameSign(account.PositionAmount, order.Amount) {
-			return fmt.Errorf("account's position has same side with order")
+			return false
 		}
 	}
-	return nil
+	return true
 }
 
 func (m *match) CheckAndModifyCloseOnly(account *model.AccountStorage, activeOrders []*model.Order) []*OrderCancel {

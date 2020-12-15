@@ -13,7 +13,7 @@ type Nonce struct {
 }
 
 func (Nonce) TableName() string {
-	return "nonces"
+	return "broker_nonces"
 }
 
 type NonceDAO interface {

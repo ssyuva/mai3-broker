@@ -131,11 +131,12 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 	order.OrderParam.IsCloseOnly = params.IsCloseOnly
 	order.OrderParam.ExpiresAt = time.Unix(params.ExpiresAt, 0).UTC()
 	order.OrderParam.Salt = params.Salt
+	order.OrderParam.Signature = params.Signature
 	order.PerpetualAddress = strings.ToLower(params.PerpetualAddress)
 	order.BrokerAddress = strings.ToLower(params.BrokerAddress)
 	order.RelayerAddress = strings.ToLower(params.RelayerAddress)
 	if params.ReferrerAddress == "" {
-		order.ReferrerAddress = ADDRESS_ZERO
+		order.OrderParam.ReferrerAddress = ADDRESS_ZERO
 	}
 	order.AvailableAmount = order.OrderParam.Amount
 	order.ConfirmedAmount = decimal.Zero
@@ -189,18 +190,23 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 		return nil, InternalError(errors.New("get order fail"))
 	}
 
-	// check order num
-	activeOrders, err := s.dao.QueryOrder(order.TraderAddress, order.PerpetualAddress, []model.OrderStatus{model.OrderPending, model.OrderStop}, 0, 0, 0)
-	if err != nil {
-		return nil, InternalError(errors.New("QueryOrder fail"))
-	}
-
-	if len(activeOrders) >= MAX_ORDER_NUM {
+	errID := s.match.NewOrder(&order)
+	switch errID {
+	case model.MatchOK:
+		return nil, nil
+	case model.MatchInternalErrorID:
+		return nil, InternalError(err)
+	case model.MatchMaxOrderNumReachID:
 		return nil, MaxOrderNumReachError()
+	case model.MatchInsufficientBalanceErrorID:
+		return nil, InsufficientBalanceError()
+	case model.MatchGasNotEnoughErrorID:
+		return nil, GasBalanceError()
+	case model.MatchCloseOnlyErrorID:
+		return nil, CloseOnlyError()
+	default:
+		return nil, InternalError(errors.New("unknown match error"))
 	}
-
-	err = s.match.NewOrder(&order)
-	return nil, InternalError(err)
 }
 
 func validatePlaceOrder(req *PlaceOrderReq) error {
@@ -265,12 +271,16 @@ func (s *Server) CancelOrder(p Param) (interface{}, error) {
 		return nil, OrderAuthError(params.OrderHash)
 	}
 
-	err = s.match.CancelOrder(order.PerpetualAddress, order.OrderHash)
-	return nil, InternalError(err)
+	if err = s.match.CancelOrder(order.PerpetualAddress, order.OrderHash); err != nil {
+		return nil, InternalError(err)
+	}
+	return nil, nil
 }
 
 func (s *Server) CancelAllOrders(p Param) (interface{}, error) {
 	params := p.(*CancelAllOrdersReq)
-	err := s.match.CancelAllOrders(params.PerpetualAddress, params.Address)
-	return nil, InternalError(err)
+	if err := s.match.CancelAllOrders(params.PerpetualAddress, params.Address); err != nil {
+		return nil, InternalError(err)
+	}
+	return nil, nil
 }

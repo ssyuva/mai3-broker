@@ -57,15 +57,15 @@ func (s *Server) newMatch(perpetual *model.Perpetual) error {
 	return nil
 }
 
-func (s *Server) NewOrder(order *model.Order) error {
+func (s *Server) NewOrder(order *model.Order) string {
 	handler := s.getMatchHandler(order.PerpetualAddress)
 	if handler == nil {
 		perpetual, err := s.dao.GetPerpetualByAddress(order.PerpetualAddress, true)
 		if err != nil {
-			return err
+			return model.MatchInternalErrorID
 		}
 		err = s.newMatch(perpetual)
-		return fmt.Errorf("NewOrder:%w", err)
+		return model.MatchInternalErrorID
 	}
 	return handler.NewOrder(order)
 }
@@ -73,7 +73,7 @@ func (s *Server) NewOrder(order *model.Order) error {
 func (s *Server) CancelOrder(perpetualAddress, orderHash string) error {
 	handler := s.getMatchHandler(perpetualAddress)
 	if handler == nil {
-		return fmt.Errorf("NewOrder error: perpetual[%s] is not open.", perpetualAddress)
+		return fmt.Errorf("CancelOrder error: perpetual[%s] is not open.", perpetualAddress)
 	}
 	return handler.CancelOrder(orderHash, model.CancelReasonUserCancel, true, decimal.Zero)
 }
@@ -81,7 +81,7 @@ func (s *Server) CancelOrder(perpetualAddress, orderHash string) error {
 func (s *Server) CancelAllOrders(perpetualAddress, trader string) error {
 	handler := s.getMatchHandler(perpetualAddress)
 	if handler == nil {
-		return fmt.Errorf("NewOrder error: perpetual[%s] is not open.", perpetualAddress)
+		return fmt.Errorf("CancelAllOrders error: perpetual[%s] is not open.", perpetualAddress)
 	}
 	return handler.CancelAllOrders(perpetualAddress, trader)
 }

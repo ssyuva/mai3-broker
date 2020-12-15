@@ -446,7 +446,7 @@ func computeAMMInternalOpen(context *model.AMMTradingContext, amount decimal.Dec
 
 func computeAMMSafeLongPositionAmount(context *model.AMMTradingContext, beta decimal.Decimal) decimal.Decimal {
 	if !context.IsSafe {
-		panic("bug: do not call shortPosition when unsafe")
+		return _0
 	}
 	safePosition := _0
 	edge1 := beta.Mul(context.Lev).Add(beta).Sub(_1)
@@ -463,7 +463,7 @@ func computeAMMSafeLongPositionAmount(context *model.AMMTradingContext, beta dec
 	a := context.Lev.Add(beta).Sub(_1)
 	beforeSqrt := beta.Mul(a)
 	if beforeSqrt.LessThan(_0) {
-		panic("bug: ammSafe sqrt < 0")
+		return _0
 	}
 	denominator := edge1.Mul(context.Lev.Sub(_1)).Mul(context.Index)
 	safePosition = _2.Mul(beta).Sub(_2).Add(context.Lev)
@@ -475,12 +475,12 @@ func computeAMMSafeLongPositionAmount(context *model.AMMTradingContext, beta dec
 
 func computeAMMSafeShortPositionAmount(context *model.AMMTradingContext, beta decimal.Decimal) decimal.Decimal {
 	if !context.IsSafe {
-		panic("bug: do not call shortPosition when unsafe")
+		return _0
 	}
 	// safePosition = -m0 / i / (1 + sqrt(beta * lev))
 	beforeSqrt := beta.Mul(context.Lev)
 	if beforeSqrt.LessThan(_0) {
-		panic("bug: ammSafe sqrt < 0")
+		return _0
 	}
 	safePosition := context.M0.Neg().Div(context.Index).Div(Sqrt(beforeSqrt).Add(_1))
 	return safePosition
@@ -509,7 +509,7 @@ func computeM0(context *model.AMMTradingContext, beta decimal.Decimal) {
 
 func computeM0Flat(context *model.AMMTradingContext) decimal.Decimal {
 	if !context.Pos1.IsZero() {
-		panic("pos1 != 0")
+		return _0
 	}
 	mv := context.Cash.Mul(context.Lev.Sub(_1))
 	return mv
@@ -517,7 +517,7 @@ func computeM0Flat(context *model.AMMTradingContext) decimal.Decimal {
 
 func computeM0Short(context *model.AMMTradingContext, beta decimal.Decimal) decimal.Decimal {
 	if context.Pos1.GreaterThan(_0) {
-		panic("pos1 > 0")
+		return _0
 	}
 	// a = 2 * index * pos1
 	// b = lev * cash + index * pos1 * (lev + 1)
@@ -529,7 +529,7 @@ func computeM0Short(context *model.AMMTradingContext, beta decimal.Decimal) deci
 	beforeSqrt := b.Mul(b)
 	beforeSqrt = beforeSqrt.Sub(beta.Mul(context.Lev).Mul(a).Mul(a))
 	if beforeSqrt.LessThan(_0) {
-		panic("edge case: short m0 sqrt < 0")
+		return _0
 	}
 	afterSqrt := Sqrt(beforeSqrt)
 	mv := context.Lev.Sub(_1).Div(_2).Div(context.Lev)
@@ -539,7 +539,7 @@ func computeM0Short(context *model.AMMTradingContext, beta decimal.Decimal) deci
 
 func computeM0Long(context *model.AMMTradingContext, beta decimal.Decimal) decimal.Decimal {
 	if context.Pos1.LessThan(_0) {
-		panic("pos1 < 0")
+		return _0
 	}
 	// b = lev * cash + index * pos1 * (lev - 1)
 	// before_sqrt = b ** 2 + 4 * beta * index * lev * cash * pos1
@@ -548,7 +548,7 @@ func computeM0Long(context *model.AMMTradingContext, beta decimal.Decimal) decim
 	beforeSqrt := b.Mul(b)
 	beforeSqrt = beforeSqrt.Add(_4.Mul(beta).Mul(context.Index).Mul(context.Lev).Mul(context.Cash).Mul(context.Pos1))
 	if beforeSqrt.LessThan(_0) {
-		panic("edge case: short m0 sqrt < 0")
+		return _0
 	}
 	afterSqrt := Sqrt(beforeSqrt)
 	mv := context.Lev.Sub(_1).Div(_2).Div(context.Lev.Add(beta).Sub(_1))
@@ -562,22 +562,22 @@ func computeDeltaMargin(context *model.AMMTradingContext, beta, pos2 decimal.Dec
 	} else if context.Pos1.LessThanOrEqual(_0) && pos2.LessThanOrEqual(_0) {
 		return computeDeltaMarginShort(context, beta, pos2)
 	} else {
-		panic("bug: cross direction is not supported")
+		return _0
 	}
 }
 
 func computeDeltaMarginLong(context *model.AMMTradingContext, beta, pos2 decimal.Decimal) decimal.Decimal {
 	if context.Pos1.LessThan(_0) {
-		panic("pos1 < 0")
+		return _0
 	}
 	if pos2.LessThan(_0) {
-		panic("pos2 < 0")
+		return _0
 	}
 	if context.M0.LessThanOrEqual(_0) {
-		panic("m0 <= 0")
+		return _0
 	}
 	if context.Ma1.LessThanOrEqual(_0) {
-		panic("ma1 <= 0")
+		return _0
 	}
 	// a = 2 * (1 - beta) * ma1
 	// assert a != 0
@@ -587,7 +587,7 @@ func computeDeltaMarginLong(context *model.AMMTradingContext, beta, pos2 decimal
 	// ma2 = (b + math.sqrt(before_sqrt)) / a
 	a := _1.Sub(beta).Mul(context.Ma1).Mul(_2)
 	if a.IsZero() {
-		panic("edge case: deltaMarginLong.a = 0")
+		return _0
 	}
 	b := pos2.Sub(context.Pos1).Mul(context.Index)
 	b = a.Div(_2).Sub(b).Mul(context.Ma1)
@@ -595,7 +595,7 @@ func computeDeltaMarginLong(context *model.AMMTradingContext, beta, pos2 decimal
 	beforeSqrt := beta.Mul(a).Mul(context.Ma1).Mul(context.M0).Mul(context.M0).Mul(_2)
 	beforeSqrt = beforeSqrt.Add(b.Mul(b))
 	if beforeSqrt.LessThan(_0) {
-		panic("edge case: deltaMarginLong.sqrt < 0")
+		return _0
 	}
 	ma2 := Sqrt(beforeSqrt).Add(b).Div(a)
 	return ma2.Sub(context.Ma1)
@@ -603,13 +603,13 @@ func computeDeltaMarginLong(context *model.AMMTradingContext, beta, pos2 decimal
 
 func computeDeltaMarginShort(context *model.AMMTradingContext, beta, pos2 decimal.Decimal) decimal.Decimal {
 	if context.Pos1.GreaterThan(_0) {
-		panic("pos1 > 0")
+		return _0
 	}
 	if pos2.GreaterThan(_0) {
-		panic("pos2 > 0")
+		return _0
 	}
 	if context.M0.LessThanOrEqual(_0) {
-		panic("m0 <= 0")
+		return _0
 	}
 	// ma2 - ma1 = index * (pos1 - pos2) * (1 - beta + beta * m0**2 / (m0 + pos1 * index) / (m0 + pos2 * index))
 	deltaMargin := beta.Mul(context.M0).Mul(context.M0)

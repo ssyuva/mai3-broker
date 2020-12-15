@@ -16,7 +16,6 @@ import (
 	"github.com/mcarloai/mai-v3-broker/gasmonitor"
 	"github.com/mcarloai/mai-v3-broker/launcher"
 	"github.com/mcarloai/mai-v3-broker/match"
-	"github.com/mcarloai/mai-v3-broker/watcher"
 	"github.com/mcarloai/mai-v3-broker/websocket"
 	"golang.org/x/sync/errgroup"
 
