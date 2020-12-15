@@ -6,27 +6,27 @@ import (
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/mcarloai/mai-v3-broker/conf"
 	"github.com/mcarloai/mai-v3-broker/dao"
-	"github.com/mcarloai/mai-v3-broker/pricemonitor"
+	"github.com/mcarloai/mai-v3-broker/gasmonitor"
 	"github.com/pkg/errors"
 	logger "github.com/sirupsen/logrus"
 	"time"
 )
 
 type Executor struct {
-	ctx          context.Context
-	dao          dao.DAO
-	chainCli     chain.ChainClient
-	priceMonitor *pricemonitor.PriceMonitor
-	execChan     chan interface{}
+	ctx        context.Context
+	dao        dao.DAO
+	chainCli   chain.ChainClient
+	gasMonitor *gasmonitor.GasMonitor
+	execChan   chan interface{}
 }
 
-func NewExecutor(ctx context.Context, dao dao.DAO, chainCli chain.ChainClient, execChan chan interface{}, pt *pricemonitor.PriceMonitor) *Executor {
+func NewExecutor(ctx context.Context, dao dao.DAO, chainCli chain.ChainClient, execChan chan interface{}, gm *gasmonitor.GasMonitor) *Executor {
 	return &Executor{
-		ctx:          ctx,
-		dao:          dao,
-		chainCli:     chainCli,
-		priceMonitor: pt,
-		execChan:     execChan,
+		ctx:        ctx,
+		dao:        dao,
+		chainCli:   chainCli,
+		gasMonitor: gm,
+		execChan:   execChan,
 	}
 }
 
@@ -162,7 +162,7 @@ func (s *Executor) prepare(ctx context.Context, tx *model.LaunchTransaction) err
 
 	limit := conf.Conf.GasStation.GasLimit
 	tx.GasLimit = &limit
-	price := s.priceMonitor.GetGasPrice() * 1e9
+	price := s.gasMonitor.GetGasPrice() * 1e9
 	tx.GasPrice = &price
 	return nil
 }

@@ -13,9 +13,9 @@ import (
 	"github.com/mcarloai/mai-v3-broker/common/chain"
 	"github.com/mcarloai/mai-v3-broker/common/chain/ethereum"
 	"github.com/mcarloai/mai-v3-broker/conf"
+	"github.com/mcarloai/mai-v3-broker/gasmonitor"
 	"github.com/mcarloai/mai-v3-broker/launcher"
 	"github.com/mcarloai/mai-v3-broker/match"
-	"github.com/mcarloai/mai-v3-broker/pricemonitor"
 	"github.com/mcarloai/mai-v3-broker/watcher"
 	"github.com/mcarloai/mai-v3-broker/websocket"
 	"golang.org/x/sync/errgroup"
@@ -58,12 +58,12 @@ func main() {
 		}
 	}
 
-	priceMonitor := pricemonitor.NewPriceMonitor(ctx)
+	gasMonitor := gasmonitor.NewGasMonitor(ctx)
 	// msg chan for websocket message
 	wsChan := make(chan interface{}, 100)
 
 	// new match server
-	matchServer, err := match.New(ctx, chainCli, dao, wsChan, priceMonitor)
+	matchServer, err := match.New(ctx, chainCli, dao, wsChan, gasMonitor)
 	if err != nil {
 		logger.Errorf("new match server error:%s", err)
 		os.Exit(-4)
@@ -87,15 +87,9 @@ func main() {
 	})
 
 	// start launcher
-	launch := launcher.NewLaunch(ctx, dao, chainCli, matchServer, priceMonitor)
+	launch := launcher.NewLaunch(ctx, dao, chainCli, matchServer, gasMonitor)
 	group.Go(func() error {
 		return launch.Start()
-	})
-
-	// start watcher
-	watcherSrv := watcher.New(ctx, chainCli, dao, matchServer)
-	group.Go(func() error {
-		return watcherSrv.Start()
 	})
 
 	if err := group.Wait(); err != nil {

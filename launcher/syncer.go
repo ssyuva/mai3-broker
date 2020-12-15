@@ -84,12 +84,13 @@ func (s *Syncer) updateStatusByUser(user string) {
 			logger.Errorf("transaction hash is nill txID:%s", tx.TxID)
 			return
 		}
-		err = s.dao.Transaction(func(dao dao.DAO) error {
+		receipt, err := s.chainCli.WaitTransactionReceipt(ctx, *tx.TransactionHash)
+		if err != nil {
+			logger.Errorf("WaitTransactionReceipt error: %s", err)
+			continue
+		}
+		err = s.dao.Transaction(context.Background(), false /* readonly */, func(dao dao.DAO) error {
 			dao.ForUpdate()
-			receipt, err := s.chainCli.WaitTransactionReceipt(ctx, *tx.TransactionHash)
-			if err != nil {
-				return err
-			}
 			tx.BlockNumber = &receipt.BlockNumber
 			tx.BlockHash = &receipt.BlockHash
 			tx.BlockTime = &receipt.BlockTime
@@ -118,7 +119,7 @@ func (s *Syncer) updateStatusByUser(user string) {
 				}
 			}
 
-			err = s.match.BatchTradeOrders(tx.TxID, tx.Status.TransactionStatus(), *tx.TransactionHash, *tx.BlockHash, *tx.BlockNumber, *tx.BlockTime)
+			err = s.match.UpdateOrdersStatus(tx.TxID, tx.Status.TransactionStatus(), *tx.TransactionHash, *tx.BlockHash, *tx.BlockNumber, *tx.BlockTime)
 			return err
 		})
 		// this case is to handle accelarate

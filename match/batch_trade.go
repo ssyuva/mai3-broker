@@ -13,12 +13,12 @@ import (
 	logger "github.com/sirupsen/logrus"
 )
 
-func (m *match) BatchTradeOrders(txID string, status model.TransactionStatus, transactionHash, blockHash string, blockNumber, blockTime uint64) error {
+func (m *match) UpdateOrdersStatus(txID string, status model.TransactionStatus, transactionHash, blockHash string, blockNumber, blockTime uint64) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	ordersToNotify := make([]*model.Order, 0)
-	err := m.dao.Transaction(func(dao dao.DAO) error {
+	err := m.dao.Transaction(context.Background(), false /* readonly */, func(dao dao.DAO) error {
 		dao.ForUpdate()
 		// update match_transaction
 		matchTx, err := dao.GetMatchTransaction(txID)
@@ -65,7 +65,7 @@ func (m *match) BatchTradeOrders(txID string, status model.TransactionStatus, tr
 
 		orders, err := dao.GetOrderByHashs(orderHashes)
 		if err != nil {
-			logger.Errorf("BatchTradeOrders:%w", err)
+			logger.Errorf("UpdateOrdersStatus:%w", err)
 			return err
 		}
 		for _, order := range orders {
@@ -74,7 +74,7 @@ func (m *match) BatchTradeOrders(txID string, status model.TransactionStatus, tr
 				order.PendingAmount = order.PendingAmount.Sub(amount)
 				order.ConfirmedAmount = order.ConfirmedAmount.Add(amount)
 				if err := dao.UpdateOrder(order); err != nil {
-					logger.Errorf("BatchTradeOrders:%w", err)
+					logger.Errorf("UpdateOrdersStatus:%w", err)
 					return err
 				}
 			} else if amount, ok := orderFailMap[order.OrderHash]; ok {
@@ -83,20 +83,20 @@ func (m *match) BatchTradeOrders(txID string, status model.TransactionStatus, tr
 				order.PendingAmount = order.PendingAmount.Sub(amount)
 				order.AvailableAmount = order.AvailableAmount.Add(amount)
 				if err := dao.UpdateOrder(order); err != nil {
-					logger.Errorf("BatchTradeOrders:%w", err)
+					logger.Errorf("UpdateOrdersStatus:%w", err)
 					return err
 				}
 				if availableAmount.IsZero() {
 					memoryOrder := m.getMemoryOrder(order)
 					if err = m.orderbook.InsertOrder(memoryOrder); err != nil {
-						logger.Errorf("BatchTradeOrders:%w", err)
+						logger.Errorf("UpdateOrdersStatus:%w", err)
 						return err
 					}
 				} else {
 					bookOrder, ok := m.orderbook.GetOrder(order.OrderHash, order.Amount.IsNegative(), order.Price)
 					if ok {
 						if err = m.orderbook.ChangeOrder(bookOrder, amount); err != nil {
-							logger.Errorf("BatchTradeOrders:%w", err)
+							logger.Errorf("UpdateOrdersStatus:%w", err)
 							return err
 						}
 					}

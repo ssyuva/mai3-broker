@@ -25,6 +25,7 @@ create table orders
   price numeric(32,18) not null,
   stop_price numeric(32,18),
   amount numeric(32,18) not null,
+  min_trade_amount numeric(32, 18) not null,
   version integer not null,
   expires_at timestamp,
   salt bigint not null,
@@ -69,24 +70,6 @@ create table match_transactions
 
 create index idx_match_transactions_status_perpetual_address_created_at on match_transactions(status, perpetual_address, created_at);
 create index idx_match_transactions_block_number on match_transactions(block_number);
-
-
-create table watchers
-(
-  id SERIAL PRIMARY KEY,
-  synced_block_number bigint not null,
-  initial_block_number bigint not null
-);
-
-create table synced_blocks
-(
-  watcher_id integer not null,
-  block_number bigint not null,
-  block_hash text not null,
-  parent_hash text not null,
-  block_time timestamp not null,
-  PRIMARY KEY(watcher_id, block_number)
-);
 
 create table broker_nonces
 (

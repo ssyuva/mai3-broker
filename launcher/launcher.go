@@ -9,8 +9,8 @@ import (
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/mcarloai/mai-v3-broker/conf"
 	"github.com/mcarloai/mai-v3-broker/dao"
+	"github.com/mcarloai/mai-v3-broker/gasmonitor"
 	"github.com/mcarloai/mai-v3-broker/match"
-	"github.com/mcarloai/mai-v3-broker/pricemonitor"
 	"github.com/shopspring/decimal"
 	logger "github.com/sirupsen/logrus"
 	"math/big"
@@ -18,24 +18,24 @@ import (
 )
 
 type Launcher struct {
-	ctx          context.Context
-	dao          dao.DAO
-	chainCli     chain.ChainClient
-	priceMonitor *pricemonitor.PriceMonitor
-	match        *match.Server
-	execChan     chan interface{}
-	syncChan     chan interface{}
+	ctx        context.Context
+	dao        dao.DAO
+	chainCli   chain.ChainClient
+	gasMonitor *gasmonitor.GasMonitor
+	match      *match.Server
+	execChan   chan interface{}
+	syncChan   chan interface{}
 }
 
-func NewLaunch(ctx context.Context, dao dao.DAO, chainCli chain.ChainClient, match *match.Server, pt *pricemonitor.PriceMonitor) *Launcher {
+func NewLaunch(ctx context.Context, dao dao.DAO, chainCli chain.ChainClient, match *match.Server, gm *gasmonitor.GasMonitor) *Launcher {
 	return &Launcher{
-		ctx:          ctx,
-		dao:          dao,
-		chainCli:     chainCli,
-		priceMonitor: pt,
-		match:        match,
-		execChan:     make(chan interface{}, 100),
-		syncChan:     make(chan interface{}, 100),
+		ctx:        ctx,
+		dao:        dao,
+		chainCli:   chainCli,
+		gasMonitor: gm,
+		match:      match,
+		execChan:   make(chan interface{}, 100),
+		syncChan:   make(chan interface{}, 100),
 	}
 }
 
@@ -51,7 +51,7 @@ func (l *Launcher) Start() error {
 	go syncer.Run()
 
 	// start executor for execute launch transactions
-	executor := NewExecutor(l.ctx, l.dao, l.chainCli, l.execChan, l.priceMonitor)
+	executor := NewExecutor(l.ctx, l.dao, l.chainCli, l.execChan, l.gasMonitor)
 	go executor.Run()
 
 	for {
@@ -110,7 +110,6 @@ func (l *Launcher) ImportPrivateKey(pk string) (string, error) {
 }
 
 func (l *Launcher) checkMatchTransaction() error {
-	l.dao.ForUpdate()
 	transactions, err := l.dao.QueryMatchTransaction("", []model.TransactionStatus{model.TransactionStatusInit})
 	if err != nil {
 		return fmt.Errorf("QueryUnconfirmedTransactions failed error:%w", err)
@@ -145,7 +144,7 @@ func (l *Launcher) createLaunchTransaction(matchTx *model.MatchTransaction) erro
 		}
 		orderParams = append(orderParams, param)
 		matchAmounts = append(matchAmounts, item.Amount)
-		gasReward := l.priceMonitor.GetGasPrice() * 1e9 * conf.Conf.GasStation.GasLimit
+		gasReward := l.gasMonitor.GetGasPrice() * 1e9 * conf.Conf.GasStation.GasLimit
 		gasRewards = append(gasRewards, big.NewInt(int64(gasReward)))
 	}
 	inputs, err := l.chainCli.BatchTradeDataPack(orderParams, matchAmounts, gasRewards)

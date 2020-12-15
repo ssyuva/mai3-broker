@@ -1,6 +1,7 @@
 package match
 
 import (
+	"context"
 	"fmt"
 	"github.com/mcarloai/mai-v3-broker/common/message"
 	"github.com/mcarloai/mai-v3-broker/common/model"
@@ -36,7 +37,7 @@ func (m *match) cancelOrderWithoutLock(orderHash string, reason model.CancelReas
 	var order *model.Order
 	cancelBookAmount := cancelAmount
 	cancelDBAmount := cancelAmount
-	err := m.dao.Transaction(func(dao dao.DAO) error {
+	err := m.dao.Transaction(context.Background(), false /* readonly */, func(dao dao.DAO) error {
 		var err error
 		dao.ForUpdate()
 		order, err = dao.GetOrder(orderHash)

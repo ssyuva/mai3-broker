@@ -49,6 +49,7 @@ type OrderParam struct {
 	Type             OrderType       `json:"type" db:"type"`
 	Price            decimal.Decimal `json:"price" db:"price"`
 	Amount           decimal.Decimal `json:"amount" db:"amount"`
+	MinTradeAmount   decimal.Decimal `json:"minTradeAmount" db:"min_trade_amount"`
 	StopPrice        decimal.Decimal `json:"stopPrice" db:"stopPrice"`
 	ExpiresAt        time.Time       `json:"expiresAt" db:"expires_at"`
 	Version          int32           `json:"version" db:"version"`
@@ -81,4 +82,10 @@ type OrderCancelReason struct {
 	Amount          decimal.Decimal  `json:"amount"`
 	CanceledAt      time.Time        `json:"canceledAt"`
 	TransactionHash string           `json:"transactionHash,omitempty"`
+}
+
+type OrderCancel struct {
+	OrderHash string
+	Status    OrderStatus
+	ToCancel  decimal.Decimal
 }

@@ -6,7 +6,7 @@ import (
 	"github.com/mcarloai/mai-v3-broker/common/chain"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/mcarloai/mai-v3-broker/dao"
-	"github.com/mcarloai/mai-v3-broker/pricemonitor"
+	"github.com/mcarloai/mai-v3-broker/gasmonitor"
 	"github.com/shopspring/decimal"
 	logger "github.com/sirupsen/logrus"
 	"sync"
@@ -19,18 +19,18 @@ type Server struct {
 	wsChan          chan interface{}
 	matchErrChan    chan error
 	chainCli        chain.ChainClient
-	priceMonitor    *pricemonitor.PriceMonitor
+	gasMonitor      *gasmonitor.GasMonitor
 	dao             dao.DAO
 }
 
-func New(ctx context.Context, cli chain.ChainClient, dao dao.DAO, wsChan chan interface{}, pt *pricemonitor.PriceMonitor) (*Server, error) {
+func New(ctx context.Context, cli chain.ChainClient, dao dao.DAO, wsChan chan interface{}, gm *gasmonitor.GasMonitor) (*Server, error) {
 	server := &Server{
 		ctx:             ctx,
 		wsChan:          wsChan,
 		matchHandlerMap: make(map[string]*match),
 		matchErrChan:    make(chan error, 1),
 		chainCli:        cli,
-		priceMonitor:    pt,
+		gasMonitor:      gm,
 		dao:             dao,
 	}
 	perpetuals, err := dao.QueryPerpetuals(true)
@@ -49,7 +49,7 @@ func New(ctx context.Context, cli chain.ChainClient, dao dao.DAO, wsChan chan in
 }
 
 func (s *Server) newMatch(perpetual *model.Perpetual) error {
-	m, err := newMatch(s.ctx, s.chainCli, s.dao, perpetual, s.wsChan, s.priceMonitor)
+	m, err := newMatch(s.ctx, s.chainCli, s.dao, perpetual, s.wsChan, s.gasMonitor)
 	if err != nil {
 		return err
 	}
@@ -104,16 +104,16 @@ func (s *Server) ClosePerpetual(perpetualAddress string) error {
 	return s.deleteMatchHandler(perpetualAddress)
 }
 
-func (s *Server) BatchTradeOrders(txID string, status model.TransactionStatus, transactionHash, blockHash string, blockNumber, blockTime uint64) error {
+func (s *Server) UpdateOrdersStatus(txID string, status model.TransactionStatus, transactionHash, blockHash string, blockNumber, blockTime uint64) error {
 	matchTx, err := s.dao.GetMatchTransaction(txID)
 	if err != nil {
 		return err
 	}
 	handler := s.getMatchHandler(matchTx.PerpetualAddress)
 	if handler == nil {
-		return fmt.Errorf("BatchTradeOrders error: perpetual[%s] is not open.", matchTx.PerpetualAddress)
+		return fmt.Errorf("UpdateOrdersStatus error: perpetual[%s] is not open.", matchTx.PerpetualAddress)
 	}
-	err = handler.BatchTradeOrders(txID, status, transactionHash, blockHash, blockNumber, blockTime)
+	err = handler.UpdateOrdersStatus(txID, status, transactionHash, blockHash, blockNumber, blockTime)
 	return err
 }
 

@@ -1,7 +1,6 @@
 package match
 
 import (
-	"errors"
 	"fmt"
 	"github.com/mcarloai/mai-v3-broker/common/mai3"
 	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
@@ -18,62 +17,30 @@ type OrderCancel struct {
 	ToCancel  decimal.Decimal
 }
 
-func (m *match) CheckNewOrder(order *model.Order, activeOrders []*model.Order) (modifys []*OrderCancel, err error) {
-	account, err := m.chainCli.GetMarginAccount(m.ctx, m.perpetual.PerpetualAddress, order.TraderAddress)
+func (m *match) CheckOrderMargin(account *model.AccountStorage, order *model.Order) error {
+	g := m.perpetualContext.GovParams
+	storage := m.perpetualContext.PerpStorage
+	err := mai3.ComputeTradeWithPrice(storage, account, order.Price, order.Amount, g.LpFeeRate.Add(g.VaultFeeRate).Add(g.OperatorFeeRate))
 	if err != nil {
-		return
+		return err
 	}
-	if order.IsCloseOnly && !account.PositionAmount.IsZero() && utils.HasTheSameSign(account.PositionAmount, order.Amount) {
-		err = fmt.Errorf("order amount hash same side with account position")
-		return
+	computedAccount := mai3.ComputeAccount(g, storage, account)
+	if !computedAccount.IsSafe {
+		return fmt.Errorf("account is not safe after trade")
 	}
 
-	activeOrders = append(activeOrders, order)
-	modifys = m.CheckAndModifyCloseOnly(account, activeOrders)
-	computeCancels, err := m.ComputeOrderMargin(account, activeOrders)
-	if err != nil {
-		return
-	}
-	if len(computeCancels) > 0 {
-		err = errors.New("insufficient balance")
-		return
-	}
-
-	return
+	return nil
 }
 
-func (m *match) ComputeOrderMargin(account *model.AccountStorage, orders []*model.Order) (cancels []*OrderCancel, err error) {
-	// bids, asks := normalizeOrders(orders)
-
-	return
-}
-
-// func oneSideOrderMargin() {
-
-// }
-
-// func computeCloseOrders(closeOrders []*model.Order) {
-// 	for _, order := range closeOrders {
-
-// 	}
-// }
-
-func normalizeOrders(orders []*model.Order) (bids []*model.Order, asks []*model.Order) {
-	for _, order := range orders {
-		amount := order.AvailableAmount.Add(order.PendingAmount)
-		if amount.IsPositive() {
-			bids = append(bids, order)
-		} else {
-			asks = append(asks, order)
+func (m *match) CheckCloseOnly(account *model.AccountStorage, order *model.Order) error {
+	if order.IsCloseOnly {
+		if account.PositionAmount.IsZero() {
+			return fmt.Errorf("account's position is 0")
+		} else if !account.PositionAmount.IsZero() && utils.HasTheSameSign(account.PositionAmount, order.Amount) {
+			return fmt.Errorf("account's position has same side with order")
 		}
 	}
-	sort.Slice(bids, func(i, j int) bool {
-		return bids[i].Price.GreaterThan(bids[j].Price)
-	})
-	sort.Slice(asks, func(i, j int) bool {
-		return asks[i].Price.LessThan(asks[j].Price)
-	})
-	return
+	return nil
 }
 
 func (m *match) CheckAndModifyCloseOnly(account *model.AccountStorage, activeOrders []*model.Order) []*OrderCancel {
@@ -192,8 +159,8 @@ func (m *match) matchOneSide(tradePrice decimal.Decimal, isBuy bool, result []*M
 	}
 
 	maxTradeAmount := mai3.ComputeAMMAmountWithPrice(m.perpetualContext.GovParams, m.perpetualContext.PerpStorage,
-		m.perpetualContext.Amm, isBuy, tradePrice)
-	if maxTradeAmount.IsZero() || maxTradeAmount.Abs().LessThan(m.minTradeAmount) || !utils.HasTheSameSign(maxTradeAmount, orders[0].Amount) {
+		m.perpetualContext.AMM, isBuy, tradePrice)
+	if maxTradeAmount.IsZero() || !utils.HasTheSameSign(maxTradeAmount, orders[0].Amount) {
 		return result
 	}
 	for _, order := range orders {
@@ -217,7 +184,7 @@ func (m *match) matchOneSide(tradePrice decimal.Decimal, isBuy bool, result []*M
 			}
 			result = append(result, matchItem)
 			_, _, _, _, err = mai3.ComputeAMMTrade(m.perpetualContext.GovParams, m.perpetualContext.PerpStorage, account,
-				m.perpetualContext.Amm, order.Amount)
+				m.perpetualContext.AMM, order.Amount)
 			if err != nil {
 				logger.Errorf("matchOneSide: ComputeAMMTrade fail. err:%s", err)
 				return result
@@ -234,12 +201,12 @@ func (m *match) matchOneSide(tradePrice decimal.Decimal, isBuy bool, result []*M
 			}
 			result = append(result, matchItem)
 			_, _, _, _, err = mai3.ComputeAMMTrade(m.perpetualContext.GovParams, m.perpetualContext.PerpStorage, account,
-				m.perpetualContext.Amm, maxTradeAmount)
+				m.perpetualContext.AMM, maxTradeAmount)
 			if err != nil {
 				logger.Errorf("matchOneSide: ComputeAMMTrade fail. err:%s", err)
 				return result
 			}
-			if order.Amount.Sub(maxTradeAmount).Abs().LessThan(m.minTradeAmount) {
+			if order.Amount.Sub(maxTradeAmount).Abs().LessThan(order.MinTradeAmount.Abs()) {
 				matchItem.OrderCancelAmounts = append(matchItem.OrderCancelAmounts, order.Amount.Sub(maxTradeAmount))
 				matchItem.OrderCancelReasons = append(matchItem.OrderCancelReasons, model.CancelReasonRemainTooSmall)
 				matchItem.OrderTotalCancel = order.Amount.Sub(maxTradeAmount)

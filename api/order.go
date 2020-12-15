@@ -14,8 +14,7 @@ import (
 	"time"
 )
 
-const TIMESTAMP_RANGE = 5 * 60
-
+const MAX_ORDER_NUM = 20
 const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000"
 
 func (s *Server) GetOrders(p Param) (interface{}, error) {
@@ -130,8 +129,7 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 	order.OrderParam.Price, _ = decimal.NewFromString(params.Price)
 	order.OrderParam.StopPrice, _ = decimal.NewFromString(params.StopPrice)
 	order.OrderParam.IsCloseOnly = params.IsCloseOnly
-	expiresAt := params.Timestamp + params.Expires
-	order.OrderParam.ExpiresAt = time.Unix(expiresAt, 0).UTC()
+	order.OrderParam.ExpiresAt = time.Unix(params.ExpiresAt, 0).UTC()
 	order.OrderParam.Salt = params.Salt
 	order.PerpetualAddress = strings.ToLower(params.PerpetualAddress)
 	order.BrokerAddress = strings.ToLower(params.BrokerAddress)
@@ -148,7 +146,7 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 	order.UpdatedAt = now
 
 	// check orderhash
-	orderData := mai3.GenerateOrderData(expiresAt, order.Version, int8(order.Type), order.IsCloseOnly, order.OrderParam.Salt)
+	orderData := mai3.GenerateOrderData(params.ExpiresAt, order.Version, int8(order.Type), order.IsCloseOnly, order.OrderParam.Salt)
 	orderHash, err := mai3.GetOrderHash(order.TraderAddress, order.BrokerAddress, order.RelayerAddress, order.PerpetualAddress, order.ReferrerAddress,
 		orderData, order.Amount, order.Price, order.ChainID)
 	if err != nil {
@@ -188,7 +186,17 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 	if err == nil {
 		return nil, OrderHashExistError(params.OrderHash)
 	} else if !dao.IsRecordNotFound(err) {
-		return nil, InternalError(err)
+		return nil, InternalError(errors.New("get order fail"))
+	}
+
+	// check order num
+	activeOrders, err := s.dao.QueryOrder(order.TraderAddress, order.PerpetualAddress, []model.OrderStatus{model.OrderPending, model.OrderStop}, 0, 0, 0)
+	if err != nil {
+		return nil, InternalError(errors.New("QueryOrder fail"))
+	}
+
+	if len(activeOrders) >= MAX_ORDER_NUM {
+		return nil, MaxOrderNumReachError()
 	}
 
 	err = s.match.NewOrder(&order)
@@ -196,11 +204,6 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 }
 
 func validatePlaceOrder(req *PlaceOrderReq) error {
-	expiration := time.Second * time.Duration(req.Expires)
-	if expiration < MinOrderExpiration || expiration > MaxOrderExpiration {
-		return InvalidExpiresError()
-	}
-
 	// Amount
 	amount, err := decimal.NewFromString(req.Amount)
 	if err != nil {
@@ -219,10 +222,11 @@ func validatePlaceOrder(req *PlaceOrderReq) error {
 		return InvalidPriceAmountError("price <= 0")
 	}
 
-	// order sign timestamp
-	now := time.Now().UTC().Unix()
-	if (now-TIMESTAMP_RANGE) > req.Timestamp || (now+TIMESTAMP_RANGE) < req.Timestamp {
-		return InternalError(errors.New("timestamp must in 5 min"))
+	// order dealine
+	expiresAt := time.Unix(req.ExpiresAt, 0).UTC()
+	now := time.Now().UTC()
+	if now.After(expiresAt) {
+		return OrderExpired()
 	}
 
 	// Price OrderType

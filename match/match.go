@@ -10,8 +10,7 @@ import (
 	"github.com/mcarloai/mai-v3-broker/common/orderbook"
 	"github.com/mcarloai/mai-v3-broker/conf"
 	"github.com/mcarloai/mai-v3-broker/dao"
-	"github.com/mcarloai/mai-v3-broker/pricemonitor"
-	"github.com/shopspring/decimal"
+	"github.com/mcarloai/mai-v3-broker/gasmonitor"
 	logger "github.com/sirupsen/logrus"
 	"sync"
 	"time"
@@ -25,37 +24,32 @@ type match struct {
 	orderbook        *orderbook.Orderbook
 	stopbook         *orderbook.Orderbook
 	perpetual        *model.Perpetual
-	minTradeAmount   decimal.Decimal
 	perpetualContext *PerpetualContext
 	chainCli         chain.ChainClient
-	priceMonitor     *pricemonitor.PriceMonitor
+	gasMonitor       *gasmonitor.GasMonitor
 	dao              dao.DAO
 	timers           map[string]*time.Timer
 }
 
-func newMatch(ctx context.Context, cli chain.ChainClient, dao dao.DAO, perpetual *model.Perpetual, wsChan chan interface{}, pt *pricemonitor.PriceMonitor) (*match, error) {
+func newMatch(ctx context.Context, cli chain.ChainClient, dao dao.DAO, perpetual *model.Perpetual, wsChan chan interface{}, gm *gasmonitor.GasMonitor) (*match, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	m := &match{
-		ctx:            ctx,
-		cancel:         cancel,
-		wsChan:         wsChan,
-		perpetual:      perpetual,
-		orderbook:      orderbook.NewOrderbook(),
-		stopbook:       orderbook.NewOrderbook(),
-		chainCli:       cli,
-		priceMonitor:   pt,
-		dao:            dao,
-		minTradeAmount: decimal.Zero,
-		timers:         make(map[string]*time.Timer),
+		ctx:        ctx,
+		cancel:     cancel,
+		wsChan:     wsChan,
+		perpetual:  perpetual,
+		orderbook:  orderbook.NewOrderbook(),
+		stopbook:   orderbook.NewOrderbook(),
+		chainCli:   cli,
+		gasMonitor: gm,
+		dao:        dao,
+		timers:     make(map[string]*time.Timer),
 	}
-	if item, ok := conf.Conf.TokenMinAmount[perpetual.CollateralSymbol]; ok {
-		m.minTradeAmount = decimal.NewFromFloat(item.Amount)
-	}
-	perpContext, err := m.getPerpetualContext()
+
+	err := m.updatePerpContext()
 	if err != nil {
 		return nil, err
 	}
-	m.perpetualContext = perpContext
 	err = m.run()
 	if err != nil {
 		return nil, err
@@ -70,7 +64,7 @@ func (m *match) run() error {
 	}
 
 	// go update perpetual context
-	go m.updatePerpetualContext()
+	go m.checkPerpetualContext()
 
 	// go monitor check user margin gas
 	go m.checkOrdersMargin()
@@ -131,7 +125,7 @@ func (m *match) Close() {
 }
 
 func (m *match) changeStopOrder(memoryOrder *orderbook.MemoryOrder) {
-	err := m.dao.Transaction(func(dao dao.DAO) error {
+	err := m.dao.Transaction(context.Background(), false /* readonly */, func(dao dao.DAO) error {
 		dao.ForUpdate()
 		order, err := dao.GetOrder(memoryOrder.ID)
 		if err != nil {
@@ -146,7 +140,7 @@ func (m *match) changeStopOrder(memoryOrder *orderbook.MemoryOrder) {
 			return err
 		}
 
-		memoryOrder.ComparePrice = memoryOrder.Price
+		memoryOrder.SortKey = memoryOrder.Price
 		if err := m.orderbook.InsertOrder(memoryOrder); err != nil {
 			return err
 		}
@@ -186,7 +180,7 @@ func (m *match) matchOrders() {
 		BrokerAddress:    conf.Conf.BrokerAddress,
 	}
 	orders := make([]*model.Order, 0)
-	err = m.dao.Transaction(func(dao dao.DAO) error {
+	err = m.dao.Transaction(context.Background(), false /* readonly */, func(dao dao.DAO) error {
 		dao.ForUpdate()
 		for _, item := range matchItems {
 			order, err := dao.GetOrder(item.Order.ID)
@@ -290,8 +284,10 @@ func (m *match) getMemoryOrder(order *model.Order) *orderbook.MemoryOrder {
 		ID:               order.OrderHash,
 		PerpetualAddress: order.PerpetualAddress,
 		Price:            order.Price,
+		SortKey:          order.Price,
 		StopPrice:        order.StopPrice,
 		Amount:           order.Amount,
+		MinTradeAmount:   order.MinTradeAmount,
 		Type:             order.Type,
 		Trader:           order.TraderAddress,
 	}

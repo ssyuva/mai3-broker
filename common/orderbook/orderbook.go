@@ -17,10 +17,11 @@ type (
 	MemoryOrder struct {
 		ID               string          `json:"id"`
 		PerpetualAddress string          `json:"perpetualAddress"`
-		ComparePrice     decimal.Decimal `json:"-"`
+		SortKey          decimal.Decimal `json:"-"`
 		Price            decimal.Decimal `json:"price"`
 		StopPrice        decimal.Decimal `json:"stopPrice"`
 		Amount           decimal.Decimal `json:"amount"`
+		MinTradeAmount   decimal.Decimal `json:"minTradeAmount"`
 		Type             model.OrderType `json:"type"`
 		Trader           string          `json:"trader"`
 	}
@@ -148,10 +149,10 @@ func (book *Orderbook) InsertOrder(order *MemoryOrder) error {
 		tree = book.bidsTree
 	}
 
-	price := tree.Get(newPriceLevel(order.ComparePrice))
+	price := tree.Get(newPriceLevel(order.SortKey))
 
 	if price == nil {
-		price = newPriceLevel(order.ComparePrice)
+		price = newPriceLevel(order.SortKey)
 		tree.InsertNoReplace(price)
 	}
 
@@ -179,9 +180,9 @@ func (book *Orderbook) RemoveOrder(order *MemoryOrder) error {
 		tree = book.bidsTree
 	}
 
-	plItem := tree.Get(newPriceLevel(order.ComparePrice))
+	plItem := tree.Get(newPriceLevel(order.SortKey))
 	if plItem == nil {
-		return fmt.Errorf("remove order: find price level fail, price=%s:%w", order.ComparePrice, OrderNotFoundError)
+		return fmt.Errorf("remove order: find price level fail, price=%s:%w", order.SortKey, OrderNotFoundError)
 	}
 
 	price := plItem.(*priceLevel)
@@ -216,7 +217,7 @@ func (book *Orderbook) ChangeOrder(order *MemoryOrder, changeAmount decimal.Deci
 		tree = book.bidsTree
 	}
 
-	plItem := tree.Get(newPriceLevel(order.ComparePrice))
+	plItem := tree.Get(newPriceLevel(order.SortKey))
 
 	if plItem == nil {
 		return fmt.Errorf("can't change order which is not in this orderbook. order: %+v:%w", order, OrderNotFoundError)

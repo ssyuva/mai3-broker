@@ -9,9 +9,7 @@ broker_address = "0x00000000000000000000000000"
 watcher_id = 1
 
 [gas_station]
-url = "https://ethgasstation.info/api/ethgasAPI.json"
-timeout = "5s"
-gas_level = "average"
+gas_price = 1000000
 gas_limit = 5000000
 
 
@@ -21,7 +19,3 @@ interval = "5s"
 timeout = "5s"
 provider_url = "http://server10.jy.mcarlo.com:8747"
 password = "qedaxzop"
-
-[token_min_amounts]
-    [token_min_amounts.ETH] 
-     amount = 10.0

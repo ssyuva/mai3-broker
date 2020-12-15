@@ -1,6 +1,8 @@
 package dao
 
 import (
+	"context"
+	"database/sql"
 	"fmt"
 
 	"github.com/jinzhu/gorm"
@@ -12,12 +14,12 @@ type DAO interface {
 	PerpetualDAO
 	OrderDAO
 	MatchTransactionDAO
-	WatcherDAO
 	LaunchTransactionDAO
 	NonceDAO
 	KVStoreDAO
-	ForUpdate()
-	Transaction(body func(DAO) error) error
+	ForUpdate() // mark "ROW SHARE"
+	Transaction(ctx context.Context, isReadOnly bool, body func(DAO) error) (err error)
+	RepeatableRead(ctx context.Context, isReadOnly bool, body func(DAO) error) (err error)
 }
 
 type gormDAO struct {
@@ -25,32 +27,39 @@ type gormDAO struct {
 	perpetualDAO
 	orderDAO
 	matchTransactionDAO
-	watcherDAO
 	launchTransactionDAO
 	nonceDAO
 	kvstoreDAO
 }
 
 func (g *gormDAO) ForUpdate() {
-	g.db = g.db.Set("gorm:query_option", "FOR UPDATE")
+	newDB := g.db.Set("gorm:query_option", "FOR UPDATE")
+	g.db = newDB
+	g.perpetualDAO = perpetualDAO{db: newDB}
+	g.orderDAO = orderDAO{db: newDB}
+	g.matchTransactionDAO = matchTransactionDAO{db: newDB}
+	g.launchTransactionDAO = launchTransactionDAO{newDB}
+	g.nonceDAO = nonceDAO{newDB}
+	g.kvstoreDAO = kvstoreDAO{newDB}
 }
 
-func (g *gormDAO) Transaction(body func(DAO) error) (err error) {
-	tx := g.db.Begin()
+func (g *gormDAO) beginTx(ctx context.Context, isolation sql.IsolationLevel, isReadOnly bool, body func(DAO) error) (err error) {
+	tx := g.db.BeginTx(ctx, &sql.TxOptions{
+		Isolation: isolation,
+		ReadOnly:  isReadOnly,
+	})
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Fatal Commit Panic:%s", r)
+			err = fmt.Errorf("transaction commit panic:%s", r)
 			logger.Errorf(err.Error())
 			tx.Rollback()
 		}
 	}()
-
 	err = body(NewFromGormDB(tx))
-
 	if err == nil {
 		err = tx.Commit().Error
 		if err != nil {
-			err = fmt.Errorf("Commit:%w", err)
+			err = fmt.Errorf("transaction commit failed:%w", err)
 		}
 	}
 
@@ -59,6 +68,14 @@ func (g *gormDAO) Transaction(body func(DAO) error) (err error) {
 		tx.Rollback()
 	}
 	return
+}
+
+func (g *gormDAO) Transaction(ctx context.Context, isReadOnly bool, body func(DAO) error) (err error) {
+	return g.beginTx(context.Background(), sql.LevelReadCommitted, false, body)
+}
+
+func (g *gormDAO) RepeatableRead(ctx context.Context, isReadOnly bool, body func(DAO) error) (err error) {
+	return g.beginTx(context.Background(), sql.LevelRepeatableRead, isReadOnly, body)
 }
 
 var gormDB *gorm.DB
@@ -89,7 +106,6 @@ func NewFromGormDB(db *gorm.DB) DAO {
 		perpetualDAO:         perpetualDAO{db: db},
 		orderDAO:             orderDAO{db: db},
 		matchTransactionDAO:  matchTransactionDAO{db: db},
-		watcherDAO:           watcherDAO{db: db},
 		launchTransactionDAO: launchTransactionDAO{db},
 		nonceDAO:             nonceDAO{db},
 		kvstoreDAO:           kvstoreDAO{db},

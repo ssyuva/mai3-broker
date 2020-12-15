@@ -136,8 +136,8 @@ func ContractSettledError() *ApiError {
 	}
 }
 
-func MaxStopNumReachError() *ApiError {
-	return &ApiError{Code: -17, Desc: "cannot create more stop order"}
+func MaxOrderNumReachError() *ApiError {
+	return &ApiError{Code: -17, Desc: "cannot create more order"}
 }
 
 func OrderHashExistError(orderHash string) *ApiError {
@@ -153,4 +153,6 @@ func ChainIDError(chainID int64) *ApiError {
 	return &ApiError{Code: -20, Desc: fmt.Sprintf("not in same chain. chainID [%s]", chainID)}
 }
 
-// If you add api error, do forget to edit app.vue & en.js(api segment) in FE.
+func OrderExpired() *ApiError {
+	return &ApiError{Code: -21, Desc: "order expired"}
+}
