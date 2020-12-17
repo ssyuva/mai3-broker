@@ -286,7 +286,7 @@ func (m *match) getMemoryOrder(order *model.Order) *orderbook.MemoryOrder {
 		Price:            order.Price,
 		SortKey:          order.Price,
 		StopPrice:        order.StopPrice,
-		Amount:           order.Amount,
+		Amount:           order.AvailableAmount,
 		MinTradeAmount:   order.MinTradeAmount,
 		Type:             order.Type,
 		Trader:           order.TraderAddress,

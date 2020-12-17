@@ -40,7 +40,7 @@ func (ts LaunchTransactionStatus) TransactionStatus() TransactionStatus {
 	case TxSuccess:
 		return TransactionStatusSuccess
 	case TxFailed:
-		return TransactionStatusExcFail
+		return TransactionStatusFail
 	case TxCanceled:
 		return TransactionStatusAbort
 	default:

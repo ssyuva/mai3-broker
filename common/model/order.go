@@ -49,6 +49,13 @@ const (
 	OrderStop          OrderStatus = "stop"
 )
 
+type OrderSignature struct {
+	R        string `json:"r"`
+	S        string `json:"s"`
+	V        string `json:"v"`
+	SignType string `json:"signType"`
+}
+
 type OrderParam struct {
 	TraderAddress    string          `json:"traderAddress" db:"trader_address"`
 	PerpetualAddress string          `json:"perpetualAddress" db:"perpetual_address"`
@@ -60,12 +67,13 @@ type OrderParam struct {
 	Amount           decimal.Decimal `json:"amount" db:"amount"`
 	MinTradeAmount   decimal.Decimal `json:"minTradeAmount" db:"min_trade_amount"`
 	StopPrice        decimal.Decimal `json:"stopPrice" db:"stopPrice"`
+	BrokerFeeLimit   decimal.Decimal `json:"brokerFeeLimit" db:"broker_fee_limit"`
 	ExpiresAt        time.Time       `json:"expiresAt" db:"expires_at"`
 	Version          int32           `json:"version" db:"version"`
-	Salt             int64           `json:"salt" db:"salt"`
+	Salt             int64           `json:"-" db:"salt"`
 	IsCloseOnly      bool            `json:"isCloseOnly" db:"is_close_only"`
-	ChainID          int64           `json:"chainID" db:"chain_id"`
-	Signature        string          `json:"signature" db:"signature"`
+	ChainID          int64           `json:"-" db:"chain_id"`
+	Signature        string          `json:"-" db:"signature"`
 }
 
 type Order struct {
@@ -76,10 +84,8 @@ type Order struct {
 	Status          OrderStatus          `json:"status" db:"status"`
 	AvailableAmount decimal.Decimal      `json:"availableAmount" db:"available_amount"`
 	ConfirmedAmount decimal.Decimal      `json:"confirmedAmount" db:"confirmed_amount"`
-	FilledPrice     decimal.Decimal      `json:"filledPrice" db:"filled_price"`
 	CanceledAmount  decimal.Decimal      `json:"canceledAmount" db:"canceled_amount"`
 	PendingAmount   decimal.Decimal      `json:"pendingAmount" db:"pending_amount"`
-	GasFeeAmount    decimal.Decimal      `json:"gasFeeAmount" db:"gas_fee_amount"`
 	CreatedAt       time.Time            `json:"createdAt" db:"created_at"`
 	UpdatedAt       time.Time            `json:"updatedAt" db:"updated_at"`
 	CancelReasons   []*OrderCancelReason `json:"cancelReasons" sql:"-"`

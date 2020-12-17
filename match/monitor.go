@@ -90,6 +90,15 @@ func (m *match) checkUserPendingOrders(user string) []*OrderCancel {
 			}
 			cancels = append(cancels, cancel)
 		}
+
+		if order.BrokerFeeLimit.LessThan(decimal.NewFromInt(int64(gasReward))) {
+			cancel := &OrderCancel{
+				OrderHash: order.OrderHash,
+				Status:    order.Status,
+				ToCancel:  order.AvailableAmount,
+			}
+			cancels = append(cancels, cancel)
+		}
 	}
 
 	return cancels

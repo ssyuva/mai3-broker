@@ -33,5 +33,5 @@ func TestGetOrderHash(t *testing.T) {
 	)
 	orderHash, err := GetOrderHash(trader, broker, relayer, perpetual, referrer, orderData, amount, priceLimit, int64(chainID))
 	assert.Nil(t, err)
-	assert.Equal(t, "0xc0d4582d65fd03849397783d2abd806e4cc0be28144cf3215acbaadbe69113fd", utils.Bytes2HexP(orderHash))
+	assert.Equal(t, "0x5cb3d66525445c1556d92eb52a8783bd5f0a81d8862bf72c6c2dfcef4e1c1290", utils.Bytes2HexP(orderHash))
 }

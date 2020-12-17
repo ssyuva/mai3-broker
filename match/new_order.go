@@ -11,6 +11,8 @@ import (
 	logger "github.com/sirupsen/logrus"
 )
 
+const MAX_ORDER_NUM = 20
+
 func (m *match) NewOrder(order *model.Order) string {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -35,6 +37,10 @@ func (m *match) NewOrder(order *model.Order) string {
 		return model.MatchInternalErrorID
 	}
 
+	if len(activeOrders) >= MAX_ORDER_NUM {
+		return model.MatchMaxOrderNumReachID
+	}
+
 	// check gas
 	gasBalance, err := m.chainCli.GetGasBalance(m.ctx, conf.Conf.BrokerAddress, order.TraderAddress)
 	if err != nil {
@@ -43,6 +49,10 @@ func (m *match) NewOrder(order *model.Order) string {
 	}
 	gasReward := m.gasMonitor.GetGasPrice() * 1e9 * conf.Conf.GasStation.GasLimit * uint64(len(activeOrders)+1)
 	if utils.ToWad(gasBalance).LessThan(decimal.NewFromInt(int64(gasReward))) {
+		return model.MatchGasNotEnoughErrorID
+	}
+
+	if order.BrokerFeeLimit.LessThan(decimal.NewFromInt(int64(gasReward))) {
 		return model.MatchGasNotEnoughErrorID
 	}
 

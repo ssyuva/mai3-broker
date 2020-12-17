@@ -76,6 +76,15 @@ func (c *Client) GetChainID(ctx context.Context) (*big.Int, error) {
 	return c.ethCli.ChainID(ctx)
 }
 
+func (c *Client) GetLatestBlockNumber(ctx context.Context) (uint64, error) {
+	block, err := c.ethCli.BlockByNumber(ctx, nil)
+	if err != nil {
+		return 0, errors.Wrap(err, "fail to get latest block number")
+	}
+
+	return block.NumberU64(), nil
+}
+
 func (c *Client) HeaderByNumber(ctx context.Context, number *big.Int) (*model.BlockHeader, error) {
 	header, err := c.ethCli.HeaderByNumber(ctx, number)
 	if err != nil {

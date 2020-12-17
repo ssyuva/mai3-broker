@@ -117,6 +117,19 @@ func (s *Server) UpdateOrdersStatus(txID string, status model.TransactionStatus,
 	return err
 }
 
+func (s *Server) RollbackOrdersStatus(txID string, status model.TransactionStatus, transactionHash, blockHash string, blockNumber, blockTime uint64) error {
+	matchTx, err := s.dao.GetMatchTransaction(txID)
+	if err != nil {
+		return err
+	}
+	handler := s.getMatchHandler(matchTx.PerpetualAddress)
+	if handler == nil {
+		return fmt.Errorf("RollBackOrdersStatus error: perpetual[%s] is not open.", matchTx.PerpetualAddress)
+	}
+	err = handler.RollbackOrdersStatus(txID, status, transactionHash, blockHash, blockNumber, blockTime)
+	return err
+}
+
 func (s *Server) getMatchHandler(perpetualAddress string) *match {
 	s.mu.Lock()
 	defer s.mu.Unlock()

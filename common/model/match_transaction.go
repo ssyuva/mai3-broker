@@ -18,8 +18,8 @@ const (
 	//TransactionStatusSuccess Transaction succeeded on block chain
 	TransactionStatusSuccess TransactionStatus = "SUCCESS"
 
-	//TransactionStatusExcFail Transaction failed on block chain
-	TransactionStatusExcFail TransactionStatus = "EXECUTE_FAIL"
+	//TransactionStatusFail Transaction failed on block chain
+	TransactionStatusFail TransactionStatus = "FAIL"
 
 	//TransactionStatusAbort Transaction is abort due to system error
 	TransactionStatusAbort TransactionStatus = "ABORT"

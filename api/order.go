@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/mcarloai/mai-v3-broker/common/mai3"
@@ -14,7 +15,6 @@ import (
 	"time"
 )
 
-const MAX_ORDER_NUM = 20
 const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000"
 
 func (s *Server) GetOrders(p Param) (interface{}, error) {
@@ -71,8 +71,9 @@ func (s *Server) GetOrders(p Param) (interface{}, error) {
 	}
 
 	res := &QueryOrdersResp{
-		Orders: orders,
+		Orders: make([]*model.Order, 0),
 	}
+	res.Orders = append(res.Orders, orders...)
 	return res, nil
 }
 
@@ -100,8 +101,9 @@ func (s *Server) GetOrdersByOrderHashs(p Param) (interface{}, error) {
 	}
 
 	res := &QueryOrdersResp{
-		Orders: orders,
+		Orders: make([]*model.Order, 0),
 	}
+	res.Orders = append(res.Orders, orders...)
 	return res, nil
 }
 
@@ -131,10 +133,22 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 	order.OrderParam.IsCloseOnly = params.IsCloseOnly
 	order.OrderParam.ExpiresAt = time.Unix(params.ExpiresAt, 0).UTC()
 	order.OrderParam.Salt = params.Salt
-	order.OrderParam.Signature = params.Signature
-	order.PerpetualAddress = strings.ToLower(params.PerpetualAddress)
-	order.BrokerAddress = strings.ToLower(params.BrokerAddress)
-	order.RelayerAddress = strings.ToLower(params.RelayerAddress)
+	sig := model.OrderSignature{
+		R:        params.R,
+		S:        params.S,
+		V:        params.V,
+		SignType: params.SignType,
+	}
+	sigJSON, err := json.Marshal(sig)
+	if err != nil {
+		return nil, InternalError(fmt.Errorf("marshalSignature:%w", err))
+	}
+	order.OrderParam.Signature = string(sigJSON)
+	order.OrderParam.MinTradeAmount, _ = decimal.NewFromString(params.MinTradeAmount)
+	order.OrderParam.BrokerFeeLimit, _ = decimal.NewFromString(params.BrokerFeeLimit)
+	order.OrderParam.PerpetualAddress = strings.ToLower(params.PerpetualAddress)
+	order.OrderParam.BrokerAddress = strings.ToLower(params.BrokerAddress)
+	order.OrderParam.RelayerAddress = strings.ToLower(params.RelayerAddress)
 	if params.ReferrerAddress == "" {
 		order.OrderParam.ReferrerAddress = ADDRESS_ZERO
 	}
@@ -159,7 +173,8 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 	}
 
 	// check signature
-	valid, err := mai3.IsValidOrderSignature(params.Address, params.OrderHash, params.Signature)
+	signature := "0x" + params.R + params.S + params.V
+	valid, err := mai3.IsValidSignature(params.Address, params.OrderHash, signature, params.SignType)
 	if err != nil {
 		return nil, InternalError(fmt.Errorf("check signature fail"))
 	}
@@ -226,6 +241,24 @@ func validatePlaceOrder(req *PlaceOrderReq) error {
 
 	if price.LessThanOrEqual(decimal.Zero) {
 		return InvalidPriceAmountError("price <= 0")
+	}
+
+	minTradeAmount, err := decimal.NewFromString(req.MinTradeAmount)
+	if err != nil {
+		return InvalidPriceAmountError(fmt.Sprintf("parse minTradeAmount[%s] error", req.MinTradeAmount))
+	}
+
+	if minTradeAmount.LessThanOrEqual(decimal.Zero) {
+		return InvalidPriceAmountError("minTradeAmount <= 0")
+	}
+
+	brokerFeeLimit, err := decimal.NewFromString(req.BrokerFeeLimit)
+	if err != nil {
+		return InvalidPriceAmountError(fmt.Sprintf("parse brokerFeeLimit[%s] error", req.BrokerFeeLimit))
+	}
+
+	if brokerFeeLimit.LessThanOrEqual(decimal.Zero) {
+		return InvalidPriceAmountError("brokerFeeLimit <= 0")
 	}
 
 	// order dealine

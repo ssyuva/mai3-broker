@@ -12,12 +12,13 @@ import (
 type LaunchTransactionDAO interface {
 	FirstTx(status ...model.LaunchTransactionStatus) (*model.LaunchTransaction, error)
 	FirstTxByUser(addr string, status ...model.LaunchTransactionStatus) (*model.LaunchTransaction, error)
-	GetTxsByUser(addr string, status ...model.LaunchTransactionStatus) ([]*model.LaunchTransaction, error)
+	GetTxsByUser(addr string, blockNumber *uint64, status ...model.LaunchTransactionStatus) ([]*model.LaunchTransaction, error)
 	GetTxByID(txID string) (*model.LaunchTransaction, error)
 	GetTxByHash(txHash string) (*model.LaunchTransaction, error)
 	GetTxsByNonce(user string, nonce *uint64, status ...model.LaunchTransactionStatus) ([]*model.LaunchTransaction, error)
 	GetTxsByBlock(begin *uint64, end *uint64, status ...model.LaunchTransactionStatus) ([]*model.LaunchTransaction, error)
 	GetUsersWithStatus(status ...model.LaunchTransactionStatus) ([]string, error)
+	GetUsersWithBlockNumber(blockNumber uint64, status ...model.LaunchTransactionStatus) ([]string, error)
 	RollbackLaunchTransactions(beginRollbackHeight int64, endRollbackHeight int64) error
 
 	CreateTx(tx *model.LaunchTransaction) error
@@ -60,9 +61,13 @@ func (t *launchTransactionDAO) FirstTxByUser(
 
 func (t *launchTransactionDAO) GetTxsByUser(
 	addr string,
+	blockNumber *uint64,
 	status ...model.LaunchTransactionStatus) ([]*model.LaunchTransaction, error) {
 
 	var txs []*model.LaunchTransaction
+	if blockNumber != nil {
+		t.db = t.db.Where("block_number >= ?", *blockNumber)
+	}
 	err := t.statusFilter(status).
 		Where("from_address = ?", addr).
 		Order("nonce").
@@ -131,6 +136,22 @@ func (t *launchTransactionDAO) GetUsersWithStatus(status ...model.LaunchTransact
 	err := t.statusFilter(status).Select("DISTINCT(from_address)").Find(&txs).Error
 	if err != nil {
 		return nil, fmt.Errorf("fail to get pending users: %w", err)
+	}
+	for _, tx := range txs {
+		users = append(users, tx.FromAddress)
+	}
+	return users, nil
+}
+
+func (t *launchTransactionDAO) GetUsersWithBlockNumber(blockNumber uint64, status ...model.LaunchTransactionStatus) ([]string, error) {
+	var (
+		txs   []*model.LaunchTransaction
+		users []string
+	)
+	t.db.Where("block_number >= ?", blockNumber)
+	err := t.statusFilter(status).Select("DISTINCT(from_address)").Find(&txs).Error
+	if err != nil {
+		return nil, fmt.Errorf("fail to get unmature users: %w", err)
 	}
 	for _, tx := range txs {
 		users = append(users, tx.FromAddress)

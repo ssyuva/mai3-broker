@@ -30,9 +30,13 @@ type (
 		StopPrice        string `json:"stopPrice"`
 		Amount           string `json:"amount"    validate:"required"`
 		MinTradeAmount   string `json:"minTradeAmount" validate:"required"`
+		BrokerFeeLimit   string `json:"brokerFeeLimit" validate:"required"`
 		Salt             int64  `json:"salt" validate:"required"`
 		ExpiresAt        int64  `json:"expiresAt" validate:"required"`
-		Signature        string `json:"Signature" validate:"required"`
+		R                string `json:"r" validate:"required"`
+		S                string `json:"s" validate:"required"`
+		V                string `json:"v" validate:"required"`
+		SignType         string `json:"signType" validate:"required"`
 		IsCloseOnly      bool   `json:"isCloseOnly"`
 		ChainID          int64  `json:"chainID" valiadte:"required"`
 	}

@@ -19,6 +19,7 @@ type ChainClient interface {
 	GetTokenSymbol(ctx context.Context, address string) (string, error)
 	GetGasBalance(ctx context.Context, brokerAddress string, address string) (decimal.Decimal, error)
 	GetChainID(ctx context.Context) (*big.Int, error)
+	GetLatestBlockNumber(ctx context.Context) (uint64, error)
 	HeaderByNumber(ctx context.Context, number *big.Int) (*model.BlockHeader, error)
 	HeaderByHash(ctx context.Context, hash string) (*model.BlockHeader, error)
 	PendingNonceAt(ctx context.Context, account string) (uint64, error)

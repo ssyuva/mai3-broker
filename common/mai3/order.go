@@ -112,14 +112,9 @@ func getDomainSeparator() []byte {
 }
 
 func getEIP712MessageHash(message []byte) []byte {
-	hash := crypto.Keccak256(
+	return crypto.Keccak256(
 		[]byte{'\x19', '\x01'},
 		getDomainSeparator(),
 		message,
-	)
-
-	return crypto.Keccak256(
-		[]byte("\x19Ethereum Signed Message:\n32"),
-		hash,
 	)
 }
