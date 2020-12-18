@@ -43,11 +43,11 @@ func (s *Server) GetOrders(p Param) (interface{}, error) {
 		afterOrderID = afterOrder.ID
 	}
 
-	if params.PerpetualAddress != "" {
-		_, err := s.dao.GetPerpetualByAddress(params.PerpetualAddress, true)
+	if params.LiquidityPoolAddress != "" {
+		_, err := s.dao.GetPerpetualByPoolAddressAndIndex(params.LiquidityPoolAddress, params.PerpetualIndex, true)
 		if err != nil {
 			if dao.IsRecordNotFound(err) {
-				return nil, PerpetualNotFoundError(params.PerpetualAddress)
+				return nil, PerpetualNotFoundError(params.LiquidityPoolAddress, params.PerpetualIndex)
 			}
 			return nil, InternalError(err)
 		}
@@ -65,7 +65,7 @@ func (s *Server) GetOrders(p Param) (interface{}, error) {
 	if params.Limit > 0 {
 		limit = params.Limit
 	}
-	orders, err := s.dao.QueryOrder(params.Address, params.PerpetualAddress, queryStatus, beforeOrderID, afterOrderID, limit)
+	orders, err := s.dao.QueryOrder(params.Address, params.LiquidityPoolAddress, params.PerpetualIndex, queryStatus, beforeOrderID, afterOrderID, limit)
 	if err != nil {
 		return nil, InternalError(err)
 	}
@@ -146,7 +146,8 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 	order.OrderParam.Signature = string(sigJSON)
 	order.OrderParam.MinTradeAmount, _ = decimal.NewFromString(params.MinTradeAmount)
 	order.OrderParam.BrokerFeeLimit, _ = decimal.NewFromString(params.BrokerFeeLimit)
-	order.OrderParam.PerpetualAddress = strings.ToLower(params.PerpetualAddress)
+	order.OrderParam.LiquidityPoolAddress = strings.ToLower(params.LiquidityPoolAddress)
+	order.OrderParam.PerpetualIndex = params.PerpetualIndex
 	order.OrderParam.BrokerAddress = strings.ToLower(params.BrokerAddress)
 	order.OrderParam.RelayerAddress = strings.ToLower(params.RelayerAddress)
 	if params.ReferrerAddress == "" {
@@ -161,8 +162,9 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 	order.UpdatedAt = now
 
 	// check orderhash
+	// TODO
 	orderData := mai3.GenerateOrderData(params.ExpiresAt, order.Version, int8(order.Type), order.IsCloseOnly, order.OrderParam.Salt)
-	orderHash, err := mai3.GetOrderHash(order.TraderAddress, order.BrokerAddress, order.RelayerAddress, order.PerpetualAddress, order.ReferrerAddress,
+	orderHash, err := mai3.GetOrderHash(order.TraderAddress, order.BrokerAddress, order.RelayerAddress, order.LiquidityPoolAddress, order.ReferrerAddress,
 		orderData, order.Amount, order.Price, order.ChainID)
 	if err != nil {
 		return nil, InternalError(fmt.Errorf("get order hash fail err:%s", err))
@@ -182,10 +184,10 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 		return nil, BadSignatureError()
 	}
 
-	_, err = s.dao.GetPerpetualByAddress(strings.ToLower(params.PerpetualAddress), true)
+	_, err = s.dao.GetPerpetualByPoolAddressAndIndex(order.LiquidityPoolAddress, order.PerpetualIndex, true)
 	if err != nil {
 		if dao.IsRecordNotFound(err) {
-			return nil, PerpetualNotFoundError(params.PerpetualAddress)
+			return nil, PerpetualNotFoundError(order.LiquidityPoolAddress, order.PerpetualIndex)
 		}
 		return nil, InternalError(err)
 	}
@@ -304,7 +306,7 @@ func (s *Server) CancelOrder(p Param) (interface{}, error) {
 		return nil, OrderAuthError(params.OrderHash)
 	}
 
-	if err = s.match.CancelOrder(order.PerpetualAddress, order.OrderHash); err != nil {
+	if err = s.match.CancelOrder(order.LiquidityPoolAddress, order.PerpetualIndex, order.OrderHash); err != nil {
 		return nil, InternalError(err)
 	}
 	return nil, nil
@@ -312,7 +314,7 @@ func (s *Server) CancelOrder(p Param) (interface{}, error) {
 
 func (s *Server) CancelAllOrders(p Param) (interface{}, error) {
 	params := p.(*CancelAllOrdersReq)
-	if err := s.match.CancelAllOrders(params.PerpetualAddress, params.Address); err != nil {
+	if err := s.match.CancelAllOrders(strings.ToLower(params.LiquidityPoolAddress), params.PerpetualIndex, params.Address); err != nil {
 		return nil, InternalError(err)
 	}
 	return nil, nil

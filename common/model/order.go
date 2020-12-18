@@ -57,23 +57,24 @@ type OrderSignature struct {
 }
 
 type OrderParam struct {
-	TraderAddress    string          `json:"traderAddress" db:"trader_address"`
-	PerpetualAddress string          `json:"perpetualAddress" db:"perpetual_address"`
-	RelayerAddress   string          `json:"relayerAddress" db:"relayer_address"`
-	BrokerAddress    string          `json:"brokerAddress" db:"broker_address"`
-	ReferrerAddress  string          `json:"referrerAddress" db:"referrer_address"`
-	Type             OrderType       `json:"type" db:"type"`
-	Price            decimal.Decimal `json:"price" db:"price"`
-	Amount           decimal.Decimal `json:"amount" db:"amount"`
-	MinTradeAmount   decimal.Decimal `json:"minTradeAmount" db:"min_trade_amount"`
-	StopPrice        decimal.Decimal `json:"stopPrice" db:"stopPrice"`
-	BrokerFeeLimit   decimal.Decimal `json:"brokerFeeLimit" db:"broker_fee_limit"`
-	ExpiresAt        time.Time       `json:"expiresAt" db:"expires_at"`
-	Version          int32           `json:"version" db:"version"`
-	Salt             int64           `json:"-" db:"salt"`
-	IsCloseOnly      bool            `json:"isCloseOnly" db:"is_close_only"`
-	ChainID          int64           `json:"-" db:"chain_id"`
-	Signature        string          `json:"-" db:"signature"`
+	TraderAddress        string          `json:"traderAddress" db:"trader_address"`
+	LiquidityPoolAddress string          `json:"liquidityPoolAddress" db:"liquidity_pool_address"`
+	PerpetualIndex       int64           `json:"perpetualIndex" db:"perpetual_index"`
+	RelayerAddress       string          `json:"relayerAddress" db:"relayer_address"`
+	BrokerAddress        string          `json:"brokerAddress" db:"broker_address"`
+	ReferrerAddress      string          `json:"referrerAddress" db:"referrer_address"`
+	Type                 OrderType       `json:"type" db:"type"`
+	Price                decimal.Decimal `json:"price" db:"price"`
+	Amount               decimal.Decimal `json:"amount" db:"amount"`
+	MinTradeAmount       decimal.Decimal `json:"minTradeAmount" db:"min_trade_amount"`
+	StopPrice            decimal.Decimal `json:"stopPrice" db:"stopPrice"`
+	BrokerFeeLimit       decimal.Decimal `json:"brokerFeeLimit" db:"broker_fee_limit"`
+	ExpiresAt            time.Time       `json:"expiresAt" db:"expires_at"`
+	Version              int32           `json:"version" db:"version"`
+	Salt                 int64           `json:"-" db:"salt"`
+	IsCloseOnly          bool            `json:"isCloseOnly" db:"is_close_only"`
+	ChainID              int64           `json:"-" db:"chain_id"`
+	Signature            string          `json:"-" db:"signature"`
 }
 
 type Order struct {

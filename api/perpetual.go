@@ -8,10 +8,10 @@ import (
 
 func (s *Server) GetPerpetual(p Param) (interface{}, error) {
 	params := p.(*GetPerpetualReq)
-	perpetual, err := s.dao.GetPerpetualByAddress(params.PerpetualAddress, true)
+	perpetual, err := s.dao.GetPerpetualByPoolAddressAndIndex(params.LiquidityPoolAddress, params.PerpetualIndex, true)
 	if err != nil {
 		if dao.IsRecordNotFound(err) {
-			return nil, PerpetualNotFoundError(params.PerpetualAddress)
+			return nil, PerpetualNotFoundError(params.LiquidityPoolAddress, params.PerpetualIndex)
 		}
 		return nil, InternalError(err)
 	}
@@ -22,10 +22,10 @@ func (s *Server) GetPerpetual(p Param) (interface{}, error) {
 
 func (s *Server) GetBrokerRelay(p Param) (interface{}, error) {
 	params := p.(*GetBrokerRelayReq)
-	_, err := s.dao.GetPerpetualByAddress(params.PerpetualAddress, true)
+	_, err := s.dao.GetPerpetualByPoolAddressAndIndex(params.LiquidityPoolAddress, params.PerpetualIndex, true)
 	if err != nil {
 		if dao.IsRecordNotFound(err) {
-			return nil, PerpetualNotFoundError(params.PerpetualAddress)
+			return nil, PerpetualNotFoundError(params.LiquidityPoolAddress, params.PerpetualIndex)
 		}
 		return nil, InternalError(err)
 	}

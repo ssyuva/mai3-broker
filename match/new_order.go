@@ -17,7 +17,8 @@ func (m *match) NewOrder(order *model.Order) string {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	account, err := m.chainCli.GetMarginAccount(m.ctx, m.perpetual.PerpetualAddress, order.TraderAddress)
+	//TODO
+	account, err := m.chainCli.GetMarginAccount(m.ctx, m.perpetual.LiquidityPoolAddress, order.TraderAddress)
 	if err != nil {
 		logger.Errorf("GetMarginAccount err:%s", err)
 		return model.MatchInternalErrorID
@@ -31,7 +32,7 @@ func (m *match) NewOrder(order *model.Order) string {
 		return model.MatchInsufficientBalanceErrorID
 	}
 
-	activeOrders, err := m.dao.QueryOrder(order.TraderAddress, order.PerpetualAddress, []model.OrderStatus{model.OrderPending, model.OrderStop}, 0, 0, 0)
+	activeOrders, err := m.dao.QueryOrder(order.TraderAddress, order.LiquidityPoolAddress, order.PerpetualIndex, []model.OrderStatus{model.OrderPending, model.OrderStop}, 0, 0, 0)
 	if err != nil {
 		logger.Errorf("QueryOrder err:%s", err)
 		return model.MatchInternalErrorID

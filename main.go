@@ -16,6 +16,7 @@ import (
 	"github.com/mcarloai/mai-v3-broker/gasmonitor"
 	"github.com/mcarloai/mai-v3-broker/launcher"
 	"github.com/mcarloai/mai-v3-broker/match"
+	"github.com/mcarloai/mai-v3-broker/perpetualsyncer"
 	"github.com/mcarloai/mai-v3-broker/websocket"
 	"golang.org/x/sync/errgroup"
 
@@ -57,7 +58,19 @@ func main() {
 		}
 	}
 
+	// gas monitor for fetch gas price
 	gasMonitor := gasmonitor.NewGasMonitor(ctx)
+
+	// perpetual syncer for sync perpetuals from mcdex subgraph
+	perpetualSyncer, err := perpetualsyncer.NewPerpetualSyncer(ctx, dao)
+	if err != nil {
+		logger.Errorf("NewPerpetualSyncer fail:%s", err)
+		os.Exit(-4)
+	}
+	group.Go(func() error {
+		return perpetualSyncer.Run()
+	})
+
 	// msg chan for websocket message
 	wsChan := make(chan interface{}, 100)
 

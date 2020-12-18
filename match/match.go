@@ -154,13 +154,13 @@ func (m *match) changeStopOrder(memoryOrder *orderbook.MemoryOrder) {
 func (m *match) matchOrders() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	transactions, err := m.dao.QueryUnconfirmedTransactionsByContract(m.perpetual.PerpetualAddress)
+	transactions, err := m.dao.QueryUnconfirmedTransactionsByContract(m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex)
 	if err != nil {
-		logger.Errorf("Match: QueryUnconfirmedTransactionsByContract failed perpetual:%s error:%s", m.perpetual.PerpetualAddress, err.Error())
+		logger.Errorf("Match: QueryUnconfirmedTransactionsByContract failed perpetual:%s-%d error:%s", m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex, err.Error())
 		return
 	}
 	if len(transactions) > 0 {
-		logger.Errorf("Match: unconfirmed transaction exists. wait for it to be confirmed perpetual:%s", m.perpetual.PerpetualAddress)
+		logger.Infof("Match: unconfirmed transaction exists. wait for it to be confirmed perpetual:%s-%d", m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex)
 		return
 	}
 	// compute match orders
@@ -174,10 +174,11 @@ func (m *match) matchOrders() {
 		logger.Errorf("generate transaction uuid error:%s", err.Error())
 	}
 	matchTransaction := &model.MatchTransaction{
-		ID:               u.String(),
-		Status:           model.TransactionStatusInit,
-		PerpetualAddress: m.perpetual.PerpetualAddress,
-		BrokerAddress:    conf.Conf.BrokerAddress,
+		ID:                   u.String(),
+		Status:               model.TransactionStatusInit,
+		LiquidityPoolAddress: m.perpetual.LiquidityPoolAddress,
+		PerpetualIndex:       m.perpetual.PerpetualIndex,
+		BrokerAddress:        conf.Conf.BrokerAddress,
 	}
 	orders := make([]*model.Order, 0)
 	err = m.dao.Transaction(context.Background(), false /* readonly */, func(dao dao.DAO) error {
@@ -254,7 +255,7 @@ func (m *match) runMatch() {
 func (m *match) reloadActiveOrders() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	orders, err := m.dao.QueryOrder("", m.perpetual.PerpetualAddress, []model.OrderStatus{model.OrderPending, model.OrderStop}, 0, 0, 0)
+	orders, err := m.dao.QueryOrder("", m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex, []model.OrderStatus{model.OrderPending, model.OrderStop}, 0, 0, 0)
 	if err != nil {
 		return err
 	}
@@ -281,14 +282,15 @@ func (m *match) reloadActiveOrders() error {
 
 func (m *match) getMemoryOrder(order *model.Order) *orderbook.MemoryOrder {
 	return &orderbook.MemoryOrder{
-		ID:               order.OrderHash,
-		PerpetualAddress: order.PerpetualAddress,
-		Price:            order.Price,
-		SortKey:          order.Price,
-		StopPrice:        order.StopPrice,
-		Amount:           order.AvailableAmount,
-		MinTradeAmount:   order.MinTradeAmount,
-		Type:             order.Type,
-		Trader:           order.TraderAddress,
+		ID:                   order.OrderHash,
+		LiquidityPoolAddress: order.LiquidityPoolAddress,
+		PerpetualIndex:       order.PerpetualIndex,
+		Price:                order.Price,
+		SortKey:              order.Price,
+		StopPrice:            order.StopPrice,
+		Amount:               order.AvailableAmount,
+		MinTradeAmount:       order.MinTradeAmount,
+		Type:                 order.Type,
+		Trader:               order.TraderAddress,
 	}
 }

@@ -52,8 +52,8 @@ func BindError(err error) *ApiError {
 }
 
 // PerpetualNotFoundError represents error caused by not existe market contract
-func PerpetualNotFoundError(perpetual string) *ApiError {
-	return &ApiError{Code: -4, Desc: fmt.Sprintf("not support perpetual address: %s", perpetual)}
+func PerpetualNotFoundError(perpetual string, index int64) *ApiError {
+	return &ApiError{Code: -4, Desc: fmt.Sprintf("not support perpetual address: %s index:%d", perpetual, index)}
 }
 
 func InvalidPriceAmountError(desc string) *ApiError {

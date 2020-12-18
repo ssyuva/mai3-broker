@@ -20,21 +20,22 @@ func (m *match) updatePerpContext() error {
 
 	ctxTimeout, ctxTimeoutCancel := context.WithTimeout(m.ctx, conf.Conf.BlockChain.Timeout.Duration)
 	defer ctxTimeoutCancel()
-	storage, err := m.chainCli.GetPerpetualStorage(ctxTimeout, m.perpetual.PerpetualAddress)
+	//TODO
+	storage, err := m.chainCli.GetPerpetualStorage(ctxTimeout, m.perpetual.LiquidityPoolAddress)
 	if err != nil {
 		logger.Errorf("GetPerpetualStorage fail! err:%s", err.Error())
 		return err
 	}
 	m.perpetualContext.PerpStorage = storage
 
-	gov, err := m.chainCli.GetPerpetualGovParams(ctxTimeout, m.perpetual.PerpetualAddress)
+	gov, err := m.chainCli.GetPerpetualGovParams(ctxTimeout, m.perpetual.LiquidityPoolAddress)
 	if err != nil {
 		logger.Errorf("GetPerpetualGovParams fail! err:%s", err.Error())
 		return err
 	}
 	m.perpetualContext.GovParams = gov
 
-	amm, err := m.chainCli.GetMarginAccount(ctxTimeout, m.perpetual.PerpetualAddress, m.perpetual.PerpetualAddress)
+	amm, err := m.chainCli.GetMarginAccount(ctxTimeout, m.perpetual.LiquidityPoolAddress, m.perpetual.LiquidityPoolAddress)
 	if err != nil {
 		logger.Errorf("GetMarginAccount fail! err:%s", err.Error())
 		return err

@@ -36,18 +36,19 @@ type MatchItem struct {
 }
 
 type MatchTransaction struct {
-	ID               string            `json:"id" db:"id" primaryKey:"true" gorm:"primary_key"`
-	PerpetualAddress string            `json:"perpetualAddress" db:"perpetual_address"`
-	BrokerAddress    string            `json:"brokerAddress" db:"broker_address"`
-	MatchJson        string            `json:"-" db:"match_json"`
-	Status           TransactionStatus `json:"status" db:"status"`
-	BlockConfirmed   bool              `json:"blockConfirmed" db:"block_confirmed"`
-	BlockNumber      null.Int          `json:"blockNumber" db:"block_number"`
-	BlockHash        null.String       `json:"blockHash" db:"block_hash"`
-	TransactionHash  null.String       `json:"transactionHash" db:"transaction_hash"`
-	CreatedAt        time.Time         `json:"createdAt" db:"created_at"`
-	ExecutedAt       null.Time         `json:"executedAt" db:"executed_at"`
-	MatchResult      MatchResult       `json:"matchResult" sql:"-"`
+	ID                   string            `json:"id" db:"id" primaryKey:"true" gorm:"primary_key"`
+	LiquidityPoolAddress string            `json:"liquidityPoolAddress" db:"liquidity_pool_address"`
+	PerpetualIndex       int64             `json:"perpetualIndex" db:"perpetual_index"`
+	BrokerAddress        string            `json:"brokerAddress" db:"broker_address"`
+	MatchJson            string            `json:"-" db:"match_json"`
+	Status               TransactionStatus `json:"status" db:"status"`
+	BlockConfirmed       bool              `json:"blockConfirmed" db:"block_confirmed"`
+	BlockNumber          null.Int          `json:"blockNumber" db:"block_number"`
+	BlockHash            null.String       `json:"blockHash" db:"block_hash"`
+	TransactionHash      null.String       `json:"transactionHash" db:"transaction_hash"`
+	CreatedAt            time.Time         `json:"createdAt" db:"created_at"`
+	ExecutedAt           null.Time         `json:"executedAt" db:"executed_at"`
+	MatchResult          MatchResult       `json:"matchResult" sql:"-"`
 }
 
 func (MatchTransaction) TableName() string {

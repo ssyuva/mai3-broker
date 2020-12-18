@@ -15,15 +15,16 @@ import (
 
 type (
 	MemoryOrder struct {
-		ID               string          `json:"id"`
-		PerpetualAddress string          `json:"perpetualAddress"`
-		SortKey          decimal.Decimal `json:"-"`
-		Price            decimal.Decimal `json:"price"`
-		StopPrice        decimal.Decimal `json:"stopPrice"`
-		Amount           decimal.Decimal `json:"amount"`
-		MinTradeAmount   decimal.Decimal `json:"minTradeAmount"`
-		Type             model.OrderType `json:"type"`
-		Trader           string          `json:"trader"`
+		ID                   string          `json:"id"`
+		LiquidityPoolAddress string          `json:"liquidityPoolAddress"`
+		PerpetualIndex       int64           `json:"perpetualIndex"`
+		SortKey              decimal.Decimal `json:"-"`
+		Price                decimal.Decimal `json:"price"`
+		StopPrice            decimal.Decimal `json:"stopPrice"`
+		Amount               decimal.Decimal `json:"amount"`
+		MinTradeAmount       decimal.Decimal `json:"minTradeAmount"`
+		Type                 model.OrderType `json:"type"`
+		Trader               string          `json:"trader"`
 	}
 )
 

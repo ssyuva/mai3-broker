@@ -204,7 +204,7 @@ func getWalletOrderParam(order *model.Order) (*model.WalletOrderParam, error) {
 		Trader:    order.TraderAddress,
 		Broker:    order.BrokerAddress,
 		Relayer:   order.RelayerAddress,
-		Perpetual: order.PerpetualAddress,
+		Perpetual: order.LiquidityPoolAddress,
 		Referrer:  order.ReferrerAddress,
 		Price:     order.Price,
 		Amount:    order.Amount,

@@ -166,7 +166,8 @@ func (m *match) matchOneSide(tradePrice decimal.Decimal, isBuy bool, result []*M
 		if len(result) == mai3.MaiV3MaxMatchGroup {
 			return result
 		}
-		account, err := m.chainCli.GetMarginAccount(m.ctx, m.perpetual.PerpetualAddress, order.Trader)
+		//TODO
+		account, err := m.chainCli.GetMarginAccount(m.ctx, m.perpetual.LiquidityPoolAddress, order.Trader)
 		if err != nil {
 			logger.Errorf("matchOneSide: GetMarginAccount fail! err:%s", err.Error())
 			return result

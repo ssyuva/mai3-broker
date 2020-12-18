@@ -12,6 +12,9 @@ watcher_id = 1
 gas_price = 1000000
 gas_limit = 5000000
 
+[subgraph]
+url = "http://10.30.206.10:8000/subgraphs/name/mcarloai/mai-v3-shared"
+
 
 [blockchain]
 chain_type = "ethereum"

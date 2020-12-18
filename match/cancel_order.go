@@ -16,11 +16,11 @@ func (m *match) CancelOrder(orderHash string, reason model.CancelReasonType, can
 	return m.cancelOrderWithoutLock(orderHash, reason, cancelAll, cancelAmount)
 }
 
-func (m *match) CancelAllOrders(perpetualAddress, trader string) error {
+func (m *match) CancelAllOrders(poolAddress string, perpIndex int64, trader string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	const cancelAll = true
-	orders, err := m.dao.QueryOrder(trader, perpetualAddress, []model.OrderStatus{model.OrderPending, model.OrderStop}, 0, 0, 0)
+	orders, err := m.dao.QueryOrder(trader, poolAddress, perpIndex, []model.OrderStatus{model.OrderPending, model.OrderStop}, 0, 0, 0)
 	if err != nil {
 		return fmt.Errorf("CancelAllOrders:%w", err)
 	}

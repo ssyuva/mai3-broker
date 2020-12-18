@@ -10,7 +10,7 @@ import (
 func (m *match) onOrderExpired(orderID string) {
 	m.deleteOrderTimer(orderID)
 	if err := m.CancelOrder(orderID, model.CancelReasonExpired, true, decimal.Zero); err != nil {
-		logger.Errorf("Cancel Order error perpetual:%s, orderHash:%s", m.perpetual.PerpetualAddress, orderID)
+		logger.Errorf("Cancel Order error perpetual:%s-%d, orderHash:%s", m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex, orderID)
 	}
 }
 

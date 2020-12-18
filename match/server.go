@@ -53,14 +53,14 @@ func (s *Server) newMatch(perpetual *model.Perpetual) error {
 	if err != nil {
 		return err
 	}
-	s.setMatchHandler(perpetual.PerpetualAddress, m)
+	s.setMatchHandler(perpetual.LiquidityPoolAddress, perpetual.PerpetualIndex, m)
 	return nil
 }
 
 func (s *Server) NewOrder(order *model.Order) string {
-	handler := s.getMatchHandler(order.PerpetualAddress)
+	handler := s.getMatchHandler(order.LiquidityPoolAddress, order.PerpetualIndex)
 	if handler == nil {
-		perpetual, err := s.dao.GetPerpetualByAddress(order.PerpetualAddress, true)
+		perpetual, err := s.dao.GetPerpetualByPoolAddressAndIndex(order.LiquidityPoolAddress, order.PerpetualIndex, true)
 		if err != nil {
 			return model.MatchInternalErrorID
 		}
@@ -70,28 +70,28 @@ func (s *Server) NewOrder(order *model.Order) string {
 	return handler.NewOrder(order)
 }
 
-func (s *Server) CancelOrder(perpetualAddress, orderHash string) error {
-	handler := s.getMatchHandler(perpetualAddress)
+func (s *Server) CancelOrder(poolAddress string, perpetualIndex int64, orderHash string) error {
+	handler := s.getMatchHandler(poolAddress, perpetualIndex)
 	if handler == nil {
-		return fmt.Errorf("CancelOrder error: perpetual[%s] is not open.", perpetualAddress)
+		return fmt.Errorf("CancelOrder error: perpetual[%s-%d] is not open.", poolAddress, perpetualIndex)
 	}
 	return handler.CancelOrder(orderHash, model.CancelReasonUserCancel, true, decimal.Zero)
 }
 
-func (s *Server) CancelAllOrders(perpetualAddress, trader string) error {
-	handler := s.getMatchHandler(perpetualAddress)
+func (s *Server) CancelAllOrders(poolAddress string, perpetualIndex int64, trader string) error {
+	handler := s.getMatchHandler(poolAddress, perpetualIndex)
 	if handler == nil {
-		return fmt.Errorf("CancelAllOrders error: perpetual[%s] is not open.", perpetualAddress)
+		return fmt.Errorf("CancelAllOrders error: perpetual[%s-%d] is not open.", poolAddress, perpetualIndex)
 	}
-	return handler.CancelAllOrders(perpetualAddress, trader)
+	return handler.CancelAllOrders(poolAddress, perpetualIndex, trader)
 }
 
-func (s *Server) ClosePerpetual(perpetualAddress string) error {
-	handler := s.getMatchHandler(perpetualAddress)
+func (s *Server) ClosePerpetual(poolAddress string, perpIndex int64) error {
+	handler := s.getMatchHandler(poolAddress, perpIndex)
 	if handler == nil {
-		return fmt.Errorf("ClosePerpetual error: perpetual[%s] is not open.", perpetualAddress)
+		return fmt.Errorf("ClosePerpetual error: perpetual[%s-%d] is not open.", poolAddress, perpIndex)
 	}
-	perpetual, err := s.dao.GetPerpetualByAddress(perpetualAddress, true)
+	perpetual, err := s.dao.GetPerpetualByPoolAddressAndIndex(poolAddress, perpIndex, true)
 	if err != nil {
 		return err
 	}
@@ -101,7 +101,7 @@ func (s *Server) ClosePerpetual(perpetualAddress string) error {
 		return err
 	}
 	handler.Close()
-	return s.deleteMatchHandler(perpetualAddress)
+	return s.deleteMatchHandler(poolAddress, perpIndex)
 }
 
 func (s *Server) UpdateOrdersStatus(txID string, status model.TransactionStatus, transactionHash, blockHash string, blockNumber, blockTime uint64) error {
@@ -109,9 +109,9 @@ func (s *Server) UpdateOrdersStatus(txID string, status model.TransactionStatus,
 	if err != nil {
 		return err
 	}
-	handler := s.getMatchHandler(matchTx.PerpetualAddress)
+	handler := s.getMatchHandler(matchTx.LiquidityPoolAddress, matchTx.PerpetualIndex)
 	if handler == nil {
-		return fmt.Errorf("UpdateOrdersStatus error: perpetual[%s] is not open.", matchTx.PerpetualAddress)
+		return fmt.Errorf("UpdateOrdersStatus error: perpetual[%s-%d] is not open.", matchTx.LiquidityPoolAddress, matchTx.PerpetualIndex)
 	}
 	err = handler.UpdateOrdersStatus(txID, status, transactionHash, blockHash, blockNumber, blockTime)
 	return err
@@ -122,43 +122,50 @@ func (s *Server) RollbackOrdersStatus(txID string, status model.TransactionStatu
 	if err != nil {
 		return err
 	}
-	handler := s.getMatchHandler(matchTx.PerpetualAddress)
+	handler := s.getMatchHandler(matchTx.LiquidityPoolAddress, matchTx.PerpetualIndex)
 	if handler == nil {
-		return fmt.Errorf("RollBackOrdersStatus error: perpetual[%s] is not open.", matchTx.PerpetualAddress)
+		return fmt.Errorf("RollBackOrdersStatus error: perpetual[%s-%d] is not open.", matchTx.LiquidityPoolAddress, matchTx.PerpetualIndex)
 	}
 	err = handler.RollbackOrdersStatus(txID, status, transactionHash, blockHash, blockNumber, blockTime)
 	return err
 }
 
-func (s *Server) getMatchHandler(perpetualAddress string) *match {
+func getPerpetualKey(liquidityPoolAddress string, perpIndex int64) string {
+	return fmt.Sprintf("%s-%d", liquidityPoolAddress, perpIndex)
+}
+
+func (s *Server) getMatchHandler(liquidityPoolAddress string, perpIndex int64) *match {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	h, ok := s.matchHandlerMap[perpetualAddress]
+	key := getPerpetualKey(liquidityPoolAddress, perpIndex)
+	h, ok := s.matchHandlerMap[key]
 	if !ok {
 		return nil
 	}
 	return h
 }
 
-func (s *Server) setMatchHandler(perpetualAddress string, h *match) error {
+func (s *Server) setMatchHandler(liquidityPoolAddress string, perpIndex int64, h *match) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	_, ok := s.matchHandlerMap[perpetualAddress]
+	key := getPerpetualKey(liquidityPoolAddress, perpIndex)
+	_, ok := s.matchHandlerMap[key]
 	if ok {
-		return fmt.Errorf("setMatchHandler error:perpetualAddress[%s] exists", perpetualAddress)
+		return fmt.Errorf("setMatchHandler error:liquidityPoolAddress[%s-%d] exists", liquidityPoolAddress, perpIndex)
 	}
-	s.matchHandlerMap[perpetualAddress] = h
+	s.matchHandlerMap[key] = h
 	return nil
 }
 
-func (s *Server) deleteMatchHandler(perpetualAddress string) error {
+func (s *Server) deleteMatchHandler(liquidityPoolAddress string, perpIndex int64) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	_, ok := s.matchHandlerMap[perpetualAddress]
+	key := getPerpetualKey(liquidityPoolAddress, perpIndex)
+	_, ok := s.matchHandlerMap[key]
 	if ok {
-		delete(s.matchHandlerMap, perpetualAddress)
+		delete(s.matchHandlerMap, key)
 	} else {
-		return fmt.Errorf("deleteMatchHandler:perpetualAddress[%s] do not exists", perpetualAddress)
+		return fmt.Errorf("deleteMatchHandler:perpetual[%s] do not exists", key)
 	}
 	return nil
 }

@@ -3,7 +3,6 @@ package dao
 import (
 	"encoding/json"
 	"fmt"
-	"gopkg.in/guregu/null.v3"
 	"time"
 
 	"github.com/jinzhu/gorm"
@@ -12,12 +11,11 @@ import (
 
 type MatchTransactionDAO interface {
 	CreateMatchTransaction(*model.MatchTransaction) error
-	QueryMatchTransaction(perpetualAddress string, status []model.TransactionStatus) ([]*model.MatchTransaction, error)
+	QueryMatchTransaction(poolAddress string, perpIndex int64, status []model.TransactionStatus) ([]*model.MatchTransaction, error)
 	QueryUnconfirmedTransactions() ([]*model.MatchTransaction, error)
-	QueryUnconfirmedTransactionsByContract(address string) (transactions []*model.MatchTransaction, err error)
+	QueryUnconfirmedTransactionsByContract(poolAddress string, perpIndex int64) (transactions []*model.MatchTransaction, err error)
 	GetMatchTransaction(ID string) (*model.MatchTransaction, error)
 	UpdateMatchTransaction(transaction *model.MatchTransaction) error
-	RollbackMatchTransactions(beginRollbackHeight int64, endRollbackHeight int64) (transactions []*model.MatchItem, err error)
 }
 
 type matchTransactionDAO struct {
@@ -52,10 +50,10 @@ func (t *matchTransactionDAO) GetMatchTransaction(ID string) (*model.MatchTransa
 	return &transaction, nil
 }
 
-func (t *matchTransactionDAO) QueryMatchTransaction(address string, status []model.TransactionStatus) (transactions []*model.MatchTransaction, err error) {
+func (t *matchTransactionDAO) QueryMatchTransaction(poolAddress string, perpIndex int64, status []model.TransactionStatus) (transactions []*model.MatchTransaction, err error) {
 	db := t.db
-	if address != "" {
-		db = db.Where("perpetual_address = ?", address)
+	if poolAddress != "" {
+		db = db.Where("liquidity_address = ? AND perpetual_index = ?", poolAddress, perpIndex)
 	}
 	if len(status) != 0 {
 		db = db.Where("status in (?)", status)
@@ -94,35 +92,10 @@ func (t *matchTransactionDAO) QueryUnconfirmedTransactions() (transactions []*mo
 	return
 }
 
-func (t *matchTransactionDAO) QueryUnconfirmedTransactionsByContract(address string) (transactions []*model.MatchTransaction, err error) {
-	if err = t.db.Where("perpetual_address = ?", address).Where("block_confirmed = ?", false).Find(&transactions).Error; err != nil {
+func (t *matchTransactionDAO) QueryUnconfirmedTransactionsByContract(poolAddress string, perpIndex int64) (transactions []*model.MatchTransaction, err error) {
+	if err = t.db.Where("liquidity_address = ? AND perpetual_index = ?", poolAddress, perpIndex).Where("block_confirmed = ?", false).Find(&transactions).Error; err != nil {
 		err = fmt.Errorf("QueryUnstableTransactions:%w", err)
 		return
-	}
-	return
-}
-
-func (t *matchTransactionDAO) RollbackMatchTransactions(beginRollbackHeight int64, endRollbackHeight int64) (items []*model.MatchItem, err error) {
-	transactions := make([]*model.MatchTransaction, 0)
-	if err = t.db.Where("block_confirmed = ?", true).Where("block_number >= ? AND block_number < ?", beginRollbackHeight, endRollbackHeight).Find(&transactions).Error; err != nil {
-		err = fmt.Errorf("QueryTransactions:%w", err)
-		return
-	}
-	for _, transaction := range transactions {
-		if err := json.Unmarshal([]byte(transaction.MatchJson), &transaction.MatchResult); err != nil {
-			return items, fmt.Errorf("QueryMatchTransaction:%w", err)
-		}
-
-		transaction.BlockConfirmed = false
-		transaction.BlockNumber = null.Int{}
-		transaction.BlockHash = null.String{}
-		transaction.TransactionHash = null.String{}
-		transaction.ExecutedAt = null.Time{}
-		transaction.Status = model.TransactionStatusPending
-		if err = t.db.Save(transaction).Error; err != nil {
-			return items, fmt.Errorf("UpdateMatchTransaction status:%w", err)
-		}
-		items = append(items, transaction.MatchResult.ReceiptItems...)
 	}
 	return
 }

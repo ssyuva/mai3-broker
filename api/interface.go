@@ -20,25 +20,26 @@ type (
 
 	PlaceOrderReq struct {
 		BaseReq
-		OrderHash        string `json:"orderHash"  validate:"required"`
-		PerpetualAddress string `json:"perpetualAddress"  validate:"required"`
-		BrokerAddress    string `json:"brokerAddress" validate:"required"`
-		RelayerAddress   string `json:"relayerAddress" validate:"required"`
-		ReferrerAddress  string `json:"referrerAddress"`
-		OrderType        int    `json:"orderType" validate:"required,oneof=0 1 2"`
-		Price            string `json:"price"     validate:"required"`
-		StopPrice        string `json:"stopPrice"`
-		Amount           string `json:"amount"    validate:"required"`
-		MinTradeAmount   string `json:"minTradeAmount" validate:"required"`
-		BrokerFeeLimit   string `json:"brokerFeeLimit" validate:"required"`
-		Salt             int64  `json:"salt" validate:"required"`
-		ExpiresAt        int64  `json:"expiresAt" validate:"required"`
-		R                string `json:"r" validate:"required"`
-		S                string `json:"s" validate:"required"`
-		V                string `json:"v" validate:"required"`
-		SignType         string `json:"signType" validate:"required"`
-		IsCloseOnly      bool   `json:"isCloseOnly"`
-		ChainID          int64  `json:"chainID" valiadte:"required"`
+		OrderHash            string `json:"orderHash"  validate:"required"`
+		LiquidityPoolAddress string `json:"liquidityPoolAddress" validate:"required"`
+		PerpetualIndex       int64  `json:"perpetualIndex" validate:"required"`
+		BrokerAddress        string `json:"brokerAddress" validate:"required"`
+		RelayerAddress       string `json:"relayerAddress" validate:"required"`
+		ReferrerAddress      string `json:"referrerAddress"`
+		OrderType            int    `json:"orderType" validate:"required,oneof=0 1 2"`
+		Price                string `json:"price"     validate:"required"`
+		StopPrice            string `json:"stopPrice"`
+		Amount               string `json:"amount"    validate:"required"`
+		MinTradeAmount       string `json:"minTradeAmount" validate:"required"`
+		BrokerFeeLimit       string `json:"brokerFeeLimit" validate:"required"`
+		Salt                 int64  `json:"salt" validate:"required"`
+		ExpiresAt            int64  `json:"expiresAt" validate:"required"`
+		R                    string `json:"r" validate:"required"`
+		S                    string `json:"s" validate:"required"`
+		V                    string `json:"v" validate:"required"`
+		SignType             string `json:"signType" validate:"required"`
+		IsCloseOnly          bool   `json:"isCloseOnly"`
+		ChainID              int64  `json:"chainID" valiadte:"required"`
 	}
 
 	PlaceOrderResp struct {
@@ -52,7 +53,8 @@ type (
 
 	CancelAllOrdersReq struct {
 		BaseReq
-		PerpetualAddress string `json:"perpetualAddress"`
+		LiquidityPoolAddress string `json:"liquidityPoolAddress"`
+		PerpetualIndex       int64  `json:"perpetualIndex"`
 	}
 
 	QuerySingleOrderReq struct {
@@ -71,11 +73,12 @@ type (
 
 	QueryOrderReq struct {
 		BaseReq
-		PerpetualAddress string `json:"perpetualAddress" query:"perpetualAddress"`
-		Status           string `json:"status"   query:"status"`
-		BeforeOrderHash  string `json:"beforeOrderHash"     query:"beforeOrderHash"`
-		AfterOrderHash   string `json:"afterOrderHash"  query:"afterOrderHash"`
-		Limit            int    `json:"limit" query:"limit"`
+		LiquidityPoolAddress string `json:"liquidityPoolAddress" query:"liquidityPoolAddress"`
+		PerpetualIndex       int64  `json:"perpetualIndex" query:"perpetualIndex"`
+		Status               string `json:"status" query:"status"`
+		BeforeOrderHash      string `json:"beforeOrderHash" query:"beforeOrderHash"`
+		AfterOrderHash       string `json:"afterOrderHash"  query:"afterOrderHash"`
+		Limit                int    `json:"limit" query:"limit"`
 	}
 
 	QueryOrdersResp struct {
@@ -84,7 +87,8 @@ type (
 
 	GetPerpetualReq struct {
 		BaseReq
-		PerpetualAddress string `json:"perpetualAddress" param:"perpetual" validate:"required"`
+		LiquidityPoolAddress string `json:"liquidityPoolAddress" validate:"required"`
+		PerpetualIndex       int64  `json:"perpetualIndex" validate:"required"`
 	}
 
 	GetPerpetualResp struct {
@@ -93,7 +97,8 @@ type (
 
 	GetBrokerRelayReq struct {
 		BaseReq
-		PerpetualAddress string `json:"perpetualAddress" validate:"required"`
+		LiquidityPoolAddress string `json:"liquidityPoolAddress" validate:"required"`
+		PerpetualIndex       int64  `json:"perpetualIndex" validate:"required"`
 	}
 
 	GetBrokerRelayResp struct {

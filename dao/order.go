@@ -15,8 +15,8 @@ import (
 type OrderDAO interface {
 	CreateOrder(order *model.Order) error
 	GetOrder(orderHash string) (*model.Order, error)
-	GetPendingOrderUsers(perpetualAddress string, status []model.OrderStatus) ([]string, error)
-	QueryOrder(traderAddress string, perpetualAddress string, status []model.OrderStatus, beforeOrderID, afterOrderID int64, limit int) ([]*model.Order, error)
+	GetPendingOrderUsers(poolAddress string, perpIndex int64, status []model.OrderStatus) ([]string, error)
+	QueryOrder(traderAddress string, poolAddress string, perpIndex int64, status []model.OrderStatus, beforeOrderID, afterOrderID int64, limit int) ([]*model.Order, error)
 	GetOrderByHashs(hashs []string) ([]*model.Order, error)
 	UpdateOrder(order *model.Order) error
 	LoadMatchOrders(matchItems []*model.MatchItem) error
@@ -78,7 +78,7 @@ func (o *orderDAO) GetOrder(orderHash string) (*model.Order, error) {
 	return &order.Order, nil
 }
 
-func (o *orderDAO) GetPendingOrderUsers(perpetualAddress string, status []model.OrderStatus) ([]string, error) {
+func (o *orderDAO) GetPendingOrderUsers(poolAddress string, perpIndex int64, status []model.OrderStatus) ([]string, error) {
 
 	var (
 		orders []*dbOrder
@@ -86,8 +86,8 @@ func (o *orderDAO) GetPendingOrderUsers(perpetualAddress string, status []model.
 	)
 	where := o.db.Table("orders")
 
-	if perpetualAddress != "" {
-		where = where.Where("perpetual_address = ?", perpetualAddress)
+	if poolAddress != "" {
+		where = where.Where("liquidity_pool_address = ? AND perpetual_index = ?", poolAddress, perpIndex)
 	}
 
 	if len(status) > 0 {
@@ -103,7 +103,7 @@ func (o *orderDAO) GetPendingOrderUsers(perpetualAddress string, status []model.
 	return users, nil
 }
 
-func (o *orderDAO) QueryOrder(traderAddress string, perpetualAddress string, status []model.OrderStatus, beforeOrderID, afterOrderID int64, limit int) (orders []*model.Order, err error) {
+func (o *orderDAO) QueryOrder(traderAddress string, poolAddress string, perpIndex int64, status []model.OrderStatus, beforeOrderID, afterOrderID int64, limit int) (orders []*model.Order, err error) {
 	var dbOrders []*dbOrder
 	where := o.db.Table("orders")
 
@@ -111,8 +111,8 @@ func (o *orderDAO) QueryOrder(traderAddress string, perpetualAddress string, sta
 		where = where.Where("trader_address=?", traderAddress)
 	}
 
-	if perpetualAddress != "" {
-		where = where.Where("perpetual_address = ?", perpetualAddress)
+	if poolAddress != "" {
+		where = where.Where("liquidity_pool_address = ? AND perpetual_index = ?", poolAddress, perpIndex)
 	}
 
 	if len(status) > 0 {

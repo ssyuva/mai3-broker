@@ -21,7 +21,7 @@ func (m *match) checkOrdersMargin() {
 }
 
 func (m *match) checkPerpUserOrders() {
-	users, err := m.dao.GetPendingOrderUsers(m.perpetual.PerpetualAddress, []model.OrderStatus{model.OrderPending, model.OrderStop})
+	users, err := m.dao.GetPendingOrderUsers(m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex, []model.OrderStatus{model.OrderPending, model.OrderStop})
 	if err != nil {
 		logger.Errorf("checkOrdersMargin: GetPendingOrderUsers %s", err)
 		return
@@ -39,7 +39,8 @@ func (m *match) checkPerpUserOrders() {
 
 func (m *match) checkUserPendingOrders(user string) []*OrderCancel {
 	cancels := make([]*OrderCancel, 0)
-	account, err := m.chainCli.GetMarginAccount(m.ctx, m.perpetual.PerpetualAddress, user)
+	//TODO
+	account, err := m.chainCli.GetMarginAccount(m.ctx, m.perpetual.LiquidityPoolAddress, user)
 	if err != nil {
 		return cancels
 	}
@@ -49,7 +50,7 @@ func (m *match) checkUserPendingOrders(user string) []*OrderCancel {
 		return cancels
 	}
 	// check order margin and close Only order
-	orders, err := m.dao.QueryOrder(user, m.perpetual.PerpetualAddress, []model.OrderStatus{model.OrderPending, model.OrderStop}, 0, 0, 0)
+	orders, err := m.dao.QueryOrder(user, m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex, []model.OrderStatus{model.OrderPending, model.OrderStop}, 0, 0, 0)
 	if err != nil {
 		logger.Errorf("checkUserPendingOrders:%w", err)
 		return cancels

@@ -9,13 +9,11 @@ import (
 
 type PerpetualDAO interface {
 	CreatePerpetual(*model.Perpetual) error
-	GetPerpetual(ID int64) (*model.Perpetual, error)
 	// Query all the perpetuals
 	// if isPublished is true, return published perpetuals only otherwise return all the perpetuals
 	QueryPerpetuals(publishedOnly bool) ([]*model.Perpetual, error)
-	GetPerpetualByAddress(address string, publishedOnly bool) (*model.Perpetual, error)
+	GetPerpetualByPoolAddressAndIndex(address string, index int64, publishedOnly bool) (*model.Perpetual, error)
 	UpdatePerpetual(*model.Perpetual) error
-	RollbackPerpetual(beginRollbackHeight int64, endRollbackHeight int64) ([]*model.Perpetual, error)
 }
 
 type dbPerpetual struct {
@@ -34,21 +32,13 @@ func NewPerpetualDAO(db *gorm.DB) PerpetualDAO {
 	return &perpetualDAO{db: db}
 }
 
-func (m *perpetualDAO) GetPerpetual(ID int64) (*model.Perpetual, error) {
-	var perpetual dbPerpetual
-	if err := m.db.Where("id = ?", ID).First(&perpetual).Error; err != nil {
-		return nil, fmt.Errorf("GetPerpetual:%w", err)
-	}
-	return &perpetual.Perpetual, nil
-}
-
-func (m *perpetualDAO) GetPerpetualByAddress(address string, publishedOnly bool) (*model.Perpetual, error) {
+func (m *perpetualDAO) GetPerpetualByPoolAddressAndIndex(address string, index int64, publishedOnly bool) (*model.Perpetual, error) {
 	var perpetual dbPerpetual
 	db := m.db
 	if publishedOnly {
 		db = m.db.Where("is_published = ?", publishedOnly)
 	}
-	if err := db.Where("perpetual_address = ?", address).First(&perpetual).Error; err != nil {
+	if err := db.Where("liquidity_pool_address = ? AND perpetual_index = ?", address, index).First(&perpetual).Error; err != nil {
 		return nil, fmt.Errorf("GetPerpetualByAddress:%w", err)
 	}
 	return &perpetual.Perpetual, nil
@@ -84,23 +74,4 @@ func (m *perpetualDAO) CreatePerpetual(perpetual *model.Perpetual) error {
 		return fmt.Errorf("CreatePerpetual:%w", err)
 	}
 	return err
-}
-
-func (m *perpetualDAO) RollbackPerpetual(beginRollbackHeight int64, endRollbackHeight int64) ([]*model.Perpetual, error) {
-	result := make([]*model.Perpetual, 0)
-	s := make([]*dbPerpetual, 0)
-	if err := m.db.Where("block_number >= ? AND block_number < ?", beginRollbackHeight, endRollbackHeight).Find(&s).Error; err != nil {
-		return result, err
-	}
-	for _, perpetual := range s {
-		result = append(result, &perpetual.Perpetual)
-	}
-	if len(result) == 0 {
-		return result, nil
-	}
-	if err := m.db.Delete(dbPerpetual{},
-		"block_number >= ? AND block_number < ?", beginRollbackHeight, endRollbackHeight).Error; err != nil {
-		return result, fmt.Errorf("delete perpetual failed:%w", err)
-	}
-	return result, nil
 }

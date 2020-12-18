@@ -19,6 +19,7 @@ type Config struct {
 	WatcherID      int        `toml:"watcher_id"`
 	GasStation     gasStation `toml:"gas_station"`
 	BlockChain     blockchain `toml:"blockchain"`
+	Subgraph       subgraph   `toml:"subgraph"`
 }
 
 type blockchain struct {
@@ -32,6 +33,10 @@ type blockchain struct {
 type gasStation struct {
 	GasPrice uint64 `toml:"gas_price"`
 	GasLimit uint64 `toml:"gas_limit"`
+}
+
+type subgraph struct {
+	URL string `toml:"url"`
 }
 
 var (
