@@ -9,6 +9,7 @@ import (
 
 type PerpetualDAO interface {
 	CreatePerpetual(*model.Perpetual) error
+	GetPerpetualSyncedBlockNumber() (int64, error)
 	// Query all the perpetuals
 	// if isPublished is true, return published perpetuals only otherwise return all the perpetuals
 	QueryPerpetuals(publishedOnly bool) ([]*model.Perpetual, error)
@@ -74,4 +75,12 @@ func (m *perpetualDAO) CreatePerpetual(perpetual *model.Perpetual) error {
 		return fmt.Errorf("CreatePerpetual:%w", err)
 	}
 	return err
+}
+
+func (m *perpetualDAO) GetPerpetualSyncedBlockNumber() (int64, error) {
+	var perpetual dbPerpetual
+	if err := m.db.Order("block_number desc").First(&perpetual).Error; err != nil {
+		return 0, err
+	}
+	return perpetual.BlockNumber, nil
 }

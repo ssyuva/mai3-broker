@@ -3,6 +3,7 @@ package perpetualsyncer
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/mcarloai/mai-v3-broker/common/utils"
 	"github.com/mcarloai/mai-v3-broker/conf"
@@ -10,6 +11,7 @@ import (
 	logger "github.com/sirupsen/logrus"
 	"net"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -23,13 +25,13 @@ var transport = &http.Transport{
 }
 
 type PerpetualSyncer struct {
-	ctx            context.Context
-	dao            dao.DAO
-	httpClient     *utils.HttpClient
-	perpetualCache map[string]bool
+	ctx               context.Context
+	dbDao             dao.DAO
+	httpClient        *utils.HttpClient
+	syncedBlockNumber int64
 }
 
-func NewPerpetualSyncer(ctx context.Context, dao dao.DAO) (*PerpetualSyncer, error) {
+func NewPerpetualSyncer(ctx context.Context, dbDao dao.DAO) (*PerpetualSyncer, error) {
 	transport := &http.Transport{
 		DialContext: (&net.Dialer{
 			Timeout: 500 * time.Millisecond,
@@ -39,30 +41,18 @@ func NewPerpetualSyncer(ctx context.Context, dao dao.DAO) (*PerpetualSyncer, err
 		IdleConnTimeout:     30 * time.Second,
 	}
 	perpetualSyncer := &PerpetualSyncer{
-		ctx:            ctx,
-		dao:            dao,
-		httpClient:     utils.NewHttpClient(transport),
-		perpetualCache: make(map[string]bool),
+		ctx:        ctx,
+		dbDao:      dbDao,
+		httpClient: utils.NewHttpClient(transport),
 	}
 
-	err := perpetualSyncer.initPerpetualCache()
-	if err != nil {
+	blockNumber, err := perpetualSyncer.dbDao.GetPerpetualSyncedBlockNumber()
+	if err != nil && !dao.IsRecordNotFound(err) {
 		return nil, err
 	}
+	perpetualSyncer.syncedBlockNumber = blockNumber
 
 	return perpetualSyncer, nil
-}
-
-func (p *PerpetualSyncer) initPerpetualCache() error {
-	perpetuals, err := p.dao.QueryPerpetuals(false)
-	if err != nil {
-		return err
-	}
-	for _, perp := range perpetuals {
-		key := perp.LiquidityPoolAddress + "-" + perp.PerpetualIndex
-		p.perpetualCache[key] = true
-	}
-	return nil
 }
 
 func (p *PerpetualSyncer) Run() error {
@@ -80,14 +70,19 @@ func (p *PerpetualSyncer) syncPerpetual() {
 	var params struct {
 		Query string `json:"query"`
 	}
-	params.Query = `{
-		perpetuals {
+	queryFormat := `{
+		perpetuals(where:{createdAtBlockNumber_gt:%d} orderBy:createdAtBlockNumber) {
 			index
+			symbol
+			collateralName
+			operatorAddress
 			liquidityPool {
 				id
 			}
+			createdAtBlockNumber
 		}
 	}`
+	params.Query = fmt.Sprintf(queryFormat, p.syncedBlockNumber)
 
 	err, code, res := p.httpClient.Post(conf.Conf.Subgraph.URL, nil, params, nil)
 	if err != nil || code != 200 {
@@ -97,10 +92,14 @@ func (p *PerpetualSyncer) syncPerpetual() {
 	var response struct {
 		Data struct {
 			Perpetuals []struct {
-				Index         string `json:"index"`
-				LiquidityPool struct {
+				Index           string `json:"index"`
+				Symbol          string `json:"symbol"`
+				CollateralName  string `json:"collateralName"`
+				OperatorAddress string `json:"operatorAddress"`
+				LiquidityPool   struct {
 					ID string `json:"id"`
 				}
+				CreatedAtBlockNumber string `json:"createdAtBlockNumber"`
 			} `json:"perpetuals"`
 		} `json:"data"`
 	}
@@ -112,18 +111,31 @@ func (p *PerpetualSyncer) syncPerpetual() {
 	}
 
 	for _, perp := range response.Data.Perpetuals {
-		key := perp.LiquidityPool.ID + "-" + perp.Index
-		if _, ok := p.perpetualCache[key]; ok {
+		index, err := strconv.ParseInt(perp.Index, 10, 64)
+		if err != nil {
+			logger.Errorf("parse perpetual index fail: %s", err)
+			continue
+		}
+		blockNumber, err := strconv.ParseInt(perp.CreatedAtBlockNumber, 10, 64)
+		if err != nil {
+			logger.Errorf("parse perpetual createdAt blockNumber fail: %s", err)
 			continue
 		}
 		newPerpetual := &model.Perpetual{
-			PerpetualIndex:       perp.Index,
+			PerpetualIndex:       index,
 			LiquidityPoolAddress: perp.LiquidityPool.ID,
+			Symbol:               perp.Symbol,
+			CollateralSymbol:     perp.CollateralName,
+			OperatorAddress:      perp.OperatorAddress,
+			IsPublished:          true,
+			BlockNumber:          blockNumber,
 		}
-		err = p.dao.CreatePerpetual(newPerpetual)
+		err = p.dbDao.CreatePerpetual(newPerpetual)
 		if err != nil {
 			logger.Errorf("CreatePerpetual fail: %s", err)
 		}
-		p.perpetualCache[key] = true
+		if blockNumber > p.syncedBlockNumber {
+			p.syncedBlockNumber = blockNumber
+		}
 	}
 }

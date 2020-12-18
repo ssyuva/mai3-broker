@@ -2,12 +2,9 @@ create table perpetuals
 (
   liquidity_pool_address text not null,
   perpetual_index bigint not null,
-  governor_address text not null,
-  share_token text not null,
+  symbol text not null,
   collateral_symbol text not null,
   operator_address text not null,
-  oracle_address text not null,
-  collateral_address text not null,
   is_published boolean not null default true,
   block_number bigint not null,
   PRIMARY KEY (liquidity_pool_address, perpetual_index)
