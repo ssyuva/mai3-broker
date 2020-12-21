@@ -8,66 +8,106 @@ import (
 	logger "github.com/sirupsen/logrus"
 )
 
-func ComputeAMMTrade(g *model.GovParams, p *model.PerpetualStorage, trader, amm *model.AccountStorage, amount decimal.Decimal) (lpFee, vaultFee, operatorFee, tradingPirce decimal.Decimal, err error) {
+func ComputeAMMTrade(p *model.LiquidityPoolStorage, perpetualIndex int64, trader *model.AccountStorage, amount decimal.Decimal) (decimal.Decimal, error) {
 	if amount.IsZero() {
-		return
+		return _0, fmt.Errorf("bad amount")
+	}
+	perpetual, ok := p.Perpetuals[perpetualIndex]
+	if !ok {
+		return _0, fmt.Errorf("perpetual %d not found in the pool", perpetualIndex)
 	}
 
-	// amm
-	deltaAMMAmount, _, tradingPrice, err := ComputeAMMPrice(g, p, amm, amount)
+	// AMM
+	_, deltaAMMAmount, tradingPrice, err := ComputeAMMPrice(p, perpetualIndex, amount)
 	if err != nil {
 		logger.Errorf("ComputeAMMPrice error:%s", err)
-		return
+		return _0, err
 	}
 	if !deltaAMMAmount.Neg().Equal(amount) {
 		logger.Errorf("trading amount mismatched %s != %s", deltaAMMAmount, amount)
-		return
+		return _0, fmt.Errorf("trading amount mismatched")
 	}
-	lpFee, err = ComputeFee(tradingPrice, deltaAMMAmount, g.LpFeeRate)
+
+	// fee
+	lpFee, err := ComputeFee(tradingPrice, deltaAMMAmount, perpetual.LpFeeRate)
 	if err != nil {
-		return
+		return _0, err
 	}
-	vaultFee, err = ComputeFee(tradingPrice, deltaAMMAmount, g.VaultFeeRate)
-	if err != nil {
-		return
-	}
-	operatorFee, err = ComputeFee(tradingPrice, deltaAMMAmount, g.OperatorFeeRate)
-	if err != nil {
-		return
-	}
-	amm.CashBalance = amm.CashBalance.Add(lpFee)
 
 	// trader
-	err = ComputeTradeWithPrice(p, trader, tradingPrice, deltaAMMAmount.Neg(), g.LpFeeRate.Add(g.VaultFeeRate).Add(g.OperatorFeeRate))
-	return
+	if err = ComputeTradeWithPrice(p, perpetualIndex, trader, tradingPrice, deltaAMMAmount.Neg(),
+		perpetual.LpFeeRate.Add(p.VaultFeeRate).Add(perpetual.OperatorFeeRate)); err != nil {
+		return _0, err
+	}
+
+	// new AMM
+	fakeAMMAccount := &model.AccountStorage{
+		CashBalance:    p.PoolCashBalance,
+		PositionAmount: perpetual.AmmPositionAmount,
+	}
+	if err = ComputeTradeWithPrice(p, perpetualIndex, fakeAMMAccount, tradingPrice, deltaAMMAmount, _0); err != nil {
+		return _0, err
+	}
+	fakeAMMAccount.CashBalance = fakeAMMAccount.CashBalance.Add(lpFee)
+	p.PoolCashBalance = fakeAMMAccount.CashBalance
+	perpetual.AmmPositionAmount = fakeAMMAccount.PositionAmount
+	return tradingPrice, nil
 }
 
-func ComputeAMMPrice(g *model.GovParams, p *model.PerpetualStorage, amm *model.AccountStorage, amount decimal.Decimal) (deltaAMMAmount, deltaAMMMargin, tradingPrice decimal.Decimal, err error) {
+func ComputeAMMPrice(p *model.LiquidityPoolStorage, perpetualIndex int64, amount decimal.Decimal) (deltaAMMMargin, deltaAMMAmount, tradingPrice decimal.Decimal, err error) {
 	if amount.IsZero() {
+		err = fmt.Errorf("bad amount")
 		return
 	}
-	ammComputed := ComputeAccount(g, p, amm)
-	ammTrading, err := ComputeAMMInternalTrade(g, p, ammComputed, amm, amount.Neg())
+	ammTrading, err := computeAMMInternalTrade(p, perpetualIndex, amount.Neg())
 	if err != nil {
-		return _0, _0, _0, err
+		return
 	}
 	deltaAMMMargin = ammTrading.DeltaMargin
 	deltaAMMAmount = ammTrading.DeltaPosition
 	tradingPrice = deltaAMMMargin.Div(deltaAMMAmount).Abs()
-	ComputeTradeWithPrice(p, amm, tradingPrice, amount.Neg(), _0)
 	return
 }
 
-func ComputeTradeWithPrice(p *model.PerpetualStorage, a *model.AccountStorage, price, amount, feeRate decimal.Decimal) error {
+func computeAMMInternalTrade(p *model.LiquidityPoolStorage, perpetualIndex int64, amount decimal.Decimal) (*model.AMMTradingContext, error) {
+	context := initAMMTradingContext(p, perpetualIndex)
+	close, open := utils.SplitAmount(context.Position1, amount)
+	if close.IsZero() && open.IsZero() {
+		return nil, fmt.Errorf("AMM trade: trading amount = 0")
+	}
+	var err error
+	if !close.IsZero() {
+		if context, err = computeAMMInternalClose(context, close); err != nil {
+			return nil, err
+		}
+	}
+	if !open.IsZero() {
+		if context, err = computeAMMInternalOpen(context, open); err != nil {
+			return nil, err
+		}
+	}
+	if amount.LessThan(_0) {
+		context.DeltaMargin = context.DeltaMargin.Mul(_1.Add(context.HalfSpread))
+	} else {
+		context.DeltaMargin = context.DeltaMargin.Mul(_1.Sub(context.HalfSpread))
+	}
+	return context, nil
+}
+
+func ComputeTradeWithPrice(p *model.LiquidityPoolStorage, perpetualIndex int64, a *model.AccountStorage, price, amount, feeRate decimal.Decimal) error {
+	if price.LessThanOrEqual(_0) || amount.IsZero() {
+		return fmt.Errorf("bad price %s or amount %s", price, amount)
+	}
+
 	close, open := utils.SplitAmount(a.PositionAmount, amount)
 	if !close.IsZero() {
-		if err := ComputeDecreasePosition(p, a, price, amount); err != nil {
+		if err := ComputeDecreasePosition(p, perpetualIndex, a, price, amount); err != nil {
 			return err
 		}
 	}
 
 	if !open.IsZero() {
-		if err := ComputeIncreasePosition(p, a, price, amount); err != nil {
+		if err := ComputeIncreasePosition(p, perpetualIndex, a, price, amount); err != nil {
 			return err
 		}
 	}
@@ -80,39 +120,45 @@ func ComputeTradeWithPrice(p *model.PerpetualStorage, a *model.AccountStorage, p
 	return nil
 }
 
-func ComputeDecreasePosition(p *model.PerpetualStorage, a *model.AccountStorage, price, amount decimal.Decimal) error {
-	if a.PositionAmount.IsZero() || amount.IsZero() || utils.HasTheSameSign(a.PositionAmount, amount) {
-		return fmt.Errorf("invalid amount or position, position:%s, amount:%s", a.PositionAmount, amount)
+func ComputeDecreasePosition(p *model.LiquidityPoolStorage, perpetualIndex int64, a *model.AccountStorage, price, amount decimal.Decimal) error {
+	perpetual, ok := p.Perpetuals[perpetualIndex]
+	if !ok {
+		return fmt.Errorf("perpetual %d not found in the pool", perpetualIndex)
+	}
+	oldAmount := a.PositionAmount
+	if oldAmount.IsZero() || amount.IsZero() || utils.HasTheSameSign(oldAmount, amount) {
+		return fmt.Errorf("invalid amount or position, position:%s, amount:%s", oldAmount, amount)
 	}
 
 	if price.LessThanOrEqual(_0) {
 		return fmt.Errorf("invalid price %s", price)
 	}
 
-	if a.PositionAmount.Abs().LessThan(amount.Abs()) {
-		return fmt.Errorf("position size is less than amount. position:%s, amount:%s", a.PositionAmount, amount)
+	if oldAmount.Abs().LessThan(amount.Abs()) {
+		return fmt.Errorf("position size is less than amount. position:%s, amount:%s", oldAmount, amount)
 	}
-	oldPosition := a.PositionAmount
-	fundingLoss := p.AccumulatedFundingPerContract.Sub(a.EntryFundingLoss.Div(a.PositionAmount)).Mul(amount.Neg())
-	a.CashBalance = a.CashBalance.Sub(price.Mul(amount)).Sub(fundingLoss)
+	a.CashBalance = a.CashBalance.Sub(price.Mul(amount)).Add(perpetual.UnitAccumulativeFunding.Mul(amount))
 	a.PositionAmount = a.PositionAmount.Add(amount)
-	a.EntryFundingLoss = a.EntryFundingLoss.Mul(a.PositionAmount).Div(oldPosition)
 	return nil
 }
 
-func ComputeIncreasePosition(p *model.PerpetualStorage, a *model.AccountStorage, price, amount decimal.Decimal) error {
+func ComputeIncreasePosition(p *model.LiquidityPoolStorage, perpetualIndex int64, a *model.AccountStorage, price, amount decimal.Decimal) error {
+	perpetual, ok := p.Perpetuals[perpetualIndex]
+	if !ok {
+		return fmt.Errorf("perpetual %d not found in the pool", perpetualIndex)
+	}
+	oldAmount := a.PositionAmount
 	if price.LessThanOrEqual(_0) {
 		return fmt.Errorf("invalid price %s", price)
 	}
 	if amount.IsZero() {
 		return fmt.Errorf("invalid amount %s", amount)
 	}
-	if !a.PositionAmount.IsZero() && !utils.HasTheSameSign(a.PositionAmount, amount) {
-		return fmt.Errorf("invalid amount or position, position:%s, amount:%s", a.PositionAmount, amount)
+	if !oldAmount.IsZero() && !utils.HasTheSameSign(oldAmount, amount) {
+		return fmt.Errorf("invalid amount or position, position:%s, amount:%s", oldAmount, amount)
 	}
-	a.CashBalance = a.CashBalance.Sub(price.Mul(amount))
+	a.CashBalance = a.CashBalance.Sub(price.Mul(amount)).Add(perpetual.UnitAccumulativeFunding.Mul(amount))
 	a.PositionAmount = a.PositionAmount.Add(amount)
-	a.EntryFundingLoss = a.EntryFundingLoss.Add(p.AccumulatedFundingPerContract.Mul(amount))
 	return nil
 }
 

@@ -16,7 +16,6 @@ type ChainClient interface {
 	AddAccount(private *ecdsa.PrivateKey) error
 	GetSignAccount() (string, error)
 
-	GetTokenSymbol(ctx context.Context, address string) (string, error)
 	GetGasBalance(ctx context.Context, brokerAddress string, address string) (decimal.Decimal, error)
 	GetChainID(ctx context.Context) (*big.Int, error)
 	GetLatestBlockNumber(ctx context.Context) (uint64, error)
@@ -28,7 +27,6 @@ type ChainClient interface {
 	WaitTransactionReceipt(ctx context.Context, txHash string) (*model.Receipt, error)
 	GetMarginAccount(ctx context.Context, poolAddress, account string) (*model.AccountStorage, error)
 	GetPerpetualStorage(ctx context.Context, poolAddress string) (*model.PerpetualStorage, error)
-	FilterCreatePerpetual(ctx context.Context, factoryAddress string, start, end uint64) ([]*model.PerpetualEvent, error)
 	FilterTradeSuccess(ctx context.Context, poolAddress string, start, end uint64) ([]*model.TradeSuccessEvent, error)
 	BatchTradeDataPack(orderParams []*model.WalletOrderParam, matchAmounts []decimal.Decimal, gasRewards []*big.Int) ([]byte, error)
 	GetPerpetualGovParams(ctx context.Context, poolAddress string) (*model.GovParams, error)

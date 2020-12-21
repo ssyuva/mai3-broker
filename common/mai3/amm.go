@@ -2,30 +2,38 @@ package mai3
 
 import (
 	"fmt"
-	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/shopspring/decimal"
 	logger "github.com/sirupsen/logrus"
 )
 
-func ComputeAMMAmountWithPrice(g *model.GovParams, p *model.PerpetualStorage, amm *model.AccountStorage, isBuy bool, limitPrice decimal.Decimal) decimal.Decimal {
-	// shift by spread
-	if isBuy {
-		limitPrice = limitPrice.Div(_1.Add(g.HalfSpreadRate))
-	} else {
-		limitPrice = limitPrice.Div(_1.Sub(g.HalfSpreadRate))
+func ComputeAMMAmountWithPrice(p *model.LiquidityPoolStorage, perpetualIndex int64, isTraderBuy bool, limitPrice decimal.Decimal) decimal.Decimal {
+	perpetual, ok := p.Perpetuals[perpetualIndex]
+	if !ok {
+		logger.Warnf("perpetual %d not found in the pool", perpetualIndex)
+		return _0
 	}
 
-	ammComputed := ComputeAccount(g, p, amm)
-	ammContext := initAMMTradingContext(g, p, ammComputed, amm)
-	if ammContext.Pos1.LessThanOrEqual(_0) && isBuy {
-		return ComputeAMMAmountShortOpen(ammContext, limitPrice, g).Neg()
-	} else if ammContext.Pos1.LessThan(_0) && !isBuy {
-		return ComputeAMMAmountShortClose(ammContext, limitPrice, g).Neg()
-	} else if ammContext.Pos1.GreaterThanOrEqual(_0) && !isBuy {
-		return ComputeAMMAmountLongOpen(ammContext, limitPrice, g).Neg()
-	} else if ammContext.Pos1.GreaterThan(_0) && isBuy {
-		return ComputeAMMAmountLongClose(ammContext, limitPrice, g).Neg()
+	if isTraderBuy {
+		limitPrice = limitPrice.Div(_1.Add(perpetual.HalfSpread))
+	} else {
+		limitPrice = limitPrice.Div(_1.Sub(perpetual.HalfSpread))
+	}
+
+	isAMMBuy := !isTraderBuy
+	context := initAMMTradingContext(p, perpetualIndex)
+	if context.Position1.LessThanOrEqual(_0) && !isAMMBuy {
+		return computeAMMOpenAmountWithPrice(context, limitPrice, isAMMBuy).Neg()
+	} else if context.Position1.LessThan(_0) && isAMMBuy {
+		fmt.Println(33333)
+
+		return computeAMMCloseAndOpenAmountWithPrice(context, limitPrice, isAMMBuy).Neg()
+	} else if context.Position1.GreaterThanOrEqual(_0) && isAMMBuy {
+		fmt.Println(44444)
+
+		return computeAMMOpenAmountWithPrice(context, limitPrice, isAMMBuy).Neg()
+	} else if context.Position1.GreaterThan(_0) && !isAMMBuy {
+		return computeAMMCloseAndOpenAmountWithPrice(context, limitPrice, isAMMBuy).Neg()
 	}
 
 	logger.Errorf("bug: unknown trading direction")
@@ -34,588 +42,435 @@ func ComputeAMMAmountWithPrice(g *model.GovParams, p *model.PerpetualStorage, am
 
 func copyAMMTradingContext(ammContext *model.AMMTradingContext) *model.AMMTradingContext {
 	return &model.AMMTradingContext{
-		Index:         ammContext.Index,
-		Lev:           ammContext.Lev,
-		Cash:          ammContext.Cash,
-		Pos1:          ammContext.Pos1,
-		IsSafe:        ammContext.IsSafe,
-		M0:            ammContext.M0,
-		Mv:            ammContext.Mv,
-		Ma1:           ammContext.Ma1,
-		DeltaMargin:   ammContext.DeltaMargin,
-		DeltaPosition: ammContext.DeltaPosition,
+		Index:                        ammContext.Index,
+		Position1:                    ammContext.Position1,
+		HalfSpread:                   ammContext.HalfSpread,
+		OpenSlippageFactor:           ammContext.OpenSlippageFactor,
+		CloseSlippageFactor:          ammContext.CloseSlippageFactor,
+		FundingRateLimit:             ammContext.FundingRateLimit,
+		MaxLeverage:                  ammContext.MaxLeverage,
+		OtherIndex:                   ammContext.OtherIndex,
+		OtherPosition:                ammContext.OtherPosition,
+		OtherHalfSpread:              ammContext.OtherHalfSpread,
+		OtherOpenSlippageFactor:      ammContext.OtherOpenSlippageFactor,
+		OtherCloseSlippageFactor:     ammContext.OtherCloseSlippageFactor,
+		OtherFundingRateCoefficient:  ammContext.OtherFundingRateCoefficient,
+		OtherMaxLeverage:             ammContext.OtherMaxLeverage,
+		Cash:                         ammContext.Cash,
+		PoolMargin:                   ammContext.PoolMargin,
+		DeltaMargin:                  ammContext.DeltaMargin,
+		DeltaPosition:                ammContext.DeltaPosition,
+		ValueWithoutCurrent:          ammContext.ValueWithoutCurrent,
+		SquareValueWithoutCurrent:    ammContext.SquareValueWithoutCurrent,
+		PositionMarginWithoutCurrent: ammContext.PositionMarginWithoutCurrent,
 	}
 }
 
-func ComputeAMMAmountShortOpen(ammContext *model.AMMTradingContext, limitPrice decimal.Decimal, g *model.GovParams) decimal.Decimal {
-	if !isAmmSafe(ammContext, g.Beta1) {
+func computeAMMOpenAmountWithPrice(context *model.AMMTradingContext, limitPrice decimal.Decimal, isAMMBuy bool) decimal.Decimal {
+	if isAMMBuy && context.Position1.LessThan(_0) ||
+		!isAMMBuy && context.Position1.GreaterThan(_0) {
+		logger.Errorf("this is not opening. pos1: %s isBuy: %v", context.Position1, isAMMBuy)
 		return _0
 	}
-	computeM0(ammContext, g.Beta1)
-	context := copyAMMTradingContext(ammContext)
-	safePos2 := computeAMMSafeShortPositionAmount(ammContext, g.Beta1)
-	if safePos2.GreaterThan(_0) || safePos2.GreaterThan(ammContext.Pos1) {
-		return _0
-	}
-	maxAmount := safePos2.Sub(ammContext.Pos1)
-	if maxAmount.GreaterThanOrEqual(_0) {
-		logger.Errorf("warn: short open, but pos1 %s < safePos2 %s", ammContext.Pos1, safePos2)
-		return _0
-	}
-	computeAMMInternalOpen(ammContext, maxAmount, g)
-	if !maxAmount.Equal(ammContext.DeltaPosition.Sub(context.DeltaPosition)) {
-		logger.Errorf("open position failed")
+	if !isAMMSafe(context, context.OpenSlippageFactor) {
 		return _0
 	}
 
-	safePos2Price := ammContext.DeltaMargin.Div(context.DeltaPosition).Abs()
-	if safePos2Price.LessThanOrEqual(limitPrice) {
+	if err := computeAMMPoolMargin(context, context.OpenSlippageFactor); err != nil {
+		logger.Errorf("computeAMMOpenAmountWithPrice: computeAMMPoolMargin fail:%s", err)
+		return _0
+	}
+
+	safePos2 := _0
+	if isAMMBuy {
+		safePos2 = computeAMMSafeLongPositionAmount(context, context.OpenSlippageFactor)
+		if safePos2.LessThan(context.Position1) {
+			return _0
+		}
+	} else {
+		safePos2 = computeAMMSafeShortPositionAmount(context, context.OpenSlippageFactor)
+		if safePos2.GreaterThan(_0) {
+			return _0
+		}
+	}
+
+	maxAmount := safePos2.Sub(context.Position1)
+	safePos2Context, err := computeAMMInternalOpen(context, maxAmount)
+	if err != nil {
+		logger.Errorf("computeAMMInternalOpen fail:%s", err)
+		return _0
+	}
+	if !maxAmount.Equal(safePos2Context.DeltaPosition.Sub(context.DeltaPosition)) {
+		logger.Errorf("open positions failed")
+		return _0
+	}
+
+	safePos2Price := safePos2Context.DeltaMargin.Div(safePos2Context.DeltaPosition).Abs()
+	if (isAMMBuy && safePos2Price.GreaterThanOrEqual(limitPrice)) ||
+		(!isAMMBuy && safePos2Price.LessThanOrEqual(limitPrice)) {
 		return maxAmount
 	}
 
-	amount := ComputeAMMShortInverseVWAP(context, limitPrice, g.Beta1, false)
-	if amount.GreaterThanOrEqual(_0) {
+	amount, err := computeAMMInverseVWAP(context, limitPrice, context.OpenSlippageFactor, isAMMBuy)
+	if err != nil {
+		logger.Errorf("computeAMMOpenAmountWithPrice: computeAMMInverseVWAP failed:%s", err)
 		return _0
 	}
-	return amount
+	if (isAMMBuy && amount.GreaterThan(_0)) ||
+		(!isAMMBuy && amount.LessThan(_0)) {
+		return amount
+	}
+	return _0
 }
 
-func ComputeAMMAmountShortClose(ammContext *model.AMMTradingContext, limitPrice decimal.Decimal, g *model.GovParams) decimal.Decimal {
-	if !ammContext.DeltaMargin.IsZero() || !ammContext.DeltaPosition.IsZero() {
+func computeAMMCloseAndOpenAmountWithPrice(context *model.AMMTradingContext, limitPrice decimal.Decimal, isAMMBuy bool) decimal.Decimal {
+	if context.DeltaMargin.IsZero() || context.DeltaPosition.IsZero() {
+		logger.Errorf("computeAMMCloseAndOpenAmountWithPrice: partial close is not supported")
 		return _0
 	}
-	zeroContext := copyAMMTradingContext(ammContext)
-	if !ammContext.Pos1.IsZero() {
-		computeAMMInternalClose(zeroContext, ammContext.Pos1.Neg(), g)
-		if zeroContext.DeltaPosition.IsZero() {
-			logger.Errorf("close to zero failed")
+	if context.Position1.IsZero() {
+		logger.Errorf("computeAMMCloseAndOpenAmountWithPrice: close from 0 is not supported")
+		return _0
+	}
+
+	var err error
+
+	zeroContext, err := computeAMMInternalClose(context, context.Position1.Neg())
+	if err != nil {
+		logger.Errorf("computeAMMCloseAndOpenAmountWithPrice: computeAMMInternalClose err:%s", err)
+		return _0
+	}
+	if zeroContext.DeltaPosition.IsZero() {
+		logger.Errorf("close to zero failed")
+		return _0
+	}
+	zeroPrice := zeroContext.DeltaMargin.Div(zeroContext.DeltaPosition).Abs()
+	if isAMMBuy && zeroPrice.GreaterThanOrEqual(limitPrice) ||
+		!isAMMBuy && zeroPrice.LessThanOrEqual(limitPrice) {
+		// close all
+		context = zeroContext
+	} else if !isAMMSafe(context, context.CloseSlippageFactor) {
+		// case 2: unsafe close, but price not matched
+		return _0
+	} else {
+		// case 3: close by price
+		err := computeAMMPoolMargin(context, context.CloseSlippageFactor)
+		if err != nil {
+			logger.Errorf("computeAMMCloseAndOpenAmountWithPrice: computeAMMPoolMargin err:%s", err)
 			return _0
 		}
-		zeroPrice := zeroContext.DeltaMargin.Div(zeroContext.DeltaPosition).Abs()
-		if zeroPrice.GreaterThanOrEqual(limitPrice) {
-			ammContext = zeroContext
-		} else if !isAmmSafe(ammContext, g.Beta2) {
+		amount, err := computeAMMInverseVWAP(context, limitPrice, context.CloseSlippageFactor, isAMMBuy)
+		if err != nil {
+			logger.Errorf("computeAMMCloseAndOpenAmountWithPrice: computeAMMInverseVWAP failed:%s", err)
 			return _0
-		} else {
-			computeM0(ammContext, g.Beta2)
-			amount := ComputeAMMShortInverseVWAP(ammContext, limitPrice, g.Beta2, true)
-			if amount.GreaterThan(_0) {
-				computeAMMInternalClose(ammContext, amount, g)
+		}
+		if (isAMMBuy && amount.GreaterThan(_0)) ||
+			(!isAMMBuy && amount.LessThan(_0)) {
+			if context, err = computeAMMInternalClose(context, amount); err != nil {
+				logger.Errorf("computeAMMCloseAndOpenAmountWithPrice: computeAMMInternalClose failed:%s", err)
+				return _0
 			}
 		}
 	}
-	if ammContext.Pos1.GreaterThanOrEqual(_0) {
-		openAmount := ComputeAMMAmountLongOpen(ammContext, limitPrice, g)
-		return ammContext.DeltaPosition.Add(openAmount)
+	if (isAMMBuy && context.Position1.GreaterThanOrEqual(_0)) ||
+		(!isAMMBuy && context.Position1.LessThanOrEqual(_0)) {
+		openAmount := computeAMMOpenAmountWithPrice(context, limitPrice, isAMMBuy)
+		return context.DeltaPosition.Add(openAmount)
 	}
-	return ammContext.DeltaPosition
+	return context.DeltaPosition
 }
 
-func ComputeAMMAmountLongOpen(ammContext *model.AMMTradingContext, limitPrice decimal.Decimal, g *model.GovParams) decimal.Decimal {
-	if !isAmmSafe(ammContext, g.Beta1) {
-		return _0
-	}
-	computeM0(ammContext, g.Beta1)
-	safePos2 := computeAMMSafeLongPositionAmount(ammContext, g.Beta1)
-	if safePos2.LessThan(_0) || safePos2.LessThan(ammContext.Pos1) {
-		return _0
-	}
-	maxAmount := safePos2.Sub(ammContext.Pos1)
-	if maxAmount.LessThanOrEqual(_0) {
-		return _0
-	}
-	context := copyAMMTradingContext(ammContext)
-	computeAMMInternalOpen(ammContext, maxAmount, g)
-	if !maxAmount.Equal(ammContext.DeltaPosition.Sub(context.DeltaPosition)) {
-		return _0
-	}
-	safePos2Price := ammContext.DeltaMargin.Div(ammContext.DeltaPosition).Abs()
-	if safePos2Price.GreaterThanOrEqual(limitPrice) {
-		return maxAmount
-	}
-	amount := ComputeAMMLongInverseVWAP(context, limitPrice, g.Beta1, false)
-	if amount.LessThanOrEqual(_0) {
-		return _0
-	}
-	return amount
-}
-
-func ComputeAMMAmountLongClose(ammContext *model.AMMTradingContext, limitPrice decimal.Decimal, g *model.GovParams) decimal.Decimal {
-	if !ammContext.DeltaMargin.IsZero() || !ammContext.DeltaPosition.IsZero() {
-		return _0
-	}
-
-	zeroContext := copyAMMTradingContext(ammContext)
-	if !ammContext.Pos1.IsZero() {
-		computeAMMInternalClose(zeroContext, zeroContext.Pos1.Neg(), g)
-		if zeroContext.DeltaPosition.IsZero() {
-			return _0
-		}
-		zeroPrice := zeroContext.DeltaMargin.Div(zeroContext.DeltaPosition).Abs()
-		if zeroPrice.LessThanOrEqual(limitPrice) {
-			ammContext = zeroContext
-		} else if !isAmmSafe(ammContext, g.Beta2) {
-			return _0
-		} else {
-			computeM0(ammContext, g.Beta2)
-			amount := ComputeAMMLongInverseVWAP(ammContext, limitPrice, g.Beta2, true)
-			if amount.LessThan(_0) {
-				computeAMMInternalClose(ammContext, amount, g)
-			}
-		}
-	}
-	if ammContext.Pos1.LessThanOrEqual(_0) {
-		openAmount := ComputeAMMAmountShortOpen(ammContext, limitPrice, g)
-		return ammContext.DeltaPosition.Add(openAmount)
-	}
-	return ammContext.DeltaPosition
-}
-
-func ComputeAMMShortInverseVWAP(ammContext *model.AMMTradingContext, price, beta decimal.Decimal, isClosing bool) decimal.Decimal {
-	if !ammContext.IsSafe {
-		logger.Errorf("bug: do not call computeAMMShortInverseVWAP when unsafe")
-		return _0
-	}
-	index := ammContext.Index
-	pos1 := ammContext.Pos1
-	m0 := ammContext.M0
-	previousMa1MinusMa2 := ammContext.DeltaMargin.Neg()
-	previousAmount := ammContext.DeltaPosition
-	/*
-	  D = previousMa1MinusMa2 - previousAmount price;
-	  E = beta - 1;
-	  F = m0 + i pos1;
-	  A = i F (i E + price);
-	  B = i^3 E pos1^2 + m0^2 price +
-	    i^2 pos1 (-D + 2 E m0 + pos1 price) -
-	    i m0 (D + m0 - 2 pos1 price);
-	  C = F^2 D;
-	  sols = 1/(2 A) (-B - sqrt(B^2 + 4 A C));
-	*/
-	d := previousMa1MinusMa2.Sub(previousAmount.Mul(price))
-	e := beta.Sub(_1)
-	f := index.Mul(pos1).Add(m0)
-	a := index.Mul(e).Add(price).Mul(f).Mul(index)
-	denominator := a.Mul(_2)
-	if denominator.IsZero() {
-		g := index.Mul(e).Mul(previousAmount).Add(previousMa1MinusMa2)
-		denominator2 := beta.Mul(m0).Mul(m0).Add(f.Mul(g))
-		if denominator2.IsZero() {
-			return _0
-		}
-		amount := f.Mul(f).Mul(g).Div(index).Div(denominator2)
-		return amount
-	}
-	b := index.Mul(index).Mul(index).Mul(e).Mul(pos1).Mul(pos1)
-	b = b.Add(m0.Mul(m0).Mul(price))
-	b = b.Add(pos1.Mul(price).Add(e.Mul(m0).Mul(_2)).Sub(d).Mul(pos1).Mul(index).Mul(index))
-	b = b.Sub(d.Add(m0).Sub(pos1.Mul(price).Mul(_2)).Mul(m0).Mul(index))
-	c := f.Mul(f).Mul(d)
-	beforeSqrt := a.Mul(c).Mul(_4).Add(b.Mul(b))
-	if beforeSqrt.LessThan(_0) {
-		logger.Warnf("computeAMMShortInverseVWAP Δ < 0 ")
-		return _0
-	}
-	numerator := Sqrt(beforeSqrt)
-	if isClosing {
-		numerator = numerator.Neg()
-	}
-	numerator = numerator.Add(b).Neg()
-	amount := numerator.Div(denominator)
-	return amount
-}
-
-// the inverse function of VWAP when AMM holds long
-// call computeM0 before this function
-// the returned amount(= pos2 - pos1) is the amm's perspective
-func ComputeAMMLongInverseVWAP(ammContext *model.AMMTradingContext, price, beta decimal.Decimal, isClosing bool) decimal.Decimal {
-	if !ammContext.IsSafe {
-		logger.Errorf("bug: do not call ComputeAMMLongInverseVWAP when unsafe")
-		return _0
-	}
-	index := ammContext.Index
-	ma1 := ammContext.Ma1
-	m0 := ammContext.M0
-	previousMa1MinusMa2 := ammContext.DeltaMargin.Neg()
-	previousAmount := ammContext.DeltaPosition
-	/*
-	  D = previousMa1MinusMa2 - previousAmount price;
-	  A = ma1 price (i + (-1 + beta) price);
-	  B = i ma1 (D + ma1) - beta m0^2 price + (-1 + beta) ma1 (2 D + ma1) price;
-	  C = D (ma1 (ma1 + D) + beta (m0^2 - ma1 (ma1 + D)));
-	  sols = 1/(2 A) (B + sqrt(B^2 + 4 A C));
-	*/
-	d := previousMa1MinusMa2.Sub(previousAmount.Mul(price))
-	a := beta.Sub(_1).Mul(price).Add(index).Mul(ma1).Mul(price)
-	b := ma1.Add(d).Mul(index).Mul(ma1)
-	b = b.Sub(beta.Mul(m0).Mul(m0).Mul(price))
-	b = b.Add(beta.Sub(_1).Mul(ma1).Mul(_2.Mul(d).Add(ma1)).Mul(price))
-	c := ma1.Add(d).Mul(ma1).Neg().Add(m0.Mul(m0)).Mul(beta)
-	c = c.Add(ma1.Add(d).Mul(ma1))
-	c = c.Mul(d)
-	denominator := a.Mul(_2)
-	if denominator.IsZero() {
-		// G = i previousAmount + previousMa1MinusMa2 (beta - 1);
-		// H = beta m0^2 - ma1 G;
-		// sols = kappaG (-H + ma1^2 (k - 1))/i/H
-		g := index.Mul(previousAmount).Add(beta.Sub(_1).Mul(previousMa1MinusMa2))
-		h := beta.Mul(m0).Mul(m0).Sub(ma1.Mul(g))
-		if h.IsZero() {
-			logger.Warnf("warn: computeAMMLongInverseVWAP denominator2 = 0")
-			return _0
-		}
-		amount := beta.Sub(_1).Mul(ma1).Mul(ma1).Sub(h).Mul(g).Div(index).Div(h)
-		return amount
-	}
-	beforeSqrt := a.Mul(c).Mul(_4).Add(b.Mul(b))
-	if beforeSqrt.LessThan(_0) {
-		logger.Warnf("warn: computeAMMLongInverseVWAP Δ < 0")
-		return _0
-	}
-	numerator := Sqrt(beforeSqrt)
-	if isClosing {
-		numerator = numerator.Neg()
-	}
-	numerator = numerator.Add(b)
-	return numerator.Div(denominator)
-}
-
-func initAMMTradingContext(g *model.GovParams, p *model.PerpetualStorage, ammComputed *model.AccountComputed, amm *model.AccountStorage) *model.AMMTradingContext {
-	pos1 := amm.PositionAmount
-	cash := ammComputed.AvailableCashBalance
-	index := p.IndexPrice
-	lev := g.TargetLeverage
-	return &model.AMMTradingContext{
-		Index:         index,
-		Lev:           lev,
-		Cash:          cash,
-		Pos1:          pos1,
-		IsSafe:        true,
-		M0:            _0,
-		Mv:            _0,
-		Ma1:           _0,
-		DeltaMargin:   _0,
-		DeltaPosition: _0,
-	}
-}
-
-func isAmmSafe(context *model.AMMTradingContext, beta decimal.Decimal) bool {
-	if context.Pos1.IsZero() {
-		return true
-	} else if context.Pos1.LessThan(_0) {
-		return isAMMSafeShort(context, beta)
-	}
-
-	return isAMMSafeLong(context, beta)
-}
-
-func isAMMSafeShort(context *model.AMMTradingContext, beta decimal.Decimal) bool {
-	if context.Pos1.GreaterThan(_0) {
-		logger.Errorf("pos1 %s > 0 ", context.Pos1)
-		return false
-	}
-	beforeSqrt := beta.Mul(context.Lev)
-	if beforeSqrt.LessThan(_0) {
-		logger.Errorf("ammSafe sqrt < 0")
-		return false
-	}
-	denominator := context.Lev.Add(_1).Add(_2.Mul(Sqrt(beforeSqrt)))
-	safeIndex := context.Lev.Neg().Mul(context.Cash).Div(context.Pos1).Div(denominator)
-	return context.Index.LessThanOrEqual(safeIndex)
-}
-
-func isAMMSafeLong(context *model.AMMTradingContext, beta decimal.Decimal) bool {
-	if context.Pos1.LessThan(_0) {
-		logger.Errorf("pos1 %s < 0 ", context.Pos1)
-		return false
-	}
-	if context.Cash.GreaterThanOrEqual(_0) {
-		return true
-	}
-	levMinus1 := context.Lev.Sub(_1)
-	beforeSqrt := beta.Mul(levMinus1.Add(beta))
-	if beforeSqrt.LessThan(_0) {
-		logger.Errorf("ammSafe sqrt < 0")
-		return false
-	}
-	safeIndex := context.Lev.Neg().Mul(context.Cash)
-	safeIndex = safeIndex.Mul(levMinus1.Add(_2.Mul(beta.Add(Sqrt(beforeSqrt)))))
-	safeIndex = safeIndex.Div(context.Pos1).Div(levMinus1).Div(levMinus1)
-	return context.Index.GreaterThanOrEqual(safeIndex)
-}
-
-func ComputeAccount(g *model.GovParams, p *model.PerpetualStorage, a *model.AccountStorage) *model.AccountComputed {
-	return ComputeAccountWithMarkPrice(g, p, a, p.MarkPrice)
-}
-
-func ComputeAccountWithMarkPrice(g *model.GovParams, p *model.PerpetualStorage, a *model.AccountStorage, markPrice decimal.Decimal) *model.AccountComputed {
-	positionValue := markPrice.Mul(a.PositionAmount.Abs())
-	positionMargin := markPrice.Mul(a.PositionAmount.Abs()).Mul(g.InitialMarginRate)
-	maintenanceMargin := markPrice.Mul(a.PositionAmount.Abs()).Mul(g.MaintenanceMarginRate)
-	fundingLoss := p.AccumulatedFundingPerContract.Mul(a.PositionAmount).Sub(a.EntryFundingLoss)
-	reservedCash := decimal.Zero
-	if !a.PositionAmount.IsZero() {
-		reservedCash = g.KeeperGasReward
-	}
-	availableCashBalance := a.CashBalance.Sub(fundingLoss)
-	marginBalance := availableCashBalance.Add(markPrice.Mul(a.PositionAmount))
-	maxWithdrawable := decimal.Max(decimal.Zero, marginBalance.Sub(positionMargin).Sub(reservedCash))
-	availableMargin := decimal.Max(decimal.Zero, maxWithdrawable)
-	withdrawableBalance := maxWithdrawable
-	isSafe := maintenanceMargin.LessThanOrEqual(marginBalance)
-	leverage := decimal.Zero
-	if marginBalance.GreaterThan(decimal.Zero) {
-		leverage = positionValue.Div(marginBalance)
-	}
-	return &model.AccountComputed{
-		PositionValue:        positionValue,
-		PositionMargin:       positionMargin,
-		Leverage:             leverage,
-		MaintenanceMargin:    maintenanceMargin,
-		FundingLoss:          fundingLoss,
-		AvailableCashBalance: availableCashBalance,
-		AvailableMargin:      availableMargin,
-		MarginBalance:        marginBalance,
-		MaxWithdrawable:      maxWithdrawable,
-		WithdrawableBalance:  withdrawableBalance,
-		IsSafe:               isSafe,
-	}
-}
-
-func ComputeAMMInternalTrade(g *model.GovParams, p *model.PerpetualStorage, a *model.AccountComputed, amm *model.AccountStorage, amount decimal.Decimal) (*model.AMMTradingContext, error) {
-	context := initAMMTradingContext(g, p, a, amm)
-	close, open := utils.SplitAmount(context.Pos1, amount)
-	if close.IsZero() && open.IsZero() {
-		return nil, fmt.Errorf("amm trade: trading amount = 0")
-	}
-	if !close.IsZero() {
-		computeAMMInternalClose(context, amount, g)
-	}
-	if !open.IsZero() {
-		computeAMMInternalOpen(context, amount, g)
-	}
-	if amount.LessThan(_0) {
-		context.DeltaMargin = context.DeltaMargin.Mul(_1.Add(g.HalfSpreadRate))
-	} else {
-		context.DeltaMargin = context.DeltaMargin.Mul(_1.Sub(g.HalfSpreadRate))
-	}
-	return context, nil
-}
-
-func computeAMMInternalClose(context *model.AMMTradingContext, amount decimal.Decimal, g *model.GovParams) {
-	beta := g.Beta2
-	pos2 := context.Pos1.Add(amount)
+func computeAMMInternalClose(context *model.AMMTradingContext, amount decimal.Decimal) (*model.AMMTradingContext, error) {
+	beta := context.CloseSlippageFactor
+	ret := copyAMMTradingContext(context)
+	index := ret.Index
+	position2 := ret.Position1.Add(amount)
 	deltaMargin := _0
-	if isAmmSafe(context, beta) {
-		computeM0(context, beta)
-		deltaMargin = computeDeltaMargin(context, beta, pos2)
+	var err error
+	if isAMMSafe(ret, beta) {
+		err = computeAMMPoolMargin(ret, beta)
+		if err != nil {
+			return nil, err
+		}
+		deltaMargin, err = computeDeltaMargin(ret, beta, position2)
+		if err != nil {
+			return nil, err
+		}
 	} else {
-		deltaMargin = context.Index.Mul(amount).Neg()
+		deltaMargin = index.Mul(amount).Neg()
 	}
-	context.DeltaMargin = context.DeltaMargin.Add(deltaMargin)
-	context.DeltaPosition = context.DeltaPosition.Add(amount)
-	context.Cash = context.Cash.Add(deltaMargin)
-	context.Pos1 = pos2
+
+	ret.DeltaMargin = ret.DeltaMargin.Add(deltaMargin)
+	ret.DeltaPosition = ret.DeltaPosition.Add(amount)
+	ret.Cash = ret.Cash.Add(deltaMargin)
+	ret.Position1 = position2
+	return ret, nil
 }
 
-func computeAMMInternalOpen(context *model.AMMTradingContext, amount decimal.Decimal, g *model.GovParams) {
-	beta := g.Beta1
-	pos2 := context.Pos1.Add(amount)
+func computeAMMInternalOpen(context *model.AMMTradingContext, amount decimal.Decimal) (*model.AMMTradingContext, error) {
+	beta := context.OpenSlippageFactor
+	ret := copyAMMTradingContext(context)
+	position2 := ret.Position1.Add(amount)
 	deltaMargin := _0
-	if !isAmmSafe(context, beta) {
-		panic("amm can not open position anymore: unsafe before trade")
+	if !isAMMSafe(ret, beta) {
+		return nil, fmt.Errorf("unsafe amm")
 	}
-	computeM0(context, beta)
+
+	if err := computeAMMPoolMargin(ret, beta); err != nil {
+		return nil, err
+	}
 	if amount.GreaterThan(_0) {
-		safePos2 := computeAMMSafeLongPositionAmount(context, g.Beta1)
-		if pos2.GreaterThan(safePos2) {
-			panic("amm can not open position anymore: position too large after trade")
+		// 0.....position2.....safePosition2
+		safePosition2 := computeAMMSafeLongPositionAmount(ret, beta)
+		if position2.GreaterThan(safePosition2) {
+			return nil, fmt.Errorf("AMM can not open position anymore: position too large after trade")
 		}
 	} else {
-		safePos2 := computeAMMSafeShortPositionAmount(context, g.Beta1)
-		if pos2.LessThan(safePos2) {
-			panic("amm can not open position anymore: position too large after trade")
+		// safePosition2.....position2.....0
+		safePosition2 := computeAMMSafeShortPositionAmount(ret, beta)
+		if position2.LessThan(safePosition2) {
+			return nil, fmt.Errorf("AMM can not open position anymore: position too large after trade")
 		}
 	}
-	deltaMargin = computeDeltaMargin(context, beta, pos2)
-	context.DeltaMargin = context.DeltaMargin.Add(deltaMargin)
-	context.DeltaPosition = context.DeltaPosition.Add(amount)
-	context.Cash = context.Cash.Add(deltaMargin)
-	context.Pos1 = pos2
+
+	deltaMargin, err := computeDeltaMargin(ret, beta, position2)
+	if err != nil {
+		return nil, err
+	}
+	ret.DeltaMargin = ret.DeltaMargin.Add(deltaMargin)
+	ret.DeltaPosition = ret.DeltaPosition.Add(amount)
+	ret.Cash = ret.Cash.Add(deltaMargin)
+	ret.Position1 = position2
+	return ret, nil
 }
 
-func computeAMMSafeLongPositionAmount(context *model.AMMTradingContext, beta decimal.Decimal) decimal.Decimal {
-	if !context.IsSafe {
-		return _0
+// the inverse function of VWAP of AMM pricing function
+// call computeAMMPoolMargin before this function
+// the returned amount(= pos2 - pos1) is the AMM's perspective
+// make sure ammSafe before this function
+func computeAMMInverseVWAP(context *model.AMMTradingContext, price, beta decimal.Decimal, isAMMBuy bool) (decimal.Decimal, error) {
+	previousMa1MinusMa2 := context.DeltaMargin.Neg()
+	previousAmount := context.DeltaPosition
+	/*
+	  A = P_i β;
+	  B = -2 P_i M + 2 A N1 + 2 M price;
+	  C = -2 M (previousMa1MinusMa2 - previousAmount price);
+	  sols = (-B ± sqrt(B^2 - 4 A C)) / (2 A);
+	*/
+	a := context.Index.Mul(beta)
+	denominator := a.Mul(_2)
+	if denominator.IsZero() {
+		return _0, fmt.Errorf("computeAMMInverseVWAP: bad perpetual parameter beta or index")
 	}
-	safePosition := _0
-	edge1 := beta.Mul(context.Lev).Add(beta).Sub(_1)
-	// if -1 + beta + beta lev = 0
-	// safePosition = m0 / 2 / i / (1 - 2 beta)
-	if edge1.IsZero() {
-		safePosition = context.M0.Div(_2).Div(context.Index).Div(_1.Sub(_2.Mul(beta)))
-		return safePosition
-	}
-	// a = (lev + beta - 1)
-	//                    (2 * beta - 1) * a + sqrt(beta * a) * (lev + 2beta - 2)
-	// safePosition = m0 -------------------------------------------------------------
-	//                           i * (lev - 1) * (beta * lev + beta - 1)
-	a := context.Lev.Add(beta).Sub(_1)
-	beforeSqrt := beta.Mul(a)
+	b := context.Index.Mul(context.PoolMargin).Neg()
+	b = b.Add(a.Mul(context.Position1))
+	b = b.Add(context.PoolMargin.Mul(price))
+	b = b.Mul(_2)
+	c := previousMa1MinusMa2.Sub(previousAmount.Mul(price)).Mul(context.PoolMargin).Mul(_2).Neg()
+	beforeSqrt := a.Mul(c).Mul(_4).Neg().Add(b.Mul(b))
 	if beforeSqrt.LessThan(_0) {
-		return _0
+		return _0, fmt.Errorf("computeAMMInverseVWAP: impossible price. beforeSqrt")
 	}
-	denominator := edge1.Mul(context.Lev.Sub(_1)).Mul(context.Index)
-	safePosition = _2.Mul(beta).Sub(_2).Add(context.Lev)
-	safePosition = safePosition.Mul(Sqrt(beforeSqrt))
-	safePosition = safePosition.Add(_2.Mul(beta).Sub(_1).Mul(a))
-	safePosition = safePosition.Mul(context.M0).Div(denominator)
-	return safePosition
+	numerator := Sqrt(beforeSqrt)
+	if !isAMMBuy {
+		numerator = numerator.Neg()
+	}
+	numerator = numerator.Sub(b)
+	return numerator.Div(denominator), nil
+}
+
+func computeDeltaMargin(context *model.AMMTradingContext, beta, position2 decimal.Decimal) (decimal.Decimal, error) {
+	if context.Position1.GreaterThan(_0) && position2.LessThan(_0) ||
+		context.Position1.LessThan(_0) && position2.GreaterThan(_0) {
+		return _0, fmt.Errorf("computeDeltaMargin: cross direction is not supported")
+	}
+	if context.PoolMargin.LessThanOrEqual(_0) {
+		return _0, fmt.Errorf("computeDeltaMargin: AMM poolMargin <= 0")
+	}
+	// P_i (N1 - N2) (1 - β / M * (N2 + N1) / 2)
+	ret := position2.Add(context.Position1).Div(_2).Div(context.PoolMargin).Mul(beta)
+	ret = _1.Sub(ret)
+	ret = context.Position1.Sub(position2).Mul(ret).Mul(context.Index)
+	return ret, nil
+}
+
+func isAMMSafe(context *model.AMMTradingContext, beta decimal.Decimal) bool {
+	valueWithCurrent := context.ValueWithoutCurrent.Add(context.Index.Mul(context.Position1))
+	squareValueWithCurrent := context.SquareValueWithoutCurrent.
+		Add(beta.Mul(context.Index).Mul(context.Position1).Mul(context.Position1))
+	// √(2 Σ(β_j P_i_j N_j)) - Σ(P_i_j N_j). always positive
+	beforeSqrt := _2.Mul(squareValueWithCurrent)
+	safeCash := Sqrt(beforeSqrt).Sub(valueWithCurrent)
+	return context.Cash.GreaterThanOrEqual(safeCash)
+}
+
+func computeAMMPoolMargin(context *model.AMMTradingContext, beta decimal.Decimal) error {
+	marginBalanceWithCurrent := context.Cash.
+		Add(context.ValueWithoutCurrent).
+		Add(context.Index.Mul(context.Position1))
+	squareValueWithCurrent := context.SquareValueWithoutCurrent.
+		Add(beta.Mul(context.Index).Mul(context.Position1).Mul(context.Position1))
+	beforeSqrt := marginBalanceWithCurrent.Mul(marginBalanceWithCurrent).Sub(_2.Mul(squareValueWithCurrent))
+	if beforeSqrt.LessThan(_0) {
+		return fmt.Errorf("AMM available margin sqrt < 0")
+	}
+	poolMargin := marginBalanceWithCurrent.Add(Sqrt(beforeSqrt)).Div(_2)
+	context.PoolMargin = poolMargin
+	return nil
 }
 
 func computeAMMSafeShortPositionAmount(context *model.AMMTradingContext, beta decimal.Decimal) decimal.Decimal {
-	if !context.IsSafe {
+	condition3, ok := computeAMMSafeCondition3(context, beta)
+	if !ok {
 		return _0
 	}
-	// safePosition = -m0 / i / (1 + sqrt(beta * lev))
-	beforeSqrt := beta.Mul(context.Lev)
+	condition3 = condition3.Neg()
+	condition2, ok := computeAMMSafeCondition2(context, beta)
+	if ok {
+		return condition3
+	}
+	condition2 = condition2.Neg()
+	return decimal.Max(condition2, condition3)
+}
+
+func computeAMMSafeLongPositionAmount(context *model.AMMTradingContext, beta decimal.Decimal) decimal.Decimal {
+	condition3, ok := computeAMMSafeCondition3(context, beta)
+	if !ok {
+		return _0
+	}
+	condition1 := computeAMMSafeCondition1(context, beta)
+	condition13 := decimal.Min(condition1, condition3)
+	condition2, ok := computeAMMSafeCondition2(context, beta)
+	if ok {
+		return condition13
+	}
+	return decimal.Min(condition2, condition13)
+}
+
+func computeAMMSafeCondition1(context *model.AMMTradingContext, beta decimal.Decimal) decimal.Decimal {
+	// M / β
+	return context.PoolMargin.Div(beta)
+}
+
+// return true if always safe
+func computeAMMSafeCondition2(context *model.AMMTradingContext, beta decimal.Decimal) (decimal.Decimal, bool) {
+	// M - Σ(positionMargin_j - squareValue_j / 2 / M) where j ≠ id
+	x := context.PoolMargin.Sub(context.PositionMarginWithoutCurrent).
+		Add(context.SquareValueWithoutCurrent.Div(context.PoolMargin).Div(_2))
+		//  M - √(M(M - 2βλ^2/P_i x))
+	// ---------------------------
+	//             βλ
+	beforeSqrt := x.Mul(context.MaxLeverage).Mul(context.MaxLeverage).Mul(beta).Mul(_2).Div(context.Index)
+	beforeSqrt = context.PoolMargin.Sub(beforeSqrt).Mul(context.PoolMargin)
 	if beforeSqrt.LessThan(_0) {
-		return _0
+		return _0, true
 	}
-	safePosition := context.M0.Neg().Div(context.Index).Div(Sqrt(beforeSqrt).Add(_1))
-	return safePosition
+	position2 := context.PoolMargin.Sub(Sqrt(beforeSqrt))
+	position2 = position2.Div(beta).Div(context.MaxLeverage)
+	return position2, false
 }
 
-func computeM0(context *model.AMMTradingContext, beta decimal.Decimal) {
-	if !isAmmSafe(context, beta) {
-		context.IsSafe = false
-		return
-	}
-	mv := _0
-	if context.Pos1.IsZero() {
-		mv = computeM0Flat(context)
-	} else if context.Pos1.GreaterThan(_0) {
-		mv = computeM0Short(context, beta)
-	} else {
-		mv = computeM0Short(context, beta)
-	}
-	m0 := mv.Mul(context.Lev).Div(context.Lev.Sub(_1))
-	ma1 := context.Cash.Add(mv)
-	context.IsSafe = true
-	context.Mv = mv
-	context.M0 = m0
-	context.Ma1 = ma1
-}
-
-func computeM0Flat(context *model.AMMTradingContext) decimal.Decimal {
-	if !context.Pos1.IsZero() {
-		return _0
-	}
-	mv := context.Cash.Mul(context.Lev.Sub(_1))
-	return mv
-}
-
-func computeM0Short(context *model.AMMTradingContext, beta decimal.Decimal) decimal.Decimal {
-	if context.Pos1.GreaterThan(_0) {
-		return _0
-	}
-	// a = 2 * index * pos1
-	// b = lev * cash + index * pos1 * (lev + 1)
-	// before_sqrt = b ** 2 - beta * lev * a ** 2
-	// v = (lev - 1) / 2 / lev * (b - a + math.sqrt(before_sqrt))
-	a := _2.Mul(context.Index).Mul(context.Pos1)
-	b := context.Lev.Mul(context.Cash)
-	b = b.Add(context.Index.Mul(context.Pos1).Mul(context.Lev.Add(_1)))
-	beforeSqrt := b.Mul(b)
-	beforeSqrt = beforeSqrt.Sub(beta.Mul(context.Lev).Mul(a).Mul(a))
+// return false if always safe
+func computeAMMSafeCondition3(context *model.AMMTradingContext, beta decimal.Decimal) (decimal.Decimal, bool) {
+	//    2M^2 - squareValueWithoutCurrent
+	// √(----------------------------------)
+	//                P_i β
+	beforeSqrt := _2.Mul(context.PoolMargin).Mul(context.PoolMargin).
+		Sub(context.SquareValueWithoutCurrent).
+		Div(context.Index).Div(beta)
 	if beforeSqrt.LessThan(_0) {
-		return _0
+		return _0, false
 	}
-	afterSqrt := Sqrt(beforeSqrt)
-	mv := context.Lev.Sub(_1).Div(_2).Div(context.Lev)
-	mv = mv.Mul(b.Sub(a).Add(afterSqrt))
-	return mv
+	return Sqrt(beforeSqrt), true
 }
 
-func computeM0Long(context *model.AMMTradingContext, beta decimal.Decimal) decimal.Decimal {
-	if context.Pos1.LessThan(_0) {
-		return _0
+func initAMMTradingContext(p *model.LiquidityPoolStorage, perpetualIndex int64) *model.AMMTradingContext {
+	if _, ok := p.Perpetuals[perpetualIndex]; !ok {
+		return nil
 	}
-	// b = lev * cash + index * pos1 * (lev - 1)
-	// before_sqrt = b ** 2 + 4 * beta * index * lev * cash * pos1
-	// v = (lev - 1) / 2 / (lev + beta - 1) * (b - 2 * (1 - beta) * cash + math.sqrt(before_sqrt))
-	b := context.Lev.Mul(context.Cash).Add(context.Index.Mul(context.Pos1).Mul(context.Lev.Sub(_1)))
-	beforeSqrt := b.Mul(b)
-	beforeSqrt = beforeSqrt.Add(_4.Mul(beta).Mul(context.Index).Mul(context.Lev).Mul(context.Cash).Mul(context.Pos1))
-	if beforeSqrt.LessThan(_0) {
-		return _0
+	index := _0
+	position1 := _0
+	halfSpread := _0
+	openSlippageFactor := _0
+	closeSlippageFactor := _0
+	fundingRateLimit := _0
+	maxLeverage := _0
+
+	otherIndex := make([]decimal.Decimal, 0)
+	otherPosition := make([]decimal.Decimal, 0)
+	otherHalfSpread := make([]decimal.Decimal, 0)
+	otherOpenSlippageFactor := make([]decimal.Decimal, 0)
+	otherCloseSlippageFactor := make([]decimal.Decimal, 0)
+	otherFundingRateCoefficient := make([]decimal.Decimal, 0)
+	otherMaxLeverage := make([]decimal.Decimal, 0)
+
+	// split perpetuals into current perpetual and other perpetuals
+	// M_c = ammCash - Σ accumulatedFunding * N
+	cash := p.PoolCashBalance
+	for id, perpetual := range p.Perpetuals {
+		cash = cash.Sub(perpetual.UnitAccumulativeFunding.Mul(perpetual.AmmPositionAmount))
+		if id == perpetualIndex {
+			index = perpetual.IndexPrice
+			position1 = perpetual.AmmPositionAmount
+			halfSpread = perpetual.HalfSpread
+			openSlippageFactor = perpetual.OpenSlippageFactor
+			closeSlippageFactor = perpetual.CloseSlippageFactor
+			fundingRateLimit = perpetual.FundingRateLimit
+			maxLeverage = perpetual.MaxLeverage
+		} else {
+			otherIndex = append(otherIndex, perpetual.IndexPrice)
+			otherPosition = append(otherPosition, perpetual.AmmPositionAmount)
+			otherHalfSpread = append(otherHalfSpread, perpetual.HalfSpread)
+			otherOpenSlippageFactor = append(otherOpenSlippageFactor, perpetual.OpenSlippageFactor)
+			otherCloseSlippageFactor = append(otherCloseSlippageFactor, perpetual.CloseSlippageFactor)
+			otherFundingRateCoefficient = append(otherFundingRateCoefficient, perpetual.FundingRateLimit)
+			otherMaxLeverage = append(otherMaxLeverage, perpetual.MaxLeverage)
+		}
 	}
-	afterSqrt := Sqrt(beforeSqrt)
-	mv := context.Lev.Sub(_1).Div(_2).Div(context.Lev.Add(beta).Sub(_1))
-	mv = mv.Mul(b.Sub(_2.Mul(_1.Sub(beta).Mul(context.Cash))).Add(afterSqrt))
-	return mv
+	ret := &model.AMMTradingContext{
+		Index:                        index,
+		Position1:                    position1,
+		HalfSpread:                   halfSpread,
+		OpenSlippageFactor:           openSlippageFactor,
+		CloseSlippageFactor:          closeSlippageFactor,
+		FundingRateLimit:             fundingRateLimit,
+		MaxLeverage:                  maxLeverage,
+		OtherIndex:                   otherIndex,
+		OtherPosition:                otherPosition,
+		OtherHalfSpread:              otherHalfSpread,
+		OtherOpenSlippageFactor:      otherOpenSlippageFactor,
+		OtherCloseSlippageFactor:     otherCloseSlippageFactor,
+		OtherFundingRateCoefficient:  otherFundingRateCoefficient,
+		OtherMaxLeverage:             otherMaxLeverage,
+		Cash:                         cash,
+		PoolMargin:                   _0,
+		DeltaMargin:                  _0,
+		DeltaPosition:                _0,
+		ValueWithoutCurrent:          _0,
+		SquareValueWithoutCurrent:    _0,
+		PositionMarginWithoutCurrent: _0,
+	}
+	initAMMTradingContextEagerEvaluation(ret)
+	return ret
 }
 
-func computeDeltaMargin(context *model.AMMTradingContext, beta, pos2 decimal.Decimal) decimal.Decimal {
-	if context.Pos1.GreaterThanOrEqual(_0) && pos2.GreaterThanOrEqual(_0) {
-		return computeDeltaMarginLong(context, beta, pos2)
-	} else if context.Pos1.LessThanOrEqual(_0) && pos2.LessThanOrEqual(_0) {
-		return computeDeltaMarginShort(context, beta, pos2)
-	} else {
-		return _0
+func initAMMTradingContextEagerEvaluation(context *model.AMMTradingContext) {
+	valueWithoutCurrent := _0
+	squareValueWithoutCurrent := _0
+	positionMarginWithoutCurrent := _0
+	for j := 0; j < len(context.OtherIndex); j++ {
+		// Σ_j (P_i N) where j ≠ id
+		valueWithoutCurrent = valueWithoutCurrent.Add(
+			context.OtherIndex[j].Mul(context.OtherPosition[j]))
+		// Σ_j (β P_i N^2) where j ≠ id
+		squareValueWithoutCurrent = squareValueWithoutCurrent.Add(
+			context.OtherOpenSlippageFactor[j].Mul(context.OtherIndex[j]).Mul(context.OtherPosition[j]).Mul(context.OtherPosition[j]))
+		// Σ_j (P_i_j * | N_j | / λ_j) where j ≠ id
+		positionMarginWithoutCurrent = positionMarginWithoutCurrent.Add(
+			context.OtherIndex[j].Mul(context.OtherPosition[j].Abs()).Div(context.OtherMaxLeverage[j]))
 	}
-}
 
-func computeDeltaMarginLong(context *model.AMMTradingContext, beta, pos2 decimal.Decimal) decimal.Decimal {
-	if context.Pos1.LessThan(_0) {
-		return _0
-	}
-	if pos2.LessThan(_0) {
-		return _0
-	}
-	if context.M0.LessThanOrEqual(_0) {
-		return _0
-	}
-	if context.Ma1.LessThanOrEqual(_0) {
-		return _0
-	}
-	// a = 2 * (1 - beta) * ma1
-	// assert a != 0
-	// b = -beta * m0 ** 2 + ma1 * (ma1 * (1 - beta) - index * (pos2 - pos1))
-	// before_sqrt = b**2 + 2 * a * ma1 * m0 ** 2 * beta
-	// assert before_sqrt >= 0
-	// ma2 = (b + math.sqrt(before_sqrt)) / a
-	a := _1.Sub(beta).Mul(context.Ma1).Mul(_2)
-	if a.IsZero() {
-		return _0
-	}
-	b := pos2.Sub(context.Pos1).Mul(context.Index)
-	b = a.Div(_2).Sub(b).Mul(context.Ma1)
-	b = b.Sub(beta.Mul(context.M0).Mul(context.M0))
-	beforeSqrt := beta.Mul(a).Mul(context.Ma1).Mul(context.M0).Mul(context.M0).Mul(_2)
-	beforeSqrt = beforeSqrt.Add(b.Mul(b))
-	if beforeSqrt.LessThan(_0) {
-		return _0
-	}
-	ma2 := Sqrt(beforeSqrt).Add(b).Div(a)
-	return ma2.Sub(context.Ma1)
-}
-
-func computeDeltaMarginShort(context *model.AMMTradingContext, beta, pos2 decimal.Decimal) decimal.Decimal {
-	if context.Pos1.GreaterThan(_0) {
-		return _0
-	}
-	if pos2.GreaterThan(_0) {
-		return _0
-	}
-	if context.M0.LessThanOrEqual(_0) {
-		return _0
-	}
-	// ma2 - ma1 = index * (pos1 - pos2) * (1 - beta + beta * m0**2 / (m0 + pos1 * index) / (m0 + pos2 * index))
-	deltaMargin := beta.Mul(context.M0).Mul(context.M0)
-	deltaMargin = deltaMargin.Div(context.Pos1.Mul(context.Index).Mul(context.M0))
-	deltaMargin = deltaMargin.Div(pos2.Mul(context.Index).Mul(context.M0))
-	deltaMargin = deltaMargin.Add(_1).Sub(beta)
-	deltaMargin = deltaMargin.Mul(context.Index).Mul(context.Pos1.Sub(pos2))
-	return deltaMargin
+	context.ValueWithoutCurrent = valueWithoutCurrent
+	context.SquareValueWithoutCurrent = squareValueWithoutCurrent
+	context.PositionMarginWithoutCurrent = positionMarginWithoutCurrent
 }

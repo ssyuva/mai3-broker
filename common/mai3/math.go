@@ -20,7 +20,7 @@ func toDecimal(v string) decimal.Decimal {
 var _0 = decimal.Zero
 var _1 = decimal.NewFromInt(1)
 var _2 = decimal.NewFromInt(2)
-var _4 = decimal.NewFromInt(2)
+var _4 = decimal.NewFromInt(4)
 var _10 = decimal.NewFromInt(10)
 var _0_1 = toDecimal("0.1")
 var _E = toDecimal("2.718281828459045235")
