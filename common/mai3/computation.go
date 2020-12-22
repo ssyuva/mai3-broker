@@ -37,6 +37,7 @@ func ComputeAMMTrade(p *model.LiquidityPoolStorage, perpetualIndex int64, trader
 	// trader
 	if err = ComputeTradeWithPrice(p, perpetualIndex, trader, tradingPrice, deltaAMMAmount.Neg(),
 		perpetual.LpFeeRate.Add(p.VaultFeeRate).Add(perpetual.OperatorFeeRate)); err != nil {
+		logger.Errorf("ComputeTradeWithPrice trader err:%s", err)
 		return _0, err
 	}
 
@@ -46,6 +47,7 @@ func ComputeAMMTrade(p *model.LiquidityPoolStorage, perpetualIndex int64, trader
 		PositionAmount: perpetual.AmmPositionAmount,
 	}
 	if err = ComputeTradeWithPrice(p, perpetualIndex, fakeAMMAccount, tradingPrice, deltaAMMAmount, _0); err != nil {
+		logger.Errorf("ComputeTradeWithPrice fakeAMMAccount err:%s", err)
 		return _0, err
 	}
 	fakeAMMAccount.CashBalance = fakeAMMAccount.CashBalance.Add(lpFee)
@@ -101,13 +103,13 @@ func ComputeTradeWithPrice(p *model.LiquidityPoolStorage, perpetualIndex int64, 
 
 	close, open := utils.SplitAmount(a.PositionAmount, amount)
 	if !close.IsZero() {
-		if err := ComputeDecreasePosition(p, perpetualIndex, a, price, amount); err != nil {
+		if err := ComputeDecreasePosition(p, perpetualIndex, a, price, close); err != nil {
 			return err
 		}
 	}
 
 	if !open.IsZero() {
-		if err := ComputeIncreasePosition(p, perpetualIndex, a, price, amount); err != nil {
+		if err := ComputeIncreasePosition(p, perpetualIndex, a, price, open); err != nil {
 			return err
 		}
 	}

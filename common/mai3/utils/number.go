@@ -63,7 +63,7 @@ func SplitAmount(position, amount decimal.Decimal) (close, open decimal.Decimal)
 	if HasTheSameSign(position, amount) {
 		close = decimal.Zero
 		open = amount
-	} else if position.Abs().GreaterThanOrEqual(amount) {
+	} else if position.Abs().GreaterThanOrEqual(amount.Abs()) {
 		close = amount
 		open = decimal.Zero
 	} else {

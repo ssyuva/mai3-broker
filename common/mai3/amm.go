@@ -25,12 +25,8 @@ func ComputeAMMAmountWithPrice(p *model.LiquidityPoolStorage, perpetualIndex int
 	if context.Position1.LessThanOrEqual(_0) && !isAMMBuy {
 		return computeAMMOpenAmountWithPrice(context, limitPrice, isAMMBuy).Neg()
 	} else if context.Position1.LessThan(_0) && isAMMBuy {
-		fmt.Println(33333)
-
 		return computeAMMCloseAndOpenAmountWithPrice(context, limitPrice, isAMMBuy).Neg()
 	} else if context.Position1.GreaterThanOrEqual(_0) && isAMMBuy {
-		fmt.Println(44444)
-
 		return computeAMMOpenAmountWithPrice(context, limitPrice, isAMMBuy).Neg()
 	} else if context.Position1.GreaterThan(_0) && !isAMMBuy {
 		return computeAMMCloseAndOpenAmountWithPrice(context, limitPrice, isAMMBuy).Neg()
@@ -124,7 +120,7 @@ func computeAMMOpenAmountWithPrice(context *model.AMMTradingContext, limitPrice 
 }
 
 func computeAMMCloseAndOpenAmountWithPrice(context *model.AMMTradingContext, limitPrice decimal.Decimal, isAMMBuy bool) decimal.Decimal {
-	if context.DeltaMargin.IsZero() || context.DeltaPosition.IsZero() {
+	if !context.DeltaMargin.IsZero() || !context.DeltaPosition.IsZero() {
 		logger.Errorf("computeAMMCloseAndOpenAmountWithPrice: partial close is not supported")
 		return _0
 	}
