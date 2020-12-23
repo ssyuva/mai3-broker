@@ -5,6 +5,7 @@ import (
 	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/mcarloai/mai-v3-broker/common/orderbook"
+	"github.com/mcarloai/mai-v3-broker/conf"
 	"github.com/shopspring/decimal"
 	logger "github.com/sirupsen/logrus"
 	"sort"
@@ -16,15 +17,19 @@ type OrderCancel struct {
 	ToCancel  decimal.Decimal
 }
 
-func (m *match) CheckOrderMargin(account *model.AccountStorage, order *model.Order) bool {
-	g := m.perpetualContext.GovParams
-	storage := m.perpetualContext.PerpStorage
-	err := mai3.ComputeTradeWithPrice(storage, account, order.Price, order.Amount, g.LpFeeRate.Add(g.VaultFeeRate).Add(g.OperatorFeeRate))
+func (m *match) CheckOrderMargin(poolStorage *model.LiquidityPoolStorage, account *model.AccountStorage, order *model.Order) bool {
+	perpetualStorage, ok := poolStorage.Perpetuals[m.perpetual.PerpetualIndex]
+	if !ok {
+		return false
+	}
+	err := mai3.ComputeTradeWithPrice(poolStorage, m.perpetual.PerpetualIndex, account,
+		order.Price, order.Amount,
+		poolStorage.VaultFeeRate.Add(perpetualStorage.LpFeeRate).Add(perpetualStorage.OperatorFeeRate))
 	if err != nil {
 		return true
 	}
-	computedAccount := mai3.ComputeAccount(g, storage, account)
-	if !computedAccount.IsSafe {
+	computedAccount, err := mai3.ComputeAccount(poolStorage, m.perpetual.PerpetualIndex, account)
+	if err != nil || !computedAccount.IsSafe {
 		return false
 	}
 
@@ -102,12 +107,6 @@ func (m *match) CheckAndModifyCloseOnly(account *model.AccountStorage, activeOrd
 	return cancels
 }
 
-// func normalizeOrders(orders []*model.Order) (bids, asks, cancels, closeOnly []*model.Orders) {
-// 	for _, order := range orders {
-
-// 	}
-// }
-
 type MatchItem struct {
 	Order              *orderbook.MemoryOrder // NOTE: mutable! should only be modified where execute match
 	OrderOriginAmount  decimal.Decimal
@@ -118,35 +117,41 @@ type MatchItem struct {
 	MatchedAmount decimal.Decimal
 }
 
-func (m *match) MatchOrderSideBySide() []*MatchItem {
+func (m *match) MatchOrderSideBySide(poolStorage *model.LiquidityPoolStorage) []*MatchItem {
 	result := make([]*MatchItem, 0)
-	var tradePrice decimal.Decimal
-	isBuy := true
+	bidPrices := m.orderbook.GetBidPricesDesc()
+	askPrices := m.orderbook.GetAskPricesAsc()
+	bidIdx := 0
+	askIdx := 0
+	bidMatched := decimal.Zero
+	askMatched := decimal.Zero
 
 	for {
-		if len(result) == mai3.MaiV3MaxMatchGroup {
+		if len(result) >= mai3.MaiV3MaxMatchGroup ||
+			((len(bidPrices) <= bidIdx) && len(askPrices) <= askIdx) {
 			break
 		}
 
-		minAsk := m.orderbook.MinAsk()
-		maxBid := m.orderbook.MaxBid()
+		if len(bidPrices) > bidIdx {
+			result, bidMatched = m.matchOneSide(poolStorage, bidPrices[bidIdx], true, result)
+			bidIdx++
+		}
 
-		if maxBid != nil && isBuy {
-			tradePrice = *maxBid
-			result = m.matchOneSide(tradePrice, isBuy, result)
-		} else if minAsk != nil && !isBuy {
-			tradePrice = *minAsk
-			result = m.matchOneSide(tradePrice, isBuy, result)
-		} else {
+		if len(askPrices) > askIdx {
+			result, askMatched = m.matchOneSide(poolStorage, askPrices[askIdx], false, result)
+			askIdx++
+		}
+
+		if bidMatched.IsZero() && askMatched.IsZero() {
 			break
 		}
-		isBuy = !isBuy
 	}
 
 	return result
 }
 
-func (m *match) matchOneSide(tradePrice decimal.Decimal, isBuy bool, result []*MatchItem) []*MatchItem {
+func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice decimal.Decimal, isBuy bool, result []*MatchItem) ([]*MatchItem, decimal.Decimal) {
+	matchedAmount := decimal.Zero
 	orders := make([]*orderbook.MemoryOrder, 0)
 	if isBuy {
 		orders = append(orders, m.orderbook.GetBidOrdersByPrice(tradePrice)...)
@@ -154,23 +159,36 @@ func (m *match) matchOneSide(tradePrice decimal.Decimal, isBuy bool, result []*M
 		orders = append(orders, m.orderbook.GetAskOrdersByPrice(tradePrice)...)
 	}
 	if len(orders) == 0 {
-		return result
+		return result, matchedAmount
 	}
 
-	maxTradeAmount := mai3.ComputeAMMAmountWithPrice(m.perpetualContext.GovParams, m.perpetualContext.PerpStorage,
-		m.perpetualContext.AMM, isBuy, tradePrice)
-	if maxTradeAmount.IsZero() || !utils.HasTheSameSign(maxTradeAmount, orders[0].Amount) {
-		return result
+	perpetual, ok := poolStorage.Perpetuals[m.perpetual.PerpetualIndex]
+	if !ok {
+		return result, matchedAmount
 	}
+
+	maxTradeAmount := mai3.ComputeAMMAmountWithPrice(poolStorage, m.perpetual.PerpetualIndex, isBuy, tradePrice)
+	if maxTradeAmount.IsZero() || !utils.HasTheSameSign(maxTradeAmount, orders[0].Amount) {
+		return result, matchedAmount
+	}
+	matchedAmount = maxTradeAmount
 	for _, order := range orders {
 		if len(result) == mai3.MaiV3MaxMatchGroup {
-			return result
+			return result, matchedAmount
 		}
-		//TODO
-		account, err := m.chainCli.GetMarginAccount(m.ctx, m.perpetual.LiquidityPoolAddress, order.Trader)
+		// check stop order
+		if order.Type == model.StopLimitOrder {
+			if order.Amount.IsPositive() && order.StopPrice.GreaterThan(perpetual.IndexPrice) { //buy
+				continue
+			} else if order.Amount.IsNegative() && order.StopPrice.LessThan(perpetual.IndexPrice) { //sell
+				continue
+			}
+		}
+
+		account, err := m.chainCli.GetAccountStorage(m.ctx, conf.Conf.ReaderAddress, m.perpetual.PerpetualIndex, m.perpetual.LiquidityPoolAddress, order.Trader)
 		if err != nil {
-			logger.Errorf("matchOneSide: GetMarginAccount fail! err:%s", err.Error())
-			return result
+			logger.Errorf("matchOneSide: GetAccountStorage fail! err:%s", err.Error())
+			return result, decimal.Zero
 		}
 
 		if maxTradeAmount.Abs().GreaterThanOrEqual(order.Amount.Abs()) {
@@ -183,11 +201,10 @@ func (m *match) matchOneSide(tradePrice decimal.Decimal, isBuy bool, result []*M
 				MatchedAmount:      order.Amount,
 			}
 			result = append(result, matchItem)
-			_, _, _, _, err = mai3.ComputeAMMTrade(m.perpetualContext.GovParams, m.perpetualContext.PerpStorage, account,
-				m.perpetualContext.AMM, order.Amount)
+			_, err = mai3.ComputeAMMTrade(poolStorage, m.perpetual.PerpetualIndex, account, order.Amount)
 			if err != nil {
 				logger.Errorf("matchOneSide: ComputeAMMTrade fail. err:%s", err)
-				return result
+				return result, decimal.Zero
 			}
 			maxTradeAmount = maxTradeAmount.Sub(order.Amount)
 		} else {
@@ -200,11 +217,10 @@ func (m *match) matchOneSide(tradePrice decimal.Decimal, isBuy bool, result []*M
 				MatchedAmount:      maxTradeAmount,
 			}
 			result = append(result, matchItem)
-			_, _, _, _, err = mai3.ComputeAMMTrade(m.perpetualContext.GovParams, m.perpetualContext.PerpStorage, account,
-				m.perpetualContext.AMM, maxTradeAmount)
+			_, err = mai3.ComputeAMMTrade(poolStorage, m.perpetual.PerpetualIndex, account, maxTradeAmount)
 			if err != nil {
 				logger.Errorf("matchOneSide: ComputeAMMTrade fail. err:%s", err)
-				return result
+				return result, decimal.Zero
 			}
 			if order.Amount.Sub(maxTradeAmount).Abs().LessThan(order.MinTradeAmount.Abs()) {
 				matchItem.OrderCancelAmounts = append(matchItem.OrderCancelAmounts, order.Amount.Sub(maxTradeAmount))
@@ -215,5 +231,5 @@ func (m *match) matchOneSide(tradePrice decimal.Decimal, isBuy bool, result []*M
 		}
 
 	}
-	return result
+	return result, matchedAmount
 }

@@ -4,7 +4,7 @@ websocket_host = ":4002"
 redis_url = "redis://127.0.0.1:6380/0"
 database_url = "postgres://postgres:postgres@localhost:5434/postgres?sslmode=disable"
 jwt_secret = "test"
-factory_address = "0x00000000000000000000000000"
+reader_address = "0xe38b806282c777F5257e7cDd8c05eb2f2200cA2a"
 broker_address = "0x00000000000000000000000000"
 watcher_id = 1
 

@@ -25,9 +25,8 @@ type ChainClient interface {
 	TransactionByHash(ctx context.Context, txHash string) (bool, error)
 	SendTransaction(ctx context.Context, tx *model.LaunchTransaction) (string, error)
 	WaitTransactionReceipt(ctx context.Context, txHash string) (*model.Receipt, error)
-	GetMarginAccount(ctx context.Context, poolAddress, account string) (*model.AccountStorage, error)
-	GetPerpetualStorage(ctx context.Context, poolAddress string) (*model.PerpetualStorage, error)
+	GetAccountStorage(ctx context.Context, readerAddress string, perpetualIndex int64, poolAddress, account string) (*model.AccountStorage, error)
+	GetLiquidityPoolStorage(ctx context.Context, readerAddress, poolAddress string) (*model.LiquidityPoolStorage, error)
 	FilterTradeSuccess(ctx context.Context, poolAddress string, start, end uint64) ([]*model.TradeSuccessEvent, error)
 	BatchTradeDataPack(orderParams []*model.WalletOrderParam, matchAmounts []decimal.Decimal, gasRewards []*big.Int) ([]byte, error)
-	GetPerpetualGovParams(ctx context.Context, poolAddress string) (*model.GovParams, error)
 }

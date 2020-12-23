@@ -46,7 +46,6 @@ const (
 	OrderPending       OrderStatus = "pending"
 	OrderPartialFilled OrderStatus = "partial_filled"
 	OrderFullFilled    OrderStatus = "full_filled"
-	OrderStop          OrderStatus = "stop"
 )
 
 type OrderSignature struct {

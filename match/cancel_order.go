@@ -20,7 +20,7 @@ func (m *match) CancelAllOrders(poolAddress string, perpIndex int64, trader stri
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	const cancelAll = true
-	orders, err := m.dao.QueryOrder(trader, poolAddress, perpIndex, []model.OrderStatus{model.OrderPending, model.OrderStop}, 0, 0, 0)
+	orders, err := m.dao.QueryOrder(trader, poolAddress, perpIndex, []model.OrderStatus{model.OrderPending}, 0, 0, 0)
 	if err != nil {
 		return fmt.Errorf("CancelAllOrders:%w", err)
 	}
@@ -45,9 +45,6 @@ func (m *match) cancelOrderWithoutLock(orderHash string, reason model.CancelReas
 			return err
 		}
 		orderbook := m.orderbook
-		if order.Type == model.StopLimitOrder {
-			orderbook = m.stopbook
-		}
 		bookOrder, ok := orderbook.GetOrder(orderHash, order.Amount.IsNegative(), order.Price)
 		if !ok {
 			if order.AvailableAmount.IsZero() {

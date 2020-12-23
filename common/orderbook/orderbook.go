@@ -3,6 +3,7 @@ package orderbook
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"sync"
 	"time"
 
@@ -18,7 +19,6 @@ type (
 		ID                   string          `json:"id"`
 		LiquidityPoolAddress string          `json:"liquidityPoolAddress"`
 		PerpetualIndex       int64           `json:"perpetualIndex"`
-		SortKey              decimal.Decimal `json:"-"`
 		Price                decimal.Decimal `json:"price"`
 		StopPrice            decimal.Decimal `json:"stopPrice"`
 		Amount               decimal.Decimal `json:"amount"`
@@ -117,8 +117,10 @@ func (p *priceLevel) Less(item llrb.Item) bool {
 
 // Orderbook ...
 type Orderbook struct {
-	bidsTree *llrb.LLRB
-	asksTree *llrb.LLRB
+	bidsTree  *llrb.LLRB
+	asksTree  *llrb.LLRB
+	bidPrices map[string]interface{}
+	askPrices map[string]interface{}
 
 	lock sync.RWMutex
 
@@ -129,8 +131,10 @@ type Orderbook struct {
 // NewOrderbook return a new book
 func NewOrderbook() *Orderbook {
 	book := &Orderbook{
-		bidsTree: llrb.New(),
-		asksTree: llrb.New(),
+		bidsTree:  llrb.New(),
+		asksTree:  llrb.New(),
+		bidPrices: make(map[string]interface{}),
+		askPrices: make(map[string]interface{}),
 	}
 
 	return book
@@ -150,10 +154,10 @@ func (book *Orderbook) InsertOrder(order *MemoryOrder) error {
 		tree = book.bidsTree
 	}
 
-	price := tree.Get(newPriceLevel(order.SortKey))
+	price := tree.Get(newPriceLevel(order.Price))
 
 	if price == nil {
-		price = newPriceLevel(order.SortKey)
+		price = newPriceLevel(order.Price)
 		tree.InsertNoReplace(price)
 	}
 
@@ -162,6 +166,11 @@ func (book *Orderbook) InsertOrder(order *MemoryOrder) error {
 		return fmt.Errorf("InsertOrder:%w", err)
 	}
 
+	if order.Amount.IsNegative() {
+		book.askPrices[order.Price.String()] = nil
+	} else {
+		book.bidPrices[order.Price.String()] = nil
+	}
 	book.Sequence++
 	book.UpdatedAt = time.Now().UTC()
 
@@ -181,9 +190,9 @@ func (book *Orderbook) RemoveOrder(order *MemoryOrder) error {
 		tree = book.bidsTree
 	}
 
-	plItem := tree.Get(newPriceLevel(order.SortKey))
+	plItem := tree.Get(newPriceLevel(order.Price))
 	if plItem == nil {
-		return fmt.Errorf("remove order: find price level fail, price=%s:%w", order.SortKey, OrderNotFoundError)
+		return fmt.Errorf("remove order: find price level fail, price=%s:%w", order.Price, OrderNotFoundError)
 	}
 
 	price := plItem.(*priceLevel)
@@ -199,6 +208,11 @@ func (book *Orderbook) RemoveOrder(order *MemoryOrder) error {
 
 	if price.Len() <= 0 {
 		tree.Delete(price)
+		if order.Amount.IsNegative() {
+			delete(book.askPrices, order.Price.String())
+		} else {
+			delete(book.bidPrices, order.Price.String())
+		}
 	}
 
 	book.Sequence++
@@ -218,7 +232,7 @@ func (book *Orderbook) ChangeOrder(order *MemoryOrder, changeAmount decimal.Deci
 		tree = book.bidsTree
 	}
 
-	plItem := tree.Get(newPriceLevel(order.SortKey))
+	plItem := tree.Get(newPriceLevel(order.Price))
 
 	if plItem == nil {
 		return fmt.Errorf("can't change order which is not in this orderbook. order: %+v:%w", order, OrderNotFoundError)
@@ -234,6 +248,11 @@ func (book *Orderbook) ChangeOrder(order *MemoryOrder, changeAmount decimal.Deci
 	}
 	if price.Len() <= 0 {
 		tree.Delete(price)
+		if order.Amount.IsNegative() {
+			delete(book.askPrices, order.Price.String())
+		} else {
+			delete(book.bidPrices, order.Price.String())
+		}
 	}
 
 	book.Sequence++
@@ -272,6 +291,40 @@ func (book *Orderbook) MaxBid() *decimal.Decimal {
 		return &maxItem.(*priceLevel).price
 	}
 	return nil
+}
+
+func (book *Orderbook) GetBidPricesDesc() []decimal.Decimal {
+	book.lock.Lock()
+	defer book.lock.Unlock()
+
+	prices := make([]decimal.Decimal, 0)
+	for key := range book.bidPrices {
+		price, _ := decimal.NewFromString(key)
+		prices = append(prices, price)
+	}
+
+	sort.Slice(prices, func(i, j int) bool {
+		return prices[i].GreaterThan(prices[j])
+	})
+
+	return prices
+}
+
+func (book *Orderbook) GetAskPricesAsc() []decimal.Decimal {
+	book.lock.Lock()
+	defer book.lock.Unlock()
+
+	prices := make([]decimal.Decimal, 0)
+	for key := range book.askPrices {
+		price, _ := decimal.NewFromString(key)
+		prices = append(prices, price)
+	}
+
+	sort.Slice(prices, func(i, j int) bool {
+		return prices[i].LessThan(prices[j])
+	})
+
+	return prices
 }
 
 // MinAsk ...

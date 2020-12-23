@@ -1,0 +1,231 @@
+[
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "liquidityPool",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "perpetualIndex",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        }
+      ],
+      "name": "getAccountStorage",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "int256",
+              "name": "cashBalance",
+              "type": "int256"
+            },
+            {
+              "internalType": "int256",
+              "name": "positionAmount",
+              "type": "int256"
+            }
+          ],
+          "internalType": "struct MarginAccount",
+          "name": "marginAccount",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "liquidityPool",
+          "type": "address"
+        }
+      ],
+      "name": "getLiquidityPoolStorage",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "operator",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "collateral",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "vault",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "governor",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "shareToken",
+              "type": "address"
+            },
+            {
+              "internalType": "int256",
+              "name": "vaultFeeRate",
+              "type": "int256"
+            },
+            {
+              "internalType": "int256",
+              "name": "insuranceFundCap",
+              "type": "int256"
+            },
+            {
+              "internalType": "int256",
+              "name": "insuranceFund",
+              "type": "int256"
+            },
+            {
+              "internalType": "int256",
+              "name": "donatedInsuranceFund",
+              "type": "int256"
+            },
+            {
+              "internalType": "int256",
+              "name": "totalClaimableFee",
+              "type": "int256"
+            },
+            {
+              "internalType": "int256",
+              "name": "poolCashBalance",
+              "type": "int256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "fundingTime",
+              "type": "uint256"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "string",
+                  "name": "underlyingAsset",
+                  "type": "string"
+                },
+                {
+                  "internalType": "enum PerpetualState",
+                  "name": "state",
+                  "type": "uint8"
+                },
+                {
+                  "internalType": "address",
+                  "name": "oracle",
+                  "type": "address"
+                },
+                {
+                  "internalType": "int256",
+                  "name": "markPrice",
+                  "type": "int256"
+                },
+                {
+                  "internalType": "int256",
+                  "name": "indexPrice",
+                  "type": "int256"
+                },
+                {
+                  "internalType": "int256",
+                  "name": "unitAccumulativeFunding",
+                  "type": "int256"
+                },
+                {
+                  "internalType": "int256",
+                  "name": "initialMarginRate",
+                  "type": "int256"
+                },
+                {
+                  "internalType": "int256",
+                  "name": "maintenanceMarginRate",
+                  "type": "int256"
+                },
+                {
+                  "internalType": "int256",
+                  "name": "operatorFeeRate",
+                  "type": "int256"
+                },
+                {
+                  "internalType": "int256",
+                  "name": "lpFeeRate",
+                  "type": "int256"
+                },
+                {
+                  "internalType": "int256",
+                  "name": "referrerRebateRate",
+                  "type": "int256"
+                },
+                {
+                  "internalType": "int256",
+                  "name": "liquidationPenaltyRate",
+                  "type": "int256"
+                },
+                {
+                  "internalType": "int256",
+                  "name": "keeperGasReward",
+                  "type": "int256"
+                },
+                {
+                  "internalType": "int256",
+                  "name": "insuranceFundRate",
+                  "type": "int256"
+                },
+                {
+                  "internalType": "int256",
+                  "name": "halfSpread",
+                  "type": "int256"
+                },
+                {
+                  "internalType": "int256",
+                  "name": "openSlippageFactor",
+                  "type": "int256"
+                },
+                {
+                  "internalType": "int256",
+                  "name": "closeSlippageFactor",
+                  "type": "int256"
+                },
+                {
+                  "internalType": "int256",
+                  "name": "fundingRateLimit",
+                  "type": "int256"
+                },
+                {
+                  "internalType": "int256",
+                  "name": "maxLeverage",
+                  "type": "int256"
+                },
+                {
+                  "internalType": "int256",
+                  "name": "ammPositionAmount",
+                  "type": "int256"
+                }
+              ],
+              "internalType": "struct Reader.PerpetualStorage[]",
+              "name": "perpetualStorages",
+              "type": "tuple[]"
+            }
+          ],
+          "internalType": "struct Reader.LiquidityPoolStorage",
+          "name": "pool",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+]

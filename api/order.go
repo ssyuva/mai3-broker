@@ -117,14 +117,8 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 	order := model.Order{}
 	order.OrderHash = params.OrderHash
 	order.OrderParam.TraderAddress = strings.ToLower(params.Address)
-	if params.OrderType == int(model.LimitOrder) {
-		order.OrderParam.Type = model.LimitOrder
-		order.Status = model.OrderPending
-	} else {
-		order.OrderParam.Type = model.StopLimitOrder
-		order.Status = model.OrderStop
-	}
-
+	order.OrderParam.Type = model.LimitOrder(params.OrderType)
+	order.Status = model.OrderPending
 	order.OrderParam.Amount, _ = decimal.NewFromString(params.Amount)
 	order.OrderParam.Version = int32(mai3.ProtocolV3)
 	order.OrderParam.ChainID = params.ChainID

@@ -18,9 +18,9 @@ func (m *match) NewOrder(order *model.Order) string {
 	defer m.mu.Unlock()
 
 	//TODO
-	account, err := m.chainCli.GetMarginAccount(m.ctx, m.perpetual.LiquidityPoolAddress, order.TraderAddress)
+	account, err := m.chainCli.GetAccountStorage(m.ctx, conf.Conf.ReaderAddress, m.perpetual.PerpetualIndex, m.perpetual.LiquidityPoolAddress, order.TraderAddress)
 	if err != nil {
-		logger.Errorf("GetMarginAccount err:%s", err)
+		logger.Errorf("GetAccountStorage err:%s", err)
 		return model.MatchInternalErrorID
 	}
 
@@ -28,11 +28,17 @@ func (m *match) NewOrder(order *model.Order) string {
 		return model.MatchCloseOnlyErrorID
 	}
 
-	if !m.CheckOrderMargin(account, order) {
+	poolStorage, err := m.chainCli.GetLiquidityPoolStorage(m.ctx, conf.Conf.ReaderAddress, m.perpetual.LiquidityPoolAddress)
+	if err != nil {
+		logger.Errorf("matchOrders: GetLiquidityPoolStorage fail! err:%s", err.Error())
+		return model.MatchInternalErrorID
+	}
+
+	if !m.CheckOrderMargin(poolStorage, account, order) {
 		return model.MatchInsufficientBalanceErrorID
 	}
 
-	activeOrders, err := m.dao.QueryOrder(order.TraderAddress, order.LiquidityPoolAddress, order.PerpetualIndex, []model.OrderStatus{model.OrderPending, model.OrderStop}, 0, 0, 0)
+	activeOrders, err := m.dao.QueryOrder(order.TraderAddress, order.LiquidityPoolAddress, order.PerpetualIndex, []model.OrderStatus{model.OrderPending}, 0, 0, 0)
 	if err != nil {
 		logger.Errorf("QueryOrder err:%s", err)
 		return model.MatchInternalErrorID
@@ -65,16 +71,8 @@ func (m *match) NewOrder(order *model.Order) string {
 		}
 
 		memoryOrder := m.getMemoryOrder(order)
-		if order.Status == model.OrderPending {
-			memoryOrder.SortKey = order.Price
-			if err := m.orderbook.InsertOrder(memoryOrder); err != nil {
-				return err
-			}
-		} else {
-			memoryOrder.SortKey = order.StopPrice
-			if err := m.stopbook.InsertOrder(memoryOrder); err != nil {
-				return err
-			}
+		if err := m.orderbook.InsertOrder(memoryOrder); err != nil {
+			return err
 		}
 		if err := m.setExpirationTimer(order.OrderHash, order.ExpiresAt); err != nil {
 			return err

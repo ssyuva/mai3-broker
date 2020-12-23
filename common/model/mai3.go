@@ -48,18 +48,18 @@ type AccountStorage struct {
 	// EntryFundingLoss decimal.Decimal
 }
 
-// type AccountComputed struct {
-// 	PositionValue        decimal.Decimal
-// 	PositionMargin       decimal.Decimal
-// 	MaintenanceMargin    decimal.Decimal
-// 	AvailableCashBalance decimal.Decimal
-// 	MarginBalance        decimal.Decimal
-// 	AvailableMargin      decimal.Decimal
-// 	MaxWithdrawable      decimal.Decimal
-// 	WithdrawableBalance  decimal.Decimal
-// 	IsSafe               bool
-// 	Leverage             decimal.Decimal
-// }
+type AccountComputed struct {
+	PositionValue        decimal.Decimal
+	PositionMargin       decimal.Decimal
+	MaintenanceMargin    decimal.Decimal
+	AvailableCashBalance decimal.Decimal
+	MarginBalance        decimal.Decimal
+	AvailableMargin      decimal.Decimal
+	MaxWithdrawable      decimal.Decimal
+	WithdrawableBalance  decimal.Decimal
+	IsSafe               bool
+	Leverage             decimal.Decimal
+}
 
 type AMMTradingContext struct {
 	// current trading perpetual

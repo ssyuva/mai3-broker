@@ -21,13 +21,18 @@ func (m *match) checkOrdersMargin() {
 }
 
 func (m *match) checkPerpUserOrders() {
-	users, err := m.dao.GetPendingOrderUsers(m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex, []model.OrderStatus{model.OrderPending, model.OrderStop})
+	users, err := m.dao.GetPendingOrderUsers(m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex, []model.OrderStatus{model.OrderPending})
 	if err != nil {
 		logger.Errorf("checkOrdersMargin: GetPendingOrderUsers %s", err)
 		return
 	}
+	poolStorage, err := m.chainCli.GetLiquidityPoolStorage(m.ctx, conf.Conf.ReaderAddress, m.perpetual.LiquidityPoolAddress)
+	if err != nil {
+		logger.Errorf("matchOrders: GetLiquidityPoolStorage fail! err:%s", err.Error())
+		return
+	}
 	for _, user := range users {
-		cancels := m.checkUserPendingOrders(user)
+		cancels := m.checkUserPendingOrders(poolStorage, user)
 		for _, cancel := range cancels {
 			err := m.CancelOrder(cancel.OrderHash, model.CancelReasonAdminCancel, true, cancel.ToCancel)
 			if err != nil {
@@ -37,10 +42,9 @@ func (m *match) checkPerpUserOrders() {
 	}
 }
 
-func (m *match) checkUserPendingOrders(user string) []*OrderCancel {
+func (m *match) checkUserPendingOrders(poolStorage *model.LiquidityPoolStorage, user string) []*OrderCancel {
 	cancels := make([]*OrderCancel, 0)
-	//TODO
-	account, err := m.chainCli.GetMarginAccount(m.ctx, m.perpetual.LiquidityPoolAddress, user)
+	account, err := m.chainCli.GetAccountStorage(m.ctx, conf.Conf.ReaderAddress, m.perpetual.PerpetualIndex, m.perpetual.LiquidityPoolAddress, user)
 	if err != nil {
 		return cancels
 	}
@@ -50,7 +54,7 @@ func (m *match) checkUserPendingOrders(user string) []*OrderCancel {
 		return cancels
 	}
 	// check order margin and close Only order
-	orders, err := m.dao.QueryOrder(user, m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex, []model.OrderStatus{model.OrderPending, model.OrderStop}, 0, 0, 0)
+	orders, err := m.dao.QueryOrder(user, m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex, []model.OrderStatus{model.OrderPending}, 0, 0, 0)
 	if err != nil {
 		logger.Errorf("checkUserPendingOrders:%w", err)
 		return cancels
@@ -83,7 +87,7 @@ func (m *match) checkUserPendingOrders(user string) []*OrderCancel {
 			continue
 		}
 
-		if !m.CheckOrderMargin(account, order) {
+		if !m.CheckOrderMargin(poolStorage, account, order) {
 			cancel := &OrderCancel{
 				OrderHash: order.OrderHash,
 				Status:    order.Status,

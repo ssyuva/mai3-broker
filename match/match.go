@@ -17,18 +17,16 @@ import (
 )
 
 type match struct {
-	ctx              context.Context
-	cancel           context.CancelFunc
-	mu               sync.Mutex
-	wsChan           chan interface{}
-	orderbook        *orderbook.Orderbook
-	stopbook         *orderbook.Orderbook
-	perpetual        *model.Perpetual
-	perpetualContext PerpetualContext
-	chainCli         chain.ChainClient
-	gasMonitor       *gasmonitor.GasMonitor
-	dao              dao.DAO
-	timers           map[string]*time.Timer
+	ctx        context.Context
+	cancel     context.CancelFunc
+	mu         sync.Mutex
+	wsChan     chan interface{}
+	orderbook  *orderbook.Orderbook
+	perpetual  *model.Perpetual
+	chainCli   chain.ChainClient
+	gasMonitor *gasmonitor.GasMonitor
+	dao        dao.DAO
+	timers     map[string]*time.Timer
 }
 
 func newMatch(ctx context.Context, cli chain.ChainClient, dao dao.DAO, perpetual *model.Perpetual, wsChan chan interface{}, gm *gasmonitor.GasMonitor) (*match, error) {
@@ -39,18 +37,13 @@ func newMatch(ctx context.Context, cli chain.ChainClient, dao dao.DAO, perpetual
 		wsChan:     wsChan,
 		perpetual:  perpetual,
 		orderbook:  orderbook.NewOrderbook(),
-		stopbook:   orderbook.NewOrderbook(),
 		chainCli:   cli,
 		gasMonitor: gm,
 		dao:        dao,
 		timers:     make(map[string]*time.Timer),
 	}
 
-	err := m.updatePerpContext()
-	if err != nil {
-		return nil, err
-	}
-	err = m.run()
+	err := m.run()
 	if err != nil {
 		return nil, err
 	}
@@ -63,9 +56,6 @@ func (m *match) run() error {
 		return err
 	}
 
-	// go update perpetual context
-	go m.checkPerpetualContext()
-
 	// go monitor check user margin gas
 	go m.checkOrdersMargin()
 
@@ -75,80 +65,11 @@ func (m *match) run() error {
 	return nil
 }
 
-func (m *match) matchStopOrders() {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	wg := sync.WaitGroup{}
-	indexPrice := m.perpetualContext.PerpStorage.IndexPrice
-
-	wg.Add(1)
-	go func() {
-		for {
-			minBidPrice := m.stopbook.MinBid()
-			if minBidPrice != nil && minBidPrice.LessThanOrEqual(indexPrice) {
-				orders := m.stopbook.GetBidOrdersByPrice(*minBidPrice)
-				for _, order := range orders {
-					m.changeStopOrder(order)
-				}
-			} else {
-				break
-			}
-		}
-		wg.Done()
-	}()
-
-	wg.Add(1)
-	go func() {
-		for {
-			maxAskPrice := m.stopbook.MaxAsk()
-			if maxAskPrice != nil && maxAskPrice.GreaterThanOrEqual(indexPrice) {
-				orders := m.stopbook.GetAskOrdersByPrice(*maxAskPrice)
-				for _, order := range orders {
-					m.changeStopOrder(order)
-				}
-			} else {
-				break
-			}
-		}
-		wg.Done()
-	}()
-
-	wg.Wait()
-	return
-}
-
 func (m *match) Close() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.stopTimers()
 	m.cancel()
-}
-
-func (m *match) changeStopOrder(memoryOrder *orderbook.MemoryOrder) {
-	err := m.dao.Transaction(context.Background(), false /* readonly */, func(dao dao.DAO) error {
-		dao.ForUpdate()
-		order, err := dao.GetOrder(memoryOrder.ID)
-		if err != nil {
-			return err
-		}
-		order.Status = model.OrderPending
-		if err = dao.UpdateOrder(order); err != nil {
-			return err
-		}
-
-		if err := m.stopbook.RemoveOrder(memoryOrder); err != nil {
-			return err
-		}
-
-		memoryOrder.SortKey = memoryOrder.Price
-		if err := m.orderbook.InsertOrder(memoryOrder); err != nil {
-			return err
-		}
-		return nil
-	})
-	if err != nil {
-		logger.Errorf("change stop order to pending order fail! err:%s", err)
-	}
 }
 
 func (m *match) matchOrders() {
@@ -164,7 +85,12 @@ func (m *match) matchOrders() {
 		return
 	}
 	// compute match orders
-	matchItems := m.MatchOrderSideBySide()
+	poolStorage, err := m.chainCli.GetLiquidityPoolStorage(m.ctx, conf.Conf.ReaderAddress, m.perpetual.LiquidityPoolAddress)
+	if err != nil {
+		logger.Errorf("matchOrders: GetLiquidityPoolStorage fail! err:%s", err.Error())
+		return
+	}
+	matchItems := m.MatchOrderSideBySide(poolStorage)
 	if len(matchItems) == 0 {
 		return
 	}
@@ -246,7 +172,6 @@ func (m *match) runMatch() {
 		case <-m.ctx.Done():
 			return
 		case <-time.After(time.Second):
-			m.matchStopOrders()
 			m.matchOrders()
 		}
 	}
@@ -255,21 +180,15 @@ func (m *match) runMatch() {
 func (m *match) reloadActiveOrders() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	orders, err := m.dao.QueryOrder("", m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex, []model.OrderStatus{model.OrderPending, model.OrderStop}, 0, 0, 0)
+	orders, err := m.dao.QueryOrder("", m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex, []model.OrderStatus{model.OrderPending}, 0, 0, 0)
 	if err != nil {
 		return err
 	}
 	for _, order := range orders {
 		if !order.AvailableAmount.IsZero() {
 			memoryOrder := m.getMemoryOrder(order)
-			if order.Type == model.StopLimitOrder {
-				if err := m.stopbook.InsertOrder(memoryOrder); err != nil {
-					return fmt.Errorf("reloadActiveOrders:%w", err)
-				}
-			} else {
-				if err := m.orderbook.InsertOrder(memoryOrder); err != nil {
-					return fmt.Errorf("reloadActiveOrders:%w", err)
-				}
+			if err := m.orderbook.InsertOrder(memoryOrder); err != nil {
+				return fmt.Errorf("reloadActiveOrders:%w", err)
 			}
 
 			if err := m.setExpirationTimer(order.OrderHash, order.ExpiresAt); err != nil {
@@ -286,7 +205,6 @@ func (m *match) getMemoryOrder(order *model.Order) *orderbook.MemoryOrder {
 		LiquidityPoolAddress: order.LiquidityPoolAddress,
 		PerpetualIndex:       order.PerpetualIndex,
 		Price:                order.Price,
-		SortKey:              order.Price,
 		StopPrice:            order.StopPrice,
 		Amount:               order.AvailableAmount,
 		MinTradeAmount:       order.MinTradeAmount,

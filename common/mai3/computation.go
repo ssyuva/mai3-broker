@@ -8,6 +8,43 @@ import (
 	logger "github.com/sirupsen/logrus"
 )
 
+func ComputeAccount(p *model.LiquidityPoolStorage, perpetualIndex int64, a *model.AccountStorage) (*model.AccountComputed, error) {
+	perpetual, ok := p.Perpetuals[perpetualIndex]
+	if !ok {
+		return nil, fmt.Errorf("perpetual %d not found in the pool", perpetualIndex)
+	}
+	positionValue := perpetual.MarkPrice.Mul(a.PositionAmount.Abs())
+	positionMargin := positionValue.Mul(perpetual.InitialMarginRate)
+	maintenanceMargin := positionValue.Mul(perpetual.MaintenanceMarginRate)
+	reservedCash := _0
+	if a.PositionAmount.IsZero() {
+		reservedCash = perpetual.KeeperGasReward
+	}
+	availableCashBalance := a.CashBalance.Sub(a.PositionAmount.Mul(perpetual.UnitAccumulativeFunding))
+	marginBalance := availableCashBalance.Add(perpetual.MarkPrice.Mul(a.PositionAmount))
+	maxWithdrawable := decimal.Max(_0, marginBalance.Sub(positionMargin).Sub(reservedCash))
+	withdrawableBalance := maxWithdrawable
+	availableMargin := decimal.Max(_0, maxWithdrawable)
+	isSafe := maintenanceMargin.LessThanOrEqual(marginBalance)
+	leverage := _0
+	if marginBalance.GreaterThan(_0) {
+		leverage = positionValue.Div(marginBalance)
+	}
+
+	return &model.AccountComputed{
+		PositionValue:        positionValue,
+		PositionMargin:       positionMargin,
+		MaintenanceMargin:    maintenanceMargin,
+		AvailableCashBalance: availableCashBalance,
+		MarginBalance:        marginBalance,
+		AvailableMargin:      availableMargin,
+		MaxWithdrawable:      maxWithdrawable,
+		WithdrawableBalance:  withdrawableBalance,
+		IsSafe:               isSafe,
+		Leverage:             leverage,
+	}, nil
+}
+
 func ComputeAMMTrade(p *model.LiquidityPoolStorage, perpetualIndex int64, trader *model.AccountStorage, amount decimal.Decimal) (decimal.Decimal, error) {
 	if amount.IsZero() {
 		return _0, fmt.Errorf("bad amount")
