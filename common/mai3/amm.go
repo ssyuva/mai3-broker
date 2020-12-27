@@ -48,6 +48,7 @@ func copyAMMTradingContext(ammContext *model.AMMTradingContext) *model.AMMTradin
 		PoolMargin:                   ammContext.PoolMargin,
 		DeltaMargin:                  ammContext.DeltaMargin,
 		DeltaPosition:                ammContext.DeltaPosition,
+		BestAskBidPrice:              ammContext.BestAskBidPrice,
 		ValueWithoutCurrent:          ammContext.ValueWithoutCurrent,
 		SquareValueWithoutCurrent:    ammContext.SquareValueWithoutCurrent,
 		PositionMarginWithoutCurrent: ammContext.PositionMarginWithoutCurrent,
