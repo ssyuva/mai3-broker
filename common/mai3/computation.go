@@ -125,11 +125,16 @@ func computeAMMInternalTrade(p *model.LiquidityPoolStorage, perpetualIndex int64
 			return nil, err
 		}
 	}
-	if amount.LessThan(_0) {
-		context.DeltaMargin = context.DeltaMargin.Mul(_1.Add(context.HalfSpread))
-	} else {
-		context.DeltaMargin = context.DeltaMargin.Mul(_1.Sub(context.HalfSpread))
+	// negative price
+	if context.DeltaPosition.LessThan(_0) && context.DeltaMargin.LessThan(_0) {
+		context.DeltaMargin = _0
 	}
+
+	valueAtBestAskBidPrice := context.BestAskBidPrice.Mul(amount).Neg()
+	if context.DeltaMargin.LessThan(valueAtBestAskBidPrice) {
+		context.DeltaMargin = valueAtBestAskBidPrice
+	}
+
 	return context, nil
 }
 

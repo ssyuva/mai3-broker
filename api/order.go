@@ -117,7 +117,7 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 	order := model.Order{}
 	order.OrderHash = params.OrderHash
 	order.OrderParam.TraderAddress = strings.ToLower(params.Address)
-	order.OrderParam.Type = model.LimitOrder(params.OrderType)
+	order.OrderParam.Type = model.OrderType(params.OrderType)
 	order.Status = model.OrderPending
 	order.OrderParam.Amount, _ = decimal.NewFromString(params.Amount)
 	order.OrderParam.Version = int32(mai3.ProtocolV3)
@@ -156,7 +156,6 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 	order.UpdatedAt = now
 
 	// check orderhash
-	// TODO
 	orderData := mai3.GenerateOrderData(params.ExpiresAt, order.Version, int8(order.Type), order.IsCloseOnly, order.OrderParam.Salt)
 	orderHash, err := mai3.GetOrderHash(order.TraderAddress, order.BrokerAddress, order.RelayerAddress, order.LiquidityPoolAddress, order.ReferrerAddress,
 		orderData, order.Amount, order.Price, order.ChainID)

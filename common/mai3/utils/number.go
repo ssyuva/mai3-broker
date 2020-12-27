@@ -56,6 +56,9 @@ func MustDecimalToBigInt(d decimal.Decimal) *big.Int {
 }
 
 func HasTheSameSign(x, y decimal.Decimal) bool {
+	if x.IsZero() || y.IsZero() {
+		return true
+	}
 	return (x.Sign() ^ y.Sign()) == 0
 }
 

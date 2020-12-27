@@ -4,6 +4,19 @@
     "inputs": [
       {
         "indexed": false,
+        "internalType": "bytes32",
+        "name": "orderHash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "CancelOrder",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
         "internalType": "address",
         "name": "trader",
         "type": "address"
@@ -16,6 +29,25 @@
       }
     ],
     "name": "Deposit",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "orderHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "int256",
+        "name": "fillAmount",
+        "type": "int256"
+      }
+    ],
+    "name": "FillOrder",
     "type": "event"
   },
   {
@@ -46,13 +78,18 @@
           },
           {
             "internalType": "address",
-            "name": "perpetual",
+            "name": "referrer",
             "type": "address"
           },
           {
             "internalType": "address",
-            "name": "referrer",
+            "name": "liquidityPool",
             "type": "address"
+          },
+          {
+            "internalType": "int256",
+            "name": "minTradeAmount",
+            "type": "int256"
           },
           {
             "internalType": "int256",
@@ -61,18 +98,43 @@
           },
           {
             "internalType": "int256",
-            "name": "priceLimit",
+            "name": "limitPrice",
             "type": "int256"
           },
           {
-            "internalType": "bytes32",
-            "name": "data",
-            "type": "bytes32"
+            "internalType": "int256",
+            "name": "triggerPrice",
+            "type": "int256"
           },
           {
             "internalType": "uint256",
             "name": "chainID",
             "type": "uint256"
+          },
+          {
+            "internalType": "uint64",
+            "name": "expiredAt",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint32",
+            "name": "perpetualIndex",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint32",
+            "name": "brokerFeeLimit",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint32",
+            "name": "flags",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint32",
+            "name": "salt",
+            "type": "uint32"
           }
         ],
         "indexed": false,
@@ -85,6 +147,12 @@
         "internalType": "int256",
         "name": "amount",
         "type": "int256"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "reason",
+        "type": "string"
       }
     ],
     "name": "TradeFailed",
@@ -118,13 +186,18 @@
           },
           {
             "internalType": "address",
-            "name": "perpetual",
+            "name": "referrer",
             "type": "address"
           },
           {
             "internalType": "address",
-            "name": "referrer",
+            "name": "liquidityPool",
             "type": "address"
+          },
+          {
+            "internalType": "int256",
+            "name": "minTradeAmount",
+            "type": "int256"
           },
           {
             "internalType": "int256",
@@ -133,18 +206,43 @@
           },
           {
             "internalType": "int256",
-            "name": "priceLimit",
+            "name": "limitPrice",
             "type": "int256"
           },
           {
-            "internalType": "bytes32",
-            "name": "data",
-            "type": "bytes32"
+            "internalType": "int256",
+            "name": "triggerPrice",
+            "type": "int256"
           },
           {
             "internalType": "uint256",
             "name": "chainID",
             "type": "uint256"
+          },
+          {
+            "internalType": "uint64",
+            "name": "expiredAt",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint32",
+            "name": "perpetualIndex",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint32",
+            "name": "brokerFeeLimit",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint32",
+            "name": "flags",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint32",
+            "name": "salt",
+            "type": "uint32"
           }
         ],
         "indexed": false,
@@ -213,32 +311,6 @@
     "type": "event"
   },
   {
-    "inputs": [],
-    "name": "SUPPORTED_MAX_ORDER_VERSION",
-    "outputs": [
-      {
-        "internalType": "uint32",
-        "name": "",
-        "type": "uint32"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "SUPPORTED_MIN_ORDER_VERSION",
-    "outputs": [
-      {
-        "internalType": "uint32",
-        "name": "",
-        "type": "uint32"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [
       {
         "internalType": "address",
@@ -255,6 +327,29 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes[]",
+        "name": "compressedOrders",
+        "type": "bytes[]"
+      },
+      {
+        "internalType": "int256[]",
+        "name": "amounts",
+        "type": "int256[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "gasRewards",
+        "type": "uint256[]"
+      }
+    ],
+    "name": "batchTrade",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -278,13 +373,18 @@
           },
           {
             "internalType": "address",
-            "name": "perpetual",
+            "name": "referrer",
             "type": "address"
           },
           {
             "internalType": "address",
-            "name": "referrer",
+            "name": "liquidityPool",
             "type": "address"
+          },
+          {
+            "internalType": "int256",
+            "name": "minTradeAmount",
+            "type": "int256"
           },
           {
             "internalType": "int256",
@@ -293,41 +393,51 @@
           },
           {
             "internalType": "int256",
-            "name": "priceLimit",
+            "name": "limitPrice",
             "type": "int256"
           },
           {
-            "internalType": "bytes32",
-            "name": "data",
-            "type": "bytes32"
+            "internalType": "int256",
+            "name": "triggerPrice",
+            "type": "int256"
           },
           {
             "internalType": "uint256",
             "name": "chainID",
             "type": "uint256"
+          },
+          {
+            "internalType": "uint64",
+            "name": "expiredAt",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint32",
+            "name": "perpetualIndex",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint32",
+            "name": "brokerFeeLimit",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint32",
+            "name": "flags",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint32",
+            "name": "salt",
+            "type": "uint32"
           }
         ],
-        "internalType": "struct Order[]",
-        "name": "orders",
-        "type": "tuple[]"
-      },
-      {
-        "internalType": "int256[]",
-        "name": "amounts",
-        "type": "int256[]"
-      },
-      {
-        "internalType": "bytes[]",
-        "name": "signatures",
-        "type": "bytes[]"
-      },
-      {
-        "internalType": "uint256[]",
-        "name": "gasRewards",
-        "type": "uint256[]"
+        "internalType": "struct Order",
+        "name": "order",
+        "type": "tuple"
       }
     ],
-    "name": "batchTrade",
+    "name": "cancelOrder",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

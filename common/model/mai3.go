@@ -39,6 +39,7 @@ type PerpetualStorage struct {
 	FundingRateLimit    decimal.Decimal // γ
 	MaxLeverage         decimal.Decimal // λ
 
+	AmmCashBalance    decimal.Decimal
 	AmmPositionAmount decimal.Decimal
 }
 
@@ -72,21 +73,19 @@ type AMMTradingContext struct {
 	MaxLeverage         decimal.Decimal
 
 	// other perpetuals
-	OtherIndex                  []decimal.Decimal
-	OtherPosition               []decimal.Decimal
-	OtherHalfSpread             []decimal.Decimal
-	OtherOpenSlippageFactor     []decimal.Decimal
-	OtherCloseSlippageFactor    []decimal.Decimal
-	OtherFundingRateCoefficient []decimal.Decimal
-	OtherMaxLeverage            []decimal.Decimal
+	OtherIndex              []decimal.Decimal
+	OtherPosition           []decimal.Decimal
+	OtherOpenSlippageFactor []decimal.Decimal
+	OtherMaxLeverage        []decimal.Decimal
 
 	// total
 	Cash       decimal.Decimal
 	PoolMargin decimal.Decimal
 
 	// trading result
-	DeltaMargin   decimal.Decimal
-	DeltaPosition decimal.Decimal
+	DeltaMargin     decimal.Decimal
+	DeltaPosition   decimal.Decimal
+	BestAskBidPrice decimal.Decimal
 
 	// eager evaluation
 	ValueWithoutCurrent          decimal.Decimal

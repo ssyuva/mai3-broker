@@ -15,7 +15,7 @@ import (
 func (c *Client) GetAccountStorage(ctx context.Context, readerAddress string, perpetualIndex int64, poolAddress, trader string) (*model.AccountStorage, error) {
 	var opts *ethBind.CallOpts
 
-	reader, err := HexToAddress(readerAddress)
+	address, err := HexToAddress(readerAddress)
 	if err != nil {
 		return nil, fmt.Errorf("invalid reader address:%w", err)
 	}
@@ -29,7 +29,7 @@ func (c *Client) GetAccountStorage(ctx context.Context, readerAddress string, pe
 		return nil, fmt.Errorf("invalid trader address:%w", err)
 	}
 
-	contract, err := reader.NewReader(reader, c.ethCli)
+	contract, err := reader.NewReader(address, c.ethCli)
 	if err != nil {
 		return nil, fmt.Errorf("init reader contract failed:%w", err)
 	}
@@ -48,7 +48,7 @@ func (c *Client) GetAccountStorage(ctx context.Context, readerAddress string, pe
 func (c *Client) GetLiquidityPoolStorage(ctx context.Context, readerAddress, poolAddress string) (*model.LiquidityPoolStorage, error) {
 	var opts *ethBind.CallOpts
 
-	reader, err := HexToAddress(readerAddress)
+	address, err := HexToAddress(readerAddress)
 	if err != nil {
 		return nil, fmt.Errorf("invalid reader address:%w", err)
 	}
@@ -58,7 +58,7 @@ func (c *Client) GetLiquidityPoolStorage(ctx context.Context, readerAddress, poo
 		return nil, fmt.Errorf("invalid liquidity pool address:%w", err)
 	}
 
-	contract, err := reader.NewReader(reader, c.ethCli)
+	contract, err := reader.NewReader(address, c.ethCli)
 	if err != nil {
 		return nil, fmt.Errorf("init reader contract failed:%w", err)
 	}
@@ -77,7 +77,7 @@ func (c *Client) GetLiquidityPoolStorage(ctx context.Context, readerAddress, poo
 	rsp.FundingTime = res.FundingTime.Int64()
 	rsp.Perpetuals = make(map[int64]*model.PerpetualStorage)
 
-	for _, perpetual := range res.PerpetualStorages {
+	for i, perpetual := range res.PerpetualStorages {
 		storage := &model.PerpetualStorage{
 			MarkPrice:               decimal.NewFromBigInt(perpetual.MarkPrice, -mai3.DECIMALS),
 			IndexPrice:              decimal.NewFromBigInt(perpetual.IndexPrice, -mai3.DECIMALS),
@@ -96,7 +96,7 @@ func (c *Client) GetLiquidityPoolStorage(ctx context.Context, readerAddress, poo
 			MaxLeverage:             decimal.NewFromBigInt(perpetual.MaxLeverage, -mai3.DECIMALS),
 			AmmPositionAmount:       decimal.NewFromBigInt(perpetual.AmmPositionAmount, -mai3.DECIMALS),
 		}
-		rsp.Perpetuals = append(rsp.Perpetuals, storage)
+		rsp.Perpetuals[int64(i)] = storage
 	}
 
 	return rsp, nil

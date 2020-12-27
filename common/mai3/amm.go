@@ -2,22 +2,17 @@ package mai3
 
 import (
 	"fmt"
+	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/shopspring/decimal"
 	logger "github.com/sirupsen/logrus"
 )
 
 func ComputeAMMAmountWithPrice(p *model.LiquidityPoolStorage, perpetualIndex int64, isTraderBuy bool, limitPrice decimal.Decimal) decimal.Decimal {
-	perpetual, ok := p.Perpetuals[perpetualIndex]
+	_, ok := p.Perpetuals[perpetualIndex]
 	if !ok {
 		logger.Warnf("perpetual %d not found in the pool", perpetualIndex)
 		return _0
-	}
-
-	if isTraderBuy {
-		limitPrice = limitPrice.Div(_1.Add(perpetual.HalfSpread))
-	} else {
-		limitPrice = limitPrice.Div(_1.Sub(perpetual.HalfSpread))
 	}
 
 	isAMMBuy := !isTraderBuy
@@ -47,10 +42,7 @@ func copyAMMTradingContext(ammContext *model.AMMTradingContext) *model.AMMTradin
 		MaxLeverage:                  ammContext.MaxLeverage,
 		OtherIndex:                   ammContext.OtherIndex,
 		OtherPosition:                ammContext.OtherPosition,
-		OtherHalfSpread:              ammContext.OtherHalfSpread,
 		OtherOpenSlippageFactor:      ammContext.OtherOpenSlippageFactor,
-		OtherCloseSlippageFactor:     ammContext.OtherCloseSlippageFactor,
-		OtherFundingRateCoefficient:  ammContext.OtherFundingRateCoefficient,
 		OtherMaxLeverage:             ammContext.OtherMaxLeverage,
 		Cash:                         ammContext.Cash,
 		PoolMargin:                   ammContext.PoolMargin,
@@ -60,6 +52,29 @@ func copyAMMTradingContext(ammContext *model.AMMTradingContext) *model.AMMTradin
 		SquareValueWithoutCurrent:    ammContext.SquareValueWithoutCurrent,
 		PositionMarginWithoutCurrent: ammContext.PositionMarginWithoutCurrent,
 	}
+}
+
+// get the price if ΔN -> 0. equal to lim_(ΔN -> 0) (computeDeltaMargin / (ΔN))
+// call computeAMMPoolMargin before this function. make sure isAMMSafe before this function
+func computeBestAskBidPriceIfSafe(context *model.AMMTradingContext, beta decimal.Decimal, isAMMBuy bool) decimal.Decimal {
+	if context.PoolMargin.LessThanOrEqual(_0) {
+		return _0
+	}
+	// P_i (1 - β / M * N1)
+	price := context.Position1.Div(context.PoolMargin).Mul(beta)
+	price = _1.Sub(price).Mul(context.Index)
+	return appendSpread(context, price, isAMMBuy)
+}
+
+func computeBestAskBidPriceIfUnsafe(context *model.AMMTradingContext, isAMMBuy bool) decimal.Decimal {
+	return appendSpread(context, context.Index, isAMMBuy)
+}
+
+func appendSpread(context *model.AMMTradingContext, midPrice decimal.Decimal, isAMMBuy bool) decimal.Decimal {
+	if isAMMBuy {
+		return midPrice.Mul(_1.Sub(context.HalfSpread))
+	}
+	return midPrice.Mul(_1.Add(context.HalfSpread))
 }
 
 func computeAMMOpenAmountWithPrice(context *model.AMMTradingContext, limitPrice decimal.Decimal, isAMMBuy bool) decimal.Decimal {
@@ -72,11 +87,29 @@ func computeAMMOpenAmountWithPrice(context *model.AMMTradingContext, limitPrice 
 		return _0
 	}
 
+	// case 1: unsafe open
+
 	if err := computeAMMPoolMargin(context, context.OpenSlippageFactor); err != nil {
 		logger.Errorf("computeAMMOpenAmountWithPrice: computeAMMPoolMargin fail:%s", err)
 		return _0
 	}
 
+	// case 2: limit by spread
+	if context.BestAskBidPrice.IsZero() {
+		context.BestAskBidPrice = computeBestAskBidPriceIfSafe(context, context.OpenSlippageFactor, isAMMBuy)
+	}
+
+	if isAMMBuy {
+		if limitPrice.GreaterThan(context.BestAskBidPrice) {
+			return _0
+		}
+	} else {
+		if limitPrice.LessThan(context.BestAskBidPrice) {
+			return _0
+		}
+	}
+
+	// case 3: limit by safePos
 	safePos2 := _0
 	if isAMMBuy {
 		safePos2 = computeAMMSafeLongPositionAmount(context, context.OpenSlippageFactor)
@@ -85,7 +118,7 @@ func computeAMMOpenAmountWithPrice(context *model.AMMTradingContext, limitPrice 
 		}
 	} else {
 		safePos2 = computeAMMSafeShortPositionAmount(context, context.OpenSlippageFactor)
-		if safePos2.GreaterThan(_0) {
+		if safePos2.GreaterThan(context.Position1) {
 			return _0
 		}
 	}
@@ -129,8 +162,29 @@ func computeAMMCloseAndOpenAmountWithPrice(context *model.AMMTradingContext, lim
 		return _0
 	}
 
-	var err error
+	ammSafe := isAMMSafe(context, context.CloseSlippageFactor)
+	// case 1: limit by spread
+	if ammSafe {
+		if err := computeAMMPoolMargin(context, context.CloseSlippageFactor); err != nil {
+			logger.Errorf("computeAMMCloseAndOpenAmountWithPrice: computeAMMPoolMargin err:%s", err)
+			return _0
+		}
+		context.BestAskBidPrice = computeBestAskBidPriceIfSafe(context, context.CloseSlippageFactor, isAMMBuy)
+	} else {
+		context.BestAskBidPrice = computeBestAskBidPriceIfUnsafe(context, isAMMBuy)
+	}
 
+	if isAMMBuy {
+		if limitPrice.GreaterThan(context.BestAskBidPrice) {
+			return _0
+		}
+	} else {
+		if limitPrice.LessThan(context.BestAskBidPrice) {
+			return _0
+		}
+	}
+
+	// case 2: limit by existing positions
 	zeroContext, err := computeAMMInternalClose(context, context.Position1.Neg())
 	if err != nil {
 		logger.Errorf("computeAMMCloseAndOpenAmountWithPrice: computeAMMInternalClose err:%s", err)
@@ -145,16 +199,11 @@ func computeAMMCloseAndOpenAmountWithPrice(context *model.AMMTradingContext, lim
 		!isAMMBuy && zeroPrice.LessThanOrEqual(limitPrice) {
 		// close all
 		context = zeroContext
-	} else if !isAMMSafe(context, context.CloseSlippageFactor) {
-		// case 2: unsafe close, but price not matched
+	} else if !ammSafe {
+		// case 3: unsafe close, but price not matched
 		return _0
 	} else {
-		// case 3: close by price
-		err := computeAMMPoolMargin(context, context.CloseSlippageFactor)
-		if err != nil {
-			logger.Errorf("computeAMMCloseAndOpenAmountWithPrice: computeAMMPoolMargin err:%s", err)
-			return _0
-		}
+		// case 4: close by price
 		amount, err := computeAMMInverseVWAP(context, limitPrice, context.CloseSlippageFactor, isAMMBuy)
 		if err != nil {
 			logger.Errorf("computeAMMCloseAndOpenAmountWithPrice: computeAMMInverseVWAP failed:%s", err)
@@ -179,7 +228,6 @@ func computeAMMCloseAndOpenAmountWithPrice(context *model.AMMTradingContext, lim
 func computeAMMInternalClose(context *model.AMMTradingContext, amount decimal.Decimal) (*model.AMMTradingContext, error) {
 	beta := context.CloseSlippageFactor
 	ret := copyAMMTradingContext(context)
-	index := ret.Index
 	position2 := ret.Position1.Add(amount)
 	deltaMargin := _0
 	var err error
@@ -188,12 +236,18 @@ func computeAMMInternalClose(context *model.AMMTradingContext, amount decimal.De
 		if err != nil {
 			return nil, err
 		}
+		ret.BestAskBidPrice = computeBestAskBidPriceIfSafe(ret, beta, amount.GreaterThan(_0))
 		deltaMargin, err = computeDeltaMargin(ret, beta, position2)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		deltaMargin = index.Mul(amount).Neg()
+		ret.BestAskBidPrice = computeBestAskBidPriceIfUnsafe(ret, amount.GreaterThan(_0))
+		deltaMargin = ret.Index.Mul(amount).Neg()
+	}
+
+	if utils.HasTheSameSign(deltaMargin, amount) {
+		return nil, fmt.Errorf("close error. ΔM and amount has the same sign")
 	}
 
 	ret.DeltaMargin = ret.DeltaMargin.Add(deltaMargin)
@@ -229,9 +283,16 @@ func computeAMMInternalOpen(context *model.AMMTradingContext, amount decimal.Dec
 		}
 	}
 
+	if ret.BestAskBidPrice.IsZero() {
+		ret.BestAskBidPrice = computeBestAskBidPriceIfSafe(ret, beta, amount.GreaterThan(_0))
+	}
+
 	deltaMargin, err := computeDeltaMargin(ret, beta, position2)
 	if err != nil {
 		return nil, err
+	}
+	if utils.HasTheSameSign(deltaMargin, amount) {
+		return nil, fmt.Errorf("open error. ΔM and amount has the same sign")
 	}
 	ret.DeltaMargin = ret.DeltaMargin.Add(deltaMargin)
 	ret.DeltaPosition = ret.DeltaPosition.Add(amount)
@@ -350,6 +411,9 @@ func computeAMMSafeCondition1(context *model.AMMTradingContext, beta decimal.Dec
 
 // return true if always safe
 func computeAMMSafeCondition2(context *model.AMMTradingContext, beta decimal.Decimal) (decimal.Decimal, bool) {
+	if context.PoolMargin.LessThanOrEqual(_0) {
+		return _0, true
+	}
 	// M - Σ(positionMargin_j - squareValue_j / 2 / M) where j ≠ id
 	x := context.PoolMargin.Sub(context.PositionMarginWithoutCurrent).
 		Add(context.SquareValueWithoutCurrent.Div(context.PoolMargin).Div(_2))
@@ -394,16 +458,14 @@ func initAMMTradingContext(p *model.LiquidityPoolStorage, perpetualIndex int64) 
 
 	otherIndex := make([]decimal.Decimal, 0)
 	otherPosition := make([]decimal.Decimal, 0)
-	otherHalfSpread := make([]decimal.Decimal, 0)
 	otherOpenSlippageFactor := make([]decimal.Decimal, 0)
-	otherCloseSlippageFactor := make([]decimal.Decimal, 0)
-	otherFundingRateCoefficient := make([]decimal.Decimal, 0)
 	otherMaxLeverage := make([]decimal.Decimal, 0)
 
 	// split perpetuals into current perpetual and other perpetuals
 	// M_c = ammCash - Σ accumulatedFunding * N
 	cash := p.PoolCashBalance
 	for id, perpetual := range p.Perpetuals {
+		cash = cash.Add(perpetual.AmmCashBalance)
 		cash = cash.Sub(perpetual.UnitAccumulativeFunding.Mul(perpetual.AmmPositionAmount))
 		if id == perpetualIndex {
 			index = perpetual.IndexPrice
@@ -416,10 +478,7 @@ func initAMMTradingContext(p *model.LiquidityPoolStorage, perpetualIndex int64) 
 		} else {
 			otherIndex = append(otherIndex, perpetual.IndexPrice)
 			otherPosition = append(otherPosition, perpetual.AmmPositionAmount)
-			otherHalfSpread = append(otherHalfSpread, perpetual.HalfSpread)
 			otherOpenSlippageFactor = append(otherOpenSlippageFactor, perpetual.OpenSlippageFactor)
-			otherCloseSlippageFactor = append(otherCloseSlippageFactor, perpetual.CloseSlippageFactor)
-			otherFundingRateCoefficient = append(otherFundingRateCoefficient, perpetual.FundingRateLimit)
 			otherMaxLeverage = append(otherMaxLeverage, perpetual.MaxLeverage)
 		}
 	}
@@ -433,15 +492,13 @@ func initAMMTradingContext(p *model.LiquidityPoolStorage, perpetualIndex int64) 
 		MaxLeverage:                  maxLeverage,
 		OtherIndex:                   otherIndex,
 		OtherPosition:                otherPosition,
-		OtherHalfSpread:              otherHalfSpread,
 		OtherOpenSlippageFactor:      otherOpenSlippageFactor,
-		OtherCloseSlippageFactor:     otherCloseSlippageFactor,
-		OtherFundingRateCoefficient:  otherFundingRateCoefficient,
 		OtherMaxLeverage:             otherMaxLeverage,
 		Cash:                         cash,
 		PoolMargin:                   _0,
 		DeltaMargin:                  _0,
 		DeltaPosition:                _0,
+		BestAskBidPrice:              _0,
 		ValueWithoutCurrent:          _0,
 		SquareValueWithoutCurrent:    _0,
 		PositionMarginWithoutCurrent: _0,

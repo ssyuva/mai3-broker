@@ -110,7 +110,7 @@ func (l *Launcher) ImportPrivateKey(pk string) (string, error) {
 }
 
 func (l *Launcher) checkMatchTransaction() error {
-	transactions, err := l.dao.QueryMatchTransaction("", []model.TransactionStatus{model.TransactionStatusInit})
+	transactions, err := l.dao.QueryMatchTransaction("", 0, []model.TransactionStatus{model.TransactionStatusInit})
 	if err != nil {
 		return fmt.Errorf("QueryUnconfirmedTransactions failed error:%w", err)
 	}
