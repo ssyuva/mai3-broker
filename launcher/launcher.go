@@ -190,13 +190,9 @@ func getCompressOrderData(order *model.Order) ([]byte, error) {
 	if order == nil {
 		return nil, fmt.Errorf("getCompressOrderData:nil order")
 	}
-	signature, err := mai3Utils.Hex2Bytes(order.Signature)
-	if err != nil {
-		return nil, fmt.Errorf("getCompressOrderData:%w", err)
-	}
 	flags := mai3.GenerateOrderFlags(order.Type, order.IsCloseOnly)
 	var orderSig model.OrderSignature
-	err = json.Unmarshal([]byte(order.Signature), &orderSig)
+	err := json.Unmarshal([]byte(order.Signature), &orderSig)
 	if err != nil {
 		return nil, fmt.Errorf("getCompressOrderData:%w", err)
 	}
@@ -211,10 +207,10 @@ func getCompressOrderData(order *model.Order) ([]byte, error) {
 		order.Price,
 		order.StopPrice,
 		order.ChainID,
-		order.ExpiresAt.UTC().Unix,
+		order.ExpiresAt.UTC().Unix(),
 		order.PerpetualIndex,
 		order.BrokerFeeLimit.BigInt().Int64(),
-		flags,
+		int64(flags),
 		order.Salt,
 		orderSig.SignType,
 		orderSig.V,
@@ -222,5 +218,9 @@ func getCompressOrderData(order *model.Order) ([]byte, error) {
 		orderSig.S,
 	)
 
-	return orderData, nil
+	bytes, err := mai3Utils.Hex2Bytes(orderData)
+	if err != nil {
+		return nil, fmt.Errorf("getCompressOrderData:%w", err)
+	}
+	return bytes, nil
 }
