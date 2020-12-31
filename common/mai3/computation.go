@@ -108,36 +108,6 @@ func ComputeAMMPrice(p *model.LiquidityPoolStorage, perpetualIndex int64, amount
 	return
 }
 
-func computeAMMInternalTrade(p *model.LiquidityPoolStorage, perpetualIndex int64, amount decimal.Decimal) (*model.AMMTradingContext, error) {
-	context := initAMMTradingContext(p, perpetualIndex)
-	close, open := utils.SplitAmount(context.Position1, amount)
-	if close.IsZero() && open.IsZero() {
-		return nil, fmt.Errorf("AMM trade: trading amount = 0")
-	}
-	var err error
-	if !close.IsZero() {
-		if context, err = computeAMMInternalClose(context, close); err != nil {
-			return nil, err
-		}
-	}
-	if !open.IsZero() {
-		if context, err = computeAMMInternalOpen(context, open); err != nil {
-			return nil, err
-		}
-	}
-	// negative price
-	if context.DeltaPosition.LessThan(_0) && context.DeltaMargin.LessThan(_0) {
-		context.DeltaMargin = _0
-	}
-
-	valueAtBestAskBidPrice := context.BestAskBidPrice.Mul(amount).Neg()
-	if context.DeltaMargin.LessThan(valueAtBestAskBidPrice) {
-		context.DeltaMargin = valueAtBestAskBidPrice
-	}
-
-	return context, nil
-}
-
 func ComputeTradeWithPrice(p *model.LiquidityPoolStorage, perpetualIndex int64, a *model.AccountStorage, price, amount, feeRate decimal.Decimal) error {
 	if price.LessThanOrEqual(_0) || amount.IsZero() {
 		return fmt.Errorf("bad price %s or amount %s", price, amount)

@@ -120,7 +120,6 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 	order.OrderParam.Type = model.OrderType(params.OrderType)
 	order.Status = model.OrderPending
 	order.OrderParam.Amount, _ = decimal.NewFromString(params.Amount)
-	order.OrderParam.Version = int32(mai3.ProtocolV3)
 	order.OrderParam.ChainID = params.ChainID
 	order.OrderParam.Price, _ = decimal.NewFromString(params.Price)
 	order.OrderParam.StopPrice, _ = decimal.NewFromString(params.StopPrice)
@@ -156,9 +155,10 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 	order.UpdatedAt = now
 
 	// check orderhash
-	orderData := mai3.GenerateOrderData(params.ExpiresAt, order.Version, int8(order.Type), order.IsCloseOnly, order.OrderParam.Salt)
-	orderHash, err := mai3.GetOrderHash(order.TraderAddress, order.BrokerAddress, order.RelayerAddress, order.LiquidityPoolAddress, order.ReferrerAddress,
-		orderData, order.Amount, order.Price, order.ChainID)
+	flags := mai3.GenerateOrderFlags(order.Type, order.IsCloseOnly)
+	orderHash, err := mai3.GetOrderHash(order.TraderAddress, order.BrokerAddress, order.RelayerAddress, order.ReferrerAddress, order.LiquidityPoolAddress,
+		order.MinTradeAmount, order.Amount, order.Price, order.StopPrice, order.ChainID, params.ExpiresAt, order.PerpetualIndex,
+		order.BrokerFeeLimit.IntPart(), int64(flags), order.Salt)
 	if err != nil {
 		return nil, InternalError(fmt.Errorf("get order hash fail err:%s", err))
 	}

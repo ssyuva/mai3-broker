@@ -16,34 +16,16 @@ import (
 	"github.com/mcarloai/mai-v3-broker/common/model"
 )
 
-func (c *Client) BatchTradeDataPack(orderParams []*model.WalletOrderParam, matchAmounts []decimal.Decimal, gasRewards []*big.Int) ([]byte, error) {
+func (c *Client) BatchTradeDataPack(compressedOrders [][]byte, matchAmounts []decimal.Decimal, gasRewards []*big.Int) ([]byte, error) {
 	parsed, err := abi.JSON(strings.NewReader(broker.BrokerABI))
 	if err != nil {
 		return nil, err
 	}
-	orders := make([]broker.Order, 0)
-	signatures := make([][]byte, 0)
 	amounts := make([]*big.Int, 0)
-	for _, param := range orderParams {
-		order := broker.Order{
-			Trader:     gethCommon.HexToAddress(param.Trader),
-			Broker:     gethCommon.HexToAddress(param.Broker),
-			Relayer:    gethCommon.HexToAddress(param.Relayer),
-			Perpetual:  gethCommon.HexToAddress(param.Perpetual),
-			Referrer:   gethCommon.HexToAddress(param.Referrer),
-			Amount:     utils.MustDecimalToBigInt(utils.ToWad(param.Amount)),
-			PriceLimit: utils.MustDecimalToBigInt(utils.ToWad(param.Price)),
-			Data:       param.OrderData,
-			ChainID:    big.NewInt(int64(param.ChainID)),
-		}
-		orders = append(orders, order)
-		signatures = append(signatures, param.Signature)
-	}
-
 	for _, amount := range matchAmounts {
 		amounts = append(amounts, utils.MustDecimalToBigInt(utils.ToWad(amount)))
 	}
-	inputs, err := parsed.Pack("batchTrade", orders, amounts, signatures, gasRewards)
+	inputs, err := parsed.Pack("batchTrade", compressedOrders, amounts, gasRewards)
 	return inputs, err
 }
 

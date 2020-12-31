@@ -35,8 +35,12 @@ const (
 type OrderType int
 
 const (
-	LimitOrder     OrderType = 1
-	StopLimitOrder OrderType = 2
+	MASK_CLOSE_ONLY                  = 0x80000000
+	MASK_MARKET_ORDER                = 0x40000000
+	MASK_STOP_LOSS_ORDER             = 0x20000000
+	MASK_TAKE_PROFIT_ORDER           = 0x10000000
+	LimitOrder             OrderType = 1
+	StopLimitOrder         OrderType = 2
 )
 
 type OrderStatus string
@@ -69,7 +73,6 @@ type OrderParam struct {
 	StopPrice            decimal.Decimal `json:"stopPrice" db:"stopPrice"`
 	BrokerFeeLimit       decimal.Decimal `json:"brokerFeeLimit" db:"broker_fee_limit"`
 	ExpiresAt            time.Time       `json:"expiresAt" db:"expires_at"`
-	Version              int32           `json:"version" db:"version"`
 	Salt                 int64           `json:"-" db:"salt"`
 	IsCloseOnly          bool            `json:"isCloseOnly" db:"is_close_only"`
 	ChainID              int64           `json:"-" db:"chain_id"`

@@ -2,6 +2,7 @@ package launcher
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/mcarloai/mai-v3-broker/common/chain"
 	"github.com/mcarloai/mai-v3-broker/common/mai3"
@@ -134,20 +135,20 @@ func (l *Launcher) createLaunchTransaction(matchTx *model.MatchTransaction) erro
 		return fmt.Errorf("Transaction already launched ID:%s", matchTx.ID)
 	}
 
-	orderParams := make([]*model.WalletOrderParam, 0)
+	orders := make([][]byte, 0)
 	matchAmounts := make([]decimal.Decimal, 0)
 	gasRewards := make([]*big.Int, 0)
 	for _, item := range matchTx.MatchResult.MatchItems {
-		param, err := getWalletOrderParam(item.Order)
+		data, err := getCompressOrderData(item.Order)
 		if err != nil {
 			return err
 		}
-		orderParams = append(orderParams, param)
+		orders = append(orders, data)
 		matchAmounts = append(matchAmounts, item.Amount)
 		gasReward := l.gasMonitor.GetGasPrice() * 1e9 * conf.Conf.GasStation.GasLimit
 		gasRewards = append(gasRewards, big.NewInt(int64(gasReward)))
 	}
-	inputs, err := l.chainCli.BatchTradeDataPack(orderParams, matchAmounts, gasRewards)
+	inputs, err := l.chainCli.BatchTradeDataPack(orders, matchAmounts, gasRewards)
 	if err != nil {
 		return err
 	}
@@ -185,33 +186,41 @@ func (l *Launcher) createLaunchTransaction(matchTx *model.MatchTransaction) erro
 	return err
 }
 
-func getWalletOrderParam(order *model.Order) (*model.WalletOrderParam, error) {
+func getCompressOrderData(order *model.Order) ([]byte, error) {
 	if order == nil {
-		return nil, fmt.Errorf("getWalletOrderParam:nil order")
+		return nil, fmt.Errorf("getCompressOrderData:nil order")
 	}
 	signature, err := mai3Utils.Hex2Bytes(order.Signature)
 	if err != nil {
-		return nil, fmt.Errorf("getWalletOrderParam:%w", err)
+		return nil, fmt.Errorf("getCompressOrderData:%w", err)
 	}
-	orderData, err := mai3.GetOrderData(
-		order.ExpiresAt.UTC().Unix(),
-		order.Version,
-		int8(order.Type),
-		order.IsCloseOnly,
+	flags := mai3.GenerateOrderFlags(order.Type, order.IsCloseOnly)
+	var orderSig model.OrderSignature
+	err = json.Unmarshal([]byte(order.Signature), &orderSig)
+	if err != nil {
+		return nil, fmt.Errorf("getCompressOrderData:%w", err)
+	}
+	orderData := mai3.GenerateOrderData(
+		order.TraderAddress,
+		order.BrokerAddress,
+		order.RelayerAddress,
+		order.ReferrerAddress,
+		order.LiquidityPoolAddress,
+		order.MinTradeAmount,
+		order.Amount,
+		order.Price,
+		order.StopPrice,
+		order.ChainID,
+		order.ExpiresAt.UTC().Unix,
+		order.PerpetualIndex,
+		order.BrokerFeeLimit.BigInt().Int64(),
+		flags,
 		order.Salt,
+		orderSig.SignType,
+		orderSig.V,
+		orderSig.R,
+		orderSig.S,
 	)
-	param := &model.WalletOrderParam{
-		Trader:    order.TraderAddress,
-		Broker:    order.BrokerAddress,
-		Relayer:   order.RelayerAddress,
-		Perpetual: order.LiquidityPoolAddress,
-		Referrer:  order.ReferrerAddress,
-		Price:     order.Price,
-		Amount:    order.Amount,
-		OrderData: orderData,
-		ChainID:   uint64(order.ChainID),
-		Signature: signature,
-	}
 
-	return param, nil
+	return orderData, nil
 }

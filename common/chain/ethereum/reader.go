@@ -40,8 +40,8 @@ func (c *Client) GetAccountStorage(ctx context.Context, readerAddress string, pe
 	}
 
 	rsp := &model.AccountStorage{}
-	rsp.CashBalance = decimal.NewFromBigInt(res.CashBalance, -mai3.DECIMALS)
-	rsp.PositionAmount = decimal.NewFromBigInt(res.PositionAmount, -mai3.DECIMALS)
+	rsp.CashBalance = decimal.NewFromBigInt(res.Cash, -mai3.DECIMALS)
+	rsp.PositionAmount = decimal.NewFromBigInt(res.Position, -mai3.DECIMALS)
 	return rsp, nil
 }
 
@@ -69,11 +69,7 @@ func (c *Client) GetLiquidityPoolStorage(ctx context.Context, readerAddress, poo
 	}
 	rsp := &model.LiquidityPoolStorage{}
 	rsp.VaultFeeRate = decimal.NewFromBigInt(res.VaultFeeRate, -mai3.DECIMALS)
-	rsp.InsuranceFundCap = decimal.NewFromBigInt(res.InsuranceFundCap, -mai3.DECIMALS)
-	rsp.InsuranceFund = decimal.NewFromBigInt(res.InsuranceFund, -mai3.DECIMALS)
-	rsp.DonatedInsuranceFund = decimal.NewFromBigInt(res.DonatedInsuranceFund, -mai3.DECIMALS)
-	rsp.TotalClaimableFee = decimal.NewFromBigInt(res.TotalClaimableFee, -mai3.DECIMALS)
-	rsp.PoolCashBalance = decimal.NewFromBigInt(res.PoolCashBalance, -mai3.DECIMALS)
+	rsp.PoolCashBalance = decimal.NewFromBigInt(res.PoolCash, -mai3.DECIMALS)
 	rsp.FundingTime = res.FundingTime.Int64()
 	rsp.Perpetuals = make(map[int64]*model.PerpetualStorage)
 
@@ -93,8 +89,12 @@ func (c *Client) GetLiquidityPoolStorage(ctx context.Context, readerAddress, poo
 			OpenSlippageFactor:      decimal.NewFromBigInt(perpetual.OpenSlippageFactor, -mai3.DECIMALS),
 			CloseSlippageFactor:     decimal.NewFromBigInt(perpetual.CloseSlippageFactor, -mai3.DECIMALS),
 			FundingRateLimit:        decimal.NewFromBigInt(perpetual.FundingRateLimit, -mai3.DECIMALS),
-			MaxLeverage:             decimal.NewFromBigInt(perpetual.MaxLeverage, -mai3.DECIMALS),
+			MaxLeverage:             decimal.NewFromBigInt(perpetual.AmmMaxLeverage, -mai3.DECIMALS),
+			AmmCashBalance:          decimal.NewFromBigInt(perpetual.AmmCashBalance, -mai3.DECIMALS),
 			AmmPositionAmount:       decimal.NewFromBigInt(perpetual.AmmPositionAmount, -mai3.DECIMALS),
+		}
+		if perpetual.State == model.PerpetualNormal {
+			storage.IsNormal = true
 		}
 		rsp.Perpetuals[int64(i)] = storage
 	}

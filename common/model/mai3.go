@@ -16,9 +16,10 @@ type LiquidityPoolStorage struct {
 	Perpetuals map[int64]*PerpetualStorage
 }
 
+const PerpetualNormal = 2
+
 type PerpetualStorage struct {
-	IsEmergency     bool
-	IsGlobalSettled bool
+	IsNormal bool
 
 	MarkPrice               decimal.Decimal
 	IndexPrice              decimal.Decimal

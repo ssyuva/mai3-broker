@@ -29,29 +29,26 @@ var (
 
 // MarginAccount is an auto generated low-level Go binding around an user-defined struct.
 type MarginAccount struct {
-	CashBalance    *big.Int
-	PositionAmount *big.Int
+	Cash     *big.Int
+	Position *big.Int
 }
 
 // ReaderLiquidityPoolStorage is an auto generated low-level Go binding around an user-defined struct.
 type ReaderLiquidityPoolStorage struct {
-	Operator             common.Address
-	Collateral           common.Address
-	Vault                common.Address
-	Governor             common.Address
-	ShareToken           common.Address
-	VaultFeeRate         *big.Int
-	InsuranceFundCap     *big.Int
-	InsuranceFund        *big.Int
-	DonatedInsuranceFund *big.Int
-	TotalClaimableFee    *big.Int
-	PoolCashBalance      *big.Int
-	FundingTime          *big.Int
-	PerpetualStorages    []ReaderPerpetualStorage
+	Operator          common.Address
+	CollateralToken   common.Address
+	Vault             common.Address
+	Governor          common.Address
+	ShareToken        common.Address
+	VaultFeeRate      *big.Int
+	PoolCash          *big.Int
+	FundingTime       *big.Int
+	PerpetualStorages []ReaderPerpetualStorage
 }
 
 // ReaderPerpetualStorage is an auto generated low-level Go binding around an user-defined struct.
 type ReaderPerpetualStorage struct {
+	Symbol                  *big.Int
 	UnderlyingAsset         string
 	State                   uint8
 	Oracle                  common.Address
@@ -66,16 +63,20 @@ type ReaderPerpetualStorage struct {
 	LiquidationPenaltyRate  *big.Int
 	KeeperGasReward         *big.Int
 	InsuranceFundRate       *big.Int
+	InsuranceFundCap        *big.Int
+	InsuranceFund           *big.Int
+	DonatedInsuranceFund    *big.Int
 	HalfSpread              *big.Int
 	OpenSlippageFactor      *big.Int
 	CloseSlippageFactor     *big.Int
 	FundingRateLimit        *big.Int
-	MaxLeverage             *big.Int
+	AmmMaxLeverage          *big.Int
+	AmmCashBalance          *big.Int
 	AmmPositionAmount       *big.Int
 }
 
 // ReaderABI is the input ABI used to generate the binding from.
-const ReaderABI = "[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"liquidityPool\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"perpetualIndex\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"getAccountStorage\",\"outputs\":[{\"components\":[{\"internalType\":\"int256\",\"name\":\"cashBalance\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"positionAmount\",\"type\":\"int256\"}],\"internalType\":\"structMarginAccount\",\"name\":\"marginAccount\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"liquidityPool\",\"type\":\"address\"}],\"name\":\"getLiquidityPoolStorage\",\"outputs\":[{\"components\":[{\"internalType\":\"address\",\"name\":\"operator\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"collateral\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"vault\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"governor\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"shareToken\",\"type\":\"address\"},{\"internalType\":\"int256\",\"name\":\"vaultFeeRate\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"insuranceFundCap\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"insuranceFund\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"donatedInsuranceFund\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"totalClaimableFee\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"poolCashBalance\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"fundingTime\",\"type\":\"uint256\"},{\"components\":[{\"internalType\":\"string\",\"name\":\"underlyingAsset\",\"type\":\"string\"},{\"internalType\":\"enumPerpetualState\",\"name\":\"state\",\"type\":\"uint8\"},{\"internalType\":\"address\",\"name\":\"oracle\",\"type\":\"address\"},{\"internalType\":\"int256\",\"name\":\"markPrice\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"indexPrice\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"unitAccumulativeFunding\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"initialMarginRate\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"maintenanceMarginRate\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"operatorFeeRate\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"lpFeeRate\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"referrerRebateRate\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"liquidationPenaltyRate\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"keeperGasReward\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"insuranceFundRate\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"halfSpread\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"openSlippageFactor\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"closeSlippageFactor\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"fundingRateLimit\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"maxLeverage\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"ammPositionAmount\",\"type\":\"int256\"}],\"internalType\":\"structReader.PerpetualStorage[]\",\"name\":\"perpetualStorages\",\"type\":\"tuple[]\"}],\"internalType\":\"structReader.LiquidityPoolStorage\",\"name\":\"pool\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]"
+const ReaderABI = "[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"liquidityPool\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"perpetualIndex\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"getAccountStorage\",\"outputs\":[{\"components\":[{\"internalType\":\"int256\",\"name\":\"cash\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"position\",\"type\":\"int256\"}],\"internalType\":\"structMarginAccount\",\"name\":\"marginAccount\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"liquidityPool\",\"type\":\"address\"}],\"name\":\"getLiquidityPoolStorage\",\"outputs\":[{\"components\":[{\"internalType\":\"address\",\"name\":\"operator\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"collateralToken\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"vault\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"governor\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"shareToken\",\"type\":\"address\"},{\"internalType\":\"int256\",\"name\":\"vaultFeeRate\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"poolCash\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"fundingTime\",\"type\":\"uint256\"},{\"components\":[{\"internalType\":\"uint256\",\"name\":\"symbol\",\"type\":\"uint256\"},{\"internalType\":\"string\",\"name\":\"underlyingAsset\",\"type\":\"string\"},{\"internalType\":\"enumPerpetualState\",\"name\":\"state\",\"type\":\"uint8\"},{\"internalType\":\"address\",\"name\":\"oracle\",\"type\":\"address\"},{\"internalType\":\"int256\",\"name\":\"markPrice\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"indexPrice\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"unitAccumulativeFunding\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"initialMarginRate\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"maintenanceMarginRate\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"operatorFeeRate\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"lpFeeRate\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"referrerRebateRate\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"liquidationPenaltyRate\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"keeperGasReward\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"insuranceFundRate\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"insuranceFundCap\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"insuranceFund\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"donatedInsuranceFund\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"halfSpread\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"openSlippageFactor\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"closeSlippageFactor\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"fundingRateLimit\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"ammMaxLeverage\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"ammCashBalance\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"ammPositionAmount\",\"type\":\"int256\"}],\"internalType\":\"structReader.PerpetualStorage[]\",\"name\":\"perpetualStorages\",\"type\":\"tuple[]\"}],\"internalType\":\"structReader.LiquidityPoolStorage\",\"name\":\"pool\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]"
 
 // Reader is an auto generated Go binding around an Ethereum contract.
 type Reader struct {

@@ -17,6 +17,10 @@ func ComputeAMMAmountWithPrice(p *model.LiquidityPoolStorage, perpetualIndex int
 
 	isAMMBuy := !isTraderBuy
 	context := initAMMTradingContext(p, perpetualIndex)
+	if context == nil {
+		logger.Warnf("perpetual %d init trading context fail", perpetualIndex)
+		return _0
+	}
 	if context.Position1.LessThanOrEqual(_0) && !isAMMBuy {
 		return computeAMMOpenAmountWithPrice(context, limitPrice, isAMMBuy).Neg()
 	} else if context.Position1.LessThan(_0) && isAMMBuy {
@@ -226,6 +230,39 @@ func computeAMMCloseAndOpenAmountWithPrice(context *model.AMMTradingContext, lim
 	return context.DeltaPosition
 }
 
+func computeAMMInternalTrade(p *model.LiquidityPoolStorage, perpetualIndex int64, amount decimal.Decimal) (*model.AMMTradingContext, error) {
+	context := initAMMTradingContext(p, perpetualIndex)
+	if context == nil {
+		return nil, fmt.Errorf("perpetual %d init trading context fail", perpetualIndex)
+	}
+	close, open := utils.SplitAmount(context.Position1, amount)
+	if close.IsZero() && open.IsZero() {
+		return nil, fmt.Errorf("AMM trade: trading amount = 0")
+	}
+	var err error
+	if !close.IsZero() {
+		if context, err = computeAMMInternalClose(context, close); err != nil {
+			return nil, err
+		}
+	}
+	if !open.IsZero() {
+		if context, err = computeAMMInternalOpen(context, open); err != nil {
+			return nil, err
+		}
+	}
+	// negative price
+	if context.DeltaPosition.LessThan(_0) && context.DeltaMargin.LessThan(_0) {
+		context.DeltaMargin = _0
+	}
+
+	valueAtBestAskBidPrice := context.BestAskBidPrice.Mul(amount).Neg()
+	if context.DeltaMargin.LessThan(valueAtBestAskBidPrice) {
+		context.DeltaMargin = valueAtBestAskBidPrice
+	}
+
+	return context, nil
+}
+
 func computeAMMInternalClose(context *model.AMMTradingContext, amount decimal.Decimal) (*model.AMMTradingContext, error) {
 	beta := context.CloseSlippageFactor
 	ret := copyAMMTradingContext(context)
@@ -245,10 +282,6 @@ func computeAMMInternalClose(context *model.AMMTradingContext, amount decimal.De
 	} else {
 		ret.BestAskBidPrice = computeBestAskBidPriceIfUnsafe(ret, amount.GreaterThan(_0))
 		deltaMargin = ret.Index.Mul(amount).Neg()
-	}
-
-	if utils.HasTheSameSign(deltaMargin, amount) {
-		return nil, fmt.Errorf("close error. ΔM and amount has the same sign")
 	}
 
 	ret.DeltaMargin = ret.DeltaMargin.Add(deltaMargin)
@@ -466,6 +499,9 @@ func initAMMTradingContext(p *model.LiquidityPoolStorage, perpetualIndex int64) 
 	// M_c = ammCash - Σ accumulatedFunding * N
 	cash := p.PoolCashBalance
 	for id, perpetual := range p.Perpetuals {
+		if !perpetual.IsNormal {
+			return nil
+		}
 		cash = cash.Add(perpetual.AmmCashBalance)
 		cash = cash.Sub(perpetual.UnitAccumulativeFunding.Mul(perpetual.AmmPositionAmount))
 		if id == perpetualIndex {
