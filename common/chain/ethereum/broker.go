@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	ethBind "github.com/ethereum/go-ethereum/accounts/abi/bind"
-	gethCommon "github.com/ethereum/go-ethereum/common"
 	"github.com/shopspring/decimal"
 	"math/big"
 	"strings"
