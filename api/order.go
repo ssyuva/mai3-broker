@@ -138,7 +138,7 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 	}
 	order.OrderParam.Signature = string(sigJSON)
 	order.OrderParam.MinTradeAmount, _ = decimal.NewFromString(params.MinTradeAmount)
-	order.OrderParam.BrokerFeeLimit, _ = decimal.NewFromString(params.BrokerFeeLimit)
+	order.OrderParam.BrokerFeeLimit = params.BrokerFeeLimit
 	order.OrderParam.LiquidityPoolAddress = strings.ToLower(params.LiquidityPoolAddress)
 	order.OrderParam.PerpetualIndex = params.PerpetualIndex
 	order.OrderParam.BrokerAddress = strings.ToLower(params.BrokerAddress)
@@ -158,7 +158,7 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 	flags := mai3.GenerateOrderFlags(order.Type, order.IsCloseOnly)
 	orderHash, err := mai3.GetOrderHash(order.TraderAddress, order.BrokerAddress, order.RelayerAddress, order.ReferrerAddress, order.LiquidityPoolAddress,
 		order.MinTradeAmount, order.Amount, order.Price, order.StopPrice, order.ChainID, params.ExpiresAt, order.PerpetualIndex,
-		order.BrokerFeeLimit.IntPart(), int64(flags), order.Salt)
+		order.BrokerFeeLimit, int64(flags), order.Salt)
 	if err != nil {
 		return nil, InternalError(fmt.Errorf("get order hash fail err:%s", err))
 	}
@@ -247,13 +247,8 @@ func validatePlaceOrder(req *PlaceOrderReq) error {
 		return InvalidPriceAmountError("minTradeAmount <= 0")
 	}
 
-	brokerFeeLimit, err := decimal.NewFromString(req.BrokerFeeLimit)
-	if err != nil {
-		return InvalidPriceAmountError(fmt.Sprintf("parse brokerFeeLimit[%s] error", req.BrokerFeeLimit))
-	}
-
-	if brokerFeeLimit.LessThanOrEqual(decimal.Zero) {
-		return InvalidPriceAmountError("brokerFeeLimit <= 0")
+	if req.BrokerFeeLimit < conf.Conf.GasStation.GasLimit {
+		return InvalidPriceAmountError("brokerFeeLimit too small")
 	}
 
 	// order dealine

@@ -15,18 +15,19 @@ func Approximate(t *testing.T, expect, actual decimal.Decimal, msgAndArgs ...int
 }
 
 var defaultPool = &model.LiquidityPoolStorage{
-	VaultFeeRate:         decimal.NewFromFloat(0.0002),
-	InsuranceFundCap:     decimal.NewFromFloat(10000),
-	InsuranceFund:        _0,
-	DonatedInsuranceFund: _0,
-	TotalClaimableFee:    _0,
-	PoolCashBalance:      _0, // set me later
-	FundingTime:          1579601290,
+	VaultFeeRate:    decimal.NewFromFloat(0.0002),
+	PoolCashBalance: _0, // set me later
+	FundingTime:     1579601290,
 
 	Perpetuals: make(map[int64]*model.PerpetualStorage), // set me later
 }
 
+var OpenSlippageFactor, _ = decimal.NewFromString("0.0142857142857142857142857142857")
+var CloseSlippageFactor, _ = decimal.NewFromString("0.0128571428571428571428571428571")
+
 var perpetual1 = &model.PerpetualStorage{
+	IsNormal: true,
+
 	MarkPrice:               decimal.NewFromFloat(6965),
 	IndexPrice:              decimal.NewFromFloat(7000),
 	UnitAccumulativeFunding: decimal.NewFromFloat(9.9059375),
@@ -39,12 +40,16 @@ var perpetual1 = &model.PerpetualStorage{
 	LiquidationPenaltyRate: decimal.NewFromFloat(0.005),
 	KeeperGasReward:        decimal.NewFromFloat(1),
 	InsuranceFundRate:      decimal.NewFromFloat(0.0001),
+	InsuranceFundCap:       decimal.NewFromFloat(10000),
+	InsuranceFund:          _0,
+	DonatedInsuranceFund:   _0,
 
-	HalfSpread:          decimal.NewFromFloat(0.001),
-	OpenSlippageFactor:  decimal.NewFromFloat(100),
-	CloseSlippageFactor: decimal.NewFromFloat(90),
-	FundingRateLimit:    decimal.NewFromFloat(0.005),
-	MaxLeverage:         decimal.NewFromFloat(5),
+	HalfSpread:            decimal.NewFromFloat(0.001),
+	OpenSlippageFactor:    OpenSlippageFactor,
+	CloseSlippageFactor:   CloseSlippageFactor,
+	FundingRateLimit:      decimal.NewFromFloat(0.005),
+	MaxLeverage:           decimal.NewFromFloat(5),
+	MaxClosePriceDiscount: decimal.NewFromFloat(0.05),
 
 	AmmCashBalance:    _0, // assign me later
 	AmmPositionAmount: _0, // assign me later
@@ -58,13 +63,9 @@ var accountStorage1 = &model.AccountStorage{
 const TEST_PERPETUAL_INDEX0 = 0
 
 var poolStorage0 = &model.LiquidityPoolStorage{
-	VaultFeeRate:         decimal.NewFromFloat(0.0002),
-	InsuranceFundCap:     decimal.NewFromFloat(10000),
-	InsuranceFund:        _0,
-	DonatedInsuranceFund: _0,
-	TotalClaimableFee:    _0,
-	PoolCashBalance:      decimal.NewFromFloat(100000),
-	FundingTime:          1579601290,
+	VaultFeeRate:    decimal.NewFromFloat(0.0002),
+	PoolCashBalance: decimal.NewFromFloat(100000),
+	FundingTime:     1579601290,
 
 	Perpetuals: make(map[int64]*model.PerpetualStorage), // set me later
 }
@@ -138,7 +139,7 @@ func TestComputeAMMAmountWithPrice5(t *testing.T) {
 // amm holds short, trader sells
 // case 6: higher than spread
 func TestComputeAMMAmountWithPrice6(t *testing.T) {
-	limitPrice := decimal.NewFromFloat(6993.001)
+	limitPrice := decimal.NewFromFloat(7000.001)
 	poolStorage := defaultPool
 	poolStorage.PoolCashBalance = decimal.NewFromFloat(17096.21634375)
 	perpetual1.AmmPositionAmount = decimal.NewFromFloat(-2.3)
@@ -150,13 +151,13 @@ func TestComputeAMMAmountWithPrice6(t *testing.T) {
 // amm holds short, trader sells
 // case 7:amm unsafe - exactly the best ask/bid price - close + open
 func TestComputeAMMAmountWithPrice7(t *testing.T) {
-	limitPrice := decimal.NewFromFloat(6993)
+	limitPrice := decimal.NewFromFloat(7000)
 	poolStorage := defaultPool
 	poolStorage.PoolCashBalance = decimal.NewFromFloat(17096.21634375)
 	perpetual1.AmmPositionAmount = decimal.NewFromFloat(-2.3)
 	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX0] = perpetual1
 	amount := ComputeAMMAmountWithPrice(poolStorage, TEST_PERPETUAL_INDEX0, false, limitPrice)
-	Approximate(t, decimal.NewFromFloat(-2.52693371063539536994239123215), amount)
+	Approximate(t, decimal.NewFromFloat(-2.3), amount)
 	tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
 	assert.Equal(t, tradingPrice.LessThanOrEqual(limitPrice), true)
 }
@@ -246,7 +247,7 @@ func TestComputeAMMAmountWithPrice13(t *testing.T) {
 // amm holds long, trader buys
 // case 14: amm unsafe - lower than spread
 func TestComputeAMMAmountWithPrice14(t *testing.T) {
-	limitPrice := decimal.NewFromFloat(7006.999)
+	limitPrice := decimal.NewFromFloat(6999.999)
 	poolStorage := defaultPool
 	poolStorage.PoolCashBalance = decimal.NewFromFloat(-13677.21634375)
 	perpetual1.AmmPositionAmount = decimal.NewFromFloat(2.3)
@@ -258,13 +259,13 @@ func TestComputeAMMAmountWithPrice14(t *testing.T) {
 // amm holds long, trader buys
 // case 15: amm unsafe - exactly the best ask/bid price - close + open
 func TestComputeAMMAmountWithPrice15(t *testing.T) {
-	limitPrice := decimal.NewFromFloat(7007)
+	limitPrice := decimal.NewFromFloat(7000)
 	poolStorage := defaultPool
 	poolStorage.PoolCashBalance = decimal.NewFromFloat(-13677.21634375)
 	perpetual1.AmmPositionAmount = decimal.NewFromFloat(2.3)
 	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX0] = perpetual1
 	amount := ComputeAMMAmountWithPrice(poolStorage, TEST_PERPETUAL_INDEX0, true, limitPrice)
-	Approximate(t, decimal.NewFromFloat(2.65713060501851222135483063416), amount)
+	Approximate(t, decimal.NewFromFloat(2.3), amount)
 	tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
 	Approximate(t, tradingPrice, limitPrice)
 }

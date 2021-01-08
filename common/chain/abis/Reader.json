@@ -37,7 +37,7 @@
         "type": "tuple"
       }
     ],
-    "stateMutability": "view",
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -53,29 +53,19 @@
       {
         "components": [
           {
-            "internalType": "address",
-            "name": "operator",
-            "type": "address"
+            "internalType": "bool",
+            "name": "isRunning",
+            "type": "bool"
           },
           {
-            "internalType": "address",
-            "name": "collateralToken",
-            "type": "address"
+            "internalType": "bool",
+            "name": "isFastCreationEnabled",
+            "type": "bool"
           },
           {
-            "internalType": "address",
-            "name": "vault",
-            "type": "address"
-          },
-          {
-            "internalType": "address",
-            "name": "governor",
-            "type": "address"
-          },
-          {
-            "internalType": "address",
-            "name": "shareToken",
-            "type": "address"
+            "internalType": "address[7]",
+            "name": "addresses",
+            "type": "address[7]"
           },
           {
             "internalType": "int256",
@@ -89,21 +79,21 @@
           },
           {
             "internalType": "uint256",
+            "name": "collateralDecimals",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "perpetualCount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
             "name": "fundingTime",
             "type": "uint256"
           },
           {
             "components": [
-              {
-                "internalType": "uint256",
-                "name": "symbol",
-                "type": "uint256"
-              },
-              {
-                "internalType": "string",
-                "name": "underlyingAsset",
-                "type": "string"
-              },
               {
                 "internalType": "enum PerpetualState",
                 "name": "state",
@@ -115,99 +105,19 @@
                 "type": "address"
               },
               {
-                "internalType": "int256",
-                "name": "markPrice",
-                "type": "int256"
+                "internalType": "int256[34]",
+                "name": "nums",
+                "type": "int256[34]"
               },
               {
-                "internalType": "int256",
-                "name": "indexPrice",
-                "type": "int256"
+                "internalType": "uint256",
+                "name": "symbol",
+                "type": "uint256"
               },
               {
-                "internalType": "int256",
-                "name": "unitAccumulativeFunding",
-                "type": "int256"
-              },
-              {
-                "internalType": "int256",
-                "name": "initialMarginRate",
-                "type": "int256"
-              },
-              {
-                "internalType": "int256",
-                "name": "maintenanceMarginRate",
-                "type": "int256"
-              },
-              {
-                "internalType": "int256",
-                "name": "operatorFeeRate",
-                "type": "int256"
-              },
-              {
-                "internalType": "int256",
-                "name": "lpFeeRate",
-                "type": "int256"
-              },
-              {
-                "internalType": "int256",
-                "name": "referrerRebateRate",
-                "type": "int256"
-              },
-              {
-                "internalType": "int256",
-                "name": "liquidationPenaltyRate",
-                "type": "int256"
-              },
-              {
-                "internalType": "int256",
-                "name": "keeperGasReward",
-                "type": "int256"
-              },
-              {
-                "internalType": "int256",
-                "name": "insuranceFundRate",
-                "type": "int256"
-              },
-              {
-                "internalType": "int256",
-                "name": "insuranceFundCap",
-                "type": "int256"
-              },
-              {
-                "internalType": "int256",
-                "name": "insuranceFund",
-                "type": "int256"
-              },
-              {
-                "internalType": "int256",
-                "name": "donatedInsuranceFund",
-                "type": "int256"
-              },
-              {
-                "internalType": "int256",
-                "name": "halfSpread",
-                "type": "int256"
-              },
-              {
-                "internalType": "int256",
-                "name": "openSlippageFactor",
-                "type": "int256"
-              },
-              {
-                "internalType": "int256",
-                "name": "closeSlippageFactor",
-                "type": "int256"
-              },
-              {
-                "internalType": "int256",
-                "name": "fundingRateLimit",
-                "type": "int256"
-              },
-              {
-                "internalType": "int256",
-                "name": "ammMaxLeverage",
-                "type": "int256"
+                "internalType": "string",
+                "name": "underlyingAsset",
+                "type": "string"
               },
               {
                 "internalType": "int256",
@@ -220,12 +130,12 @@
                 "type": "int256"
               }
             ],
-            "internalType": "struct Reader.PerpetualStorage[]",
-            "name": "perpetualStorages",
+            "internalType": "struct Reader.PerpetualReaderResult[]",
+            "name": "perpetuals",
             "type": "tuple[]"
           }
         ],
-        "internalType": "struct Reader.LiquidityPoolStorage",
+        "internalType": "struct Reader.LiquidityPoolReaderResult",
         "name": "pool",
         "type": "tuple"
       }

@@ -17,6 +17,7 @@ func toDecimal(v string) decimal.Decimal {
 }
 
 var _0 = decimal.Zero
+var _0_5 = decimal.NewFromFloat(0.5)
 var _1 = decimal.NewFromInt(1)
 var _2 = decimal.NewFromInt(2)
 var _4 = decimal.NewFromInt(4)

@@ -71,7 +71,7 @@ type OrderParam struct {
 	Amount               decimal.Decimal `json:"amount" db:"amount"`
 	MinTradeAmount       decimal.Decimal `json:"minTradeAmount" db:"min_trade_amount"`
 	StopPrice            decimal.Decimal `json:"stopPrice" db:"stopPrice"`
-	BrokerFeeLimit       decimal.Decimal `json:"brokerFeeLimit" db:"broker_fee_limit"`
+	BrokerFeeLimit       int64           `json:"brokerFeeLimit" db:"broker_fee_limit"`
 	ExpiresAt            time.Time       `json:"expiresAt" db:"expires_at"`
 	Salt                 int64           `json:"-" db:"salt"`
 	IsCloseOnly          bool            `json:"isCloseOnly" db:"is_close_only"`

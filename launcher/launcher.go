@@ -209,7 +209,7 @@ func getCompressOrderData(order *model.Order) ([]byte, error) {
 		order.ChainID,
 		order.ExpiresAt.UTC().Unix(),
 		order.PerpetualIndex,
-		order.BrokerFeeLimit.BigInt().Int64(),
+		order.BrokerFeeLimit,
 		int64(flags),
 		order.Salt,
 		orderSig.SignType,

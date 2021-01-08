@@ -5,13 +5,9 @@ import (
 )
 
 type LiquidityPoolStorage struct {
-	VaultFeeRate         decimal.Decimal
-	InsuranceFundCap     decimal.Decimal
-	InsuranceFund        decimal.Decimal
-	DonatedInsuranceFund decimal.Decimal
-	TotalClaimableFee    decimal.Decimal
-	PoolCashBalance      decimal.Decimal
-	FundingTime          int64
+	VaultFeeRate    decimal.Decimal
+	PoolCashBalance decimal.Decimal
+	FundingTime     int64
 
 	Perpetuals map[int64]*PerpetualStorage
 }
@@ -33,12 +29,16 @@ type PerpetualStorage struct {
 	LiquidationPenaltyRate decimal.Decimal
 	KeeperGasReward        decimal.Decimal
 	InsuranceFundRate      decimal.Decimal
+	InsuranceFundCap       decimal.Decimal
+	InsuranceFund          decimal.Decimal
+	DonatedInsuranceFund   decimal.Decimal
 
-	HalfSpread          decimal.Decimal // α
-	OpenSlippageFactor  decimal.Decimal // β1
-	CloseSlippageFactor decimal.Decimal // β2
-	FundingRateLimit    decimal.Decimal // γ
-	MaxLeverage         decimal.Decimal // λ
+	HalfSpread            decimal.Decimal // α
+	OpenSlippageFactor    decimal.Decimal // β1
+	CloseSlippageFactor   decimal.Decimal // β2
+	FundingRateLimit      decimal.Decimal // γ
+	MaxLeverage           decimal.Decimal // λ
+	MaxClosePriceDiscount decimal.Decimal // δ
 
 	AmmCashBalance    decimal.Decimal
 	AmmPositionAmount decimal.Decimal
@@ -65,13 +65,14 @@ type AccountComputed struct {
 
 type AMMTradingContext struct {
 	// current trading perpetual
-	Index               decimal.Decimal
-	Position1           decimal.Decimal
-	HalfSpread          decimal.Decimal
-	OpenSlippageFactor  decimal.Decimal
-	CloseSlippageFactor decimal.Decimal
-	FundingRateLimit    decimal.Decimal
-	MaxLeverage         decimal.Decimal
+	Index                 decimal.Decimal
+	Position1             decimal.Decimal
+	HalfSpread            decimal.Decimal
+	OpenSlippageFactor    decimal.Decimal
+	CloseSlippageFactor   decimal.Decimal
+	FundingRateLimit      decimal.Decimal
+	MaxClosePriceDiscount decimal.Decimal // δ_m
+	MaxLeverage           decimal.Decimal
 
 	// other perpetuals
 	OtherIndex              []decimal.Decimal
