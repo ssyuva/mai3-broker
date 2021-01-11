@@ -138,7 +138,7 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 	}
 	order.OrderParam.Signature = string(sigJSON)
 	order.OrderParam.MinTradeAmount, _ = decimal.NewFromString(params.MinTradeAmount)
-	order.OrderParam.BrokerFeeLimit = decimal.NewFromString(params.BrokerFeeLimit)
+	order.OrderParam.BrokerFeeLimit, _ = decimal.NewFromString(params.BrokerFeeLimit)
 	order.OrderParam.LiquidityPoolAddress = strings.ToLower(params.LiquidityPoolAddress)
 	order.OrderParam.PerpetualIndex = params.PerpetualIndex
 	order.OrderParam.BrokerAddress = strings.ToLower(params.BrokerAddress)
