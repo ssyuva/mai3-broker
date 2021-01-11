@@ -73,7 +73,7 @@ func (c *Client) GetLiquidityPoolStorage(ctx context.Context, readerAddress, poo
 	rsp.FundingTime = res.FundingTime.Int64()
 	rsp.Perpetuals = make(map[int64]*model.PerpetualStorage)
 
-	for i, perpetual := range res.PerpetualStorages {
+	for i, perpetual := range res.Perpetuals {
 		storage := &model.PerpetualStorage{
 			MarkPrice:               decimal.NewFromBigInt(perpetual.Nums[1], -mai3.DECIMALS),
 			IndexPrice:              decimal.NewFromBigInt(perpetual.Nums[2], -mai3.DECIMALS),
@@ -94,6 +94,7 @@ func (c *Client) GetLiquidityPoolStorage(ctx context.Context, readerAddress, poo
 			CloseSlippageFactor:     decimal.NewFromBigInt(perpetual.Nums[22], -mai3.DECIMALS),
 			FundingRateLimit:        decimal.NewFromBigInt(perpetual.Nums[25], -mai3.DECIMALS),
 			MaxLeverage:             decimal.NewFromBigInt(perpetual.Nums[28], -mai3.DECIMALS),
+			MaxClosePriceDiscount:   decimal.NewFromBigInt(perpetual.Nums[31], -mai3.DECIMALS),
 			AmmCashBalance:          decimal.NewFromBigInt(perpetual.AmmCashBalance, -mai3.DECIMALS),
 			AmmPositionAmount:       decimal.NewFromBigInt(perpetual.AmmPositionAmount, -mai3.DECIMALS),
 		}

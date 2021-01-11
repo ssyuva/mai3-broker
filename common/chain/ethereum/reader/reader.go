@@ -33,50 +33,32 @@ type MarginAccount struct {
 	Position *big.Int
 }
 
-// ReaderLiquidityPoolStorage is an auto generated low-level Go binding around an user-defined struct.
-type ReaderLiquidityPoolStorage struct {
-	Operator          common.Address
-	CollateralToken   common.Address
-	Vault             common.Address
-	Governor          common.Address
-	ShareToken        common.Address
-	VaultFeeRate      *big.Int
-	PoolCash          *big.Int
-	FundingTime       *big.Int
-	PerpetualStorages []ReaderPerpetualStorage
+// ReaderLiquidityPoolReaderResult is an auto generated low-level Go binding around an user-defined struct.
+type ReaderLiquidityPoolReaderResult struct {
+	IsRunning             bool
+	IsFastCreationEnabled bool
+	Addresses             [7]common.Address
+	VaultFeeRate          *big.Int
+	PoolCash              *big.Int
+	CollateralDecimals    *big.Int
+	PerpetualCount        *big.Int
+	FundingTime           *big.Int
+	Perpetuals            []ReaderPerpetualReaderResult
 }
 
-// ReaderPerpetualStorage is an auto generated low-level Go binding around an user-defined struct.
-type ReaderPerpetualStorage struct {
-	Symbol                  *big.Int
-	UnderlyingAsset         string
-	State                   uint8
-	Oracle                  common.Address
-	MarkPrice               *big.Int
-	IndexPrice              *big.Int
-	UnitAccumulativeFunding *big.Int
-	InitialMarginRate       *big.Int
-	MaintenanceMarginRate   *big.Int
-	OperatorFeeRate         *big.Int
-	LpFeeRate               *big.Int
-	ReferrerRebateRate      *big.Int
-	LiquidationPenaltyRate  *big.Int
-	KeeperGasReward         *big.Int
-	InsuranceFundRate       *big.Int
-	InsuranceFundCap        *big.Int
-	InsuranceFund           *big.Int
-	DonatedInsuranceFund    *big.Int
-	HalfSpread              *big.Int
-	OpenSlippageFactor      *big.Int
-	CloseSlippageFactor     *big.Int
-	FundingRateLimit        *big.Int
-	AmmMaxLeverage          *big.Int
-	AmmCashBalance          *big.Int
-	AmmPositionAmount       *big.Int
+// ReaderPerpetualReaderResult is an auto generated low-level Go binding around an user-defined struct.
+type ReaderPerpetualReaderResult struct {
+	State             uint8
+	Oracle            common.Address
+	Nums              [34]*big.Int
+	Symbol            *big.Int
+	UnderlyingAsset   string
+	AmmCashBalance    *big.Int
+	AmmPositionAmount *big.Int
 }
 
 // ReaderABI is the input ABI used to generate the binding from.
-const ReaderABI = "[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"liquidityPool\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"perpetualIndex\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"getAccountStorage\",\"outputs\":[{\"components\":[{\"internalType\":\"int256\",\"name\":\"cash\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"position\",\"type\":\"int256\"}],\"internalType\":\"structMarginAccount\",\"name\":\"marginAccount\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"liquidityPool\",\"type\":\"address\"}],\"name\":\"getLiquidityPoolStorage\",\"outputs\":[{\"components\":[{\"internalType\":\"address\",\"name\":\"operator\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"collateralToken\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"vault\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"governor\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"shareToken\",\"type\":\"address\"},{\"internalType\":\"int256\",\"name\":\"vaultFeeRate\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"poolCash\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"fundingTime\",\"type\":\"uint256\"},{\"components\":[{\"internalType\":\"uint256\",\"name\":\"symbol\",\"type\":\"uint256\"},{\"internalType\":\"string\",\"name\":\"underlyingAsset\",\"type\":\"string\"},{\"internalType\":\"enumPerpetualState\",\"name\":\"state\",\"type\":\"uint8\"},{\"internalType\":\"address\",\"name\":\"oracle\",\"type\":\"address\"},{\"internalType\":\"int256\",\"name\":\"markPrice\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"indexPrice\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"unitAccumulativeFunding\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"initialMarginRate\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"maintenanceMarginRate\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"operatorFeeRate\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"lpFeeRate\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"referrerRebateRate\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"liquidationPenaltyRate\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"keeperGasReward\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"insuranceFundRate\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"insuranceFundCap\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"insuranceFund\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"donatedInsuranceFund\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"halfSpread\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"openSlippageFactor\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"closeSlippageFactor\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"fundingRateLimit\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"ammMaxLeverage\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"ammCashBalance\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"ammPositionAmount\",\"type\":\"int256\"}],\"internalType\":\"structReader.PerpetualStorage[]\",\"name\":\"perpetualStorages\",\"type\":\"tuple[]\"}],\"internalType\":\"structReader.LiquidityPoolStorage\",\"name\":\"pool\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]"
+const ReaderABI = "[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"liquidityPool\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"perpetualIndex\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"getAccountStorage\",\"outputs\":[{\"components\":[{\"internalType\":\"int256\",\"name\":\"cash\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"position\",\"type\":\"int256\"}],\"internalType\":\"structMarginAccount\",\"name\":\"marginAccount\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"liquidityPool\",\"type\":\"address\"}],\"name\":\"getLiquidityPoolStorage\",\"outputs\":[{\"components\":[{\"internalType\":\"bool\",\"name\":\"isRunning\",\"type\":\"bool\"},{\"internalType\":\"bool\",\"name\":\"isFastCreationEnabled\",\"type\":\"bool\"},{\"internalType\":\"address[7]\",\"name\":\"addresses\",\"type\":\"address[7]\"},{\"internalType\":\"int256\",\"name\":\"vaultFeeRate\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"poolCash\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"collateralDecimals\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"perpetualCount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"fundingTime\",\"type\":\"uint256\"},{\"components\":[{\"internalType\":\"enumPerpetualState\",\"name\":\"state\",\"type\":\"uint8\"},{\"internalType\":\"address\",\"name\":\"oracle\",\"type\":\"address\"},{\"internalType\":\"int256[34]\",\"name\":\"nums\",\"type\":\"int256[34]\"},{\"internalType\":\"uint256\",\"name\":\"symbol\",\"type\":\"uint256\"},{\"internalType\":\"string\",\"name\":\"underlyingAsset\",\"type\":\"string\"},{\"internalType\":\"int256\",\"name\":\"ammCashBalance\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"ammPositionAmount\",\"type\":\"int256\"}],\"internalType\":\"structReader.PerpetualReaderResult[]\",\"name\":\"perpetuals\",\"type\":\"tuple[]\"}],\"internalType\":\"structReader.LiquidityPoolReaderResult\",\"name\":\"pool\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]"
 
 // Reader is an auto generated Go binding around an Ethereum contract.
 type Reader struct {
@@ -248,10 +230,10 @@ func (_Reader *ReaderCallerSession) GetAccountStorage(liquidityPool common.Addre
 
 // GetLiquidityPoolStorage is a free data retrieval call binding the contract method 0x574408c1.
 //
-// Solidity: function getLiquidityPoolStorage(address liquidityPool) constant returns(ReaderLiquidityPoolStorage pool)
-func (_Reader *ReaderCaller) GetLiquidityPoolStorage(opts *bind.CallOpts, liquidityPool common.Address) (ReaderLiquidityPoolStorage, error) {
+// Solidity: function getLiquidityPoolStorage(address liquidityPool) constant returns(ReaderLiquidityPoolReaderResult pool)
+func (_Reader *ReaderCaller) GetLiquidityPoolStorage(opts *bind.CallOpts, liquidityPool common.Address) (ReaderLiquidityPoolReaderResult, error) {
 	var (
-		ret0 = new(ReaderLiquidityPoolStorage)
+		ret0 = new(ReaderLiquidityPoolReaderResult)
 	)
 	out := ret0
 	err := _Reader.contract.Call(opts, out, "getLiquidityPoolStorage", liquidityPool)
@@ -260,14 +242,14 @@ func (_Reader *ReaderCaller) GetLiquidityPoolStorage(opts *bind.CallOpts, liquid
 
 // GetLiquidityPoolStorage is a free data retrieval call binding the contract method 0x574408c1.
 //
-// Solidity: function getLiquidityPoolStorage(address liquidityPool) constant returns(ReaderLiquidityPoolStorage pool)
-func (_Reader *ReaderSession) GetLiquidityPoolStorage(liquidityPool common.Address) (ReaderLiquidityPoolStorage, error) {
+// Solidity: function getLiquidityPoolStorage(address liquidityPool) constant returns(ReaderLiquidityPoolReaderResult pool)
+func (_Reader *ReaderSession) GetLiquidityPoolStorage(liquidityPool common.Address) (ReaderLiquidityPoolReaderResult, error) {
 	return _Reader.Contract.GetLiquidityPoolStorage(&_Reader.CallOpts, liquidityPool)
 }
 
 // GetLiquidityPoolStorage is a free data retrieval call binding the contract method 0x574408c1.
 //
-// Solidity: function getLiquidityPoolStorage(address liquidityPool) constant returns(ReaderLiquidityPoolStorage pool)
-func (_Reader *ReaderCallerSession) GetLiquidityPoolStorage(liquidityPool common.Address) (ReaderLiquidityPoolStorage, error) {
+// Solidity: function getLiquidityPoolStorage(address liquidityPool) constant returns(ReaderLiquidityPoolReaderResult pool)
+func (_Reader *ReaderCallerSession) GetLiquidityPoolStorage(liquidityPool common.Address) (ReaderLiquidityPoolReaderResult, error) {
 	return _Reader.Contract.GetLiquidityPoolStorage(&_Reader.CallOpts, liquidityPool)
 }

@@ -53,8 +53,8 @@ func GenerateOrderFlags(orderType model.OrderType, isCloseOnly bool) int {
 }
 
 func GenerateOrderData(traderAddress, brokerAddress, relayerAddress, referrerAddress, poolAddress string,
-	minTradeAmount, amount, price, triggerPrice decimal.Decimal, chainID int64,
-	expiredAt, perpetualIndex, brokerFeeLimit, flags, salt int64, signType, v, r, s string) string {
+	minTradeAmount, amount, price, triggerPrice, brokerFeeLimit decimal.Decimal, chainID int64,
+	expiredAt, perpetualIndex, flags, salt int64, signType, v, r, s string) string {
 	data := strings.Builder{}
 	data.WriteString("0x")
 	trader, err := utils.Hex2Bytes(traderAddress)
@@ -89,7 +89,7 @@ func GenerateOrderData(traderAddress, brokerAddress, relayerAddress, referrerAdd
 	data.WriteString(addLeadingZero(fmt.Sprintf("%x", chainID), 8*8))
 	data.WriteString(addLeadingZero(fmt.Sprintf("%x", expiredAt), 8*2))
 	data.WriteString(addLeadingZero(fmt.Sprintf("%x", perpetualIndex), 8))
-	data.WriteString(addLeadingZero(fmt.Sprintf("%x", brokerFeeLimit), 8))
+	data.WriteString(addLeadingZero(utils.Bytes2Hex(utils.MustDecimalToBigInt(utils.ToWad(brokerFeeLimit)).Bytes()), 8))
 	data.WriteString(addLeadingZero(fmt.Sprintf("%x", flags), 8))
 	data.WriteString(addLeadingZero(fmt.Sprintf("%x", salt), 8))
 	data.WriteString(v)
@@ -105,8 +105,8 @@ func GenerateOrderData(traderAddress, brokerAddress, relayerAddress, referrerAdd
 }
 
 func GetOrderHash(traderAddress, brokerAddress, relayerAddress, referrerAddress, poolAddress string,
-	minTradeAmount, amount, price, triggerPrice decimal.Decimal, chainID int64,
-	expiredAt, perpetualIndex, brokerFeeLimit, flags, salt int64) ([]byte, error) {
+	minTradeAmount, amount, price, triggerPrice, brokerFeeLimit decimal.Decimal, chainID int64,
+	expiredAt, perpetualIndex, flags, salt int64) ([]byte, error) {
 	trader, err := utils.HexToHash(traderAddress)
 	if err != nil {
 		return nil, fmt.Errorf("GetOrderHash:%w", err)
@@ -137,7 +137,7 @@ func GetOrderHash(traderAddress, brokerAddress, relayerAddress, referrerAddress,
 	chainIDBin := utils.BytesToHash(big.NewInt(chainID).Bytes())
 	expiredAtBin := utils.BytesToHash(big.NewInt(expiredAt).Bytes())
 	perpetualIndexBin := utils.BytesToHash(big.NewInt(perpetualIndex).Bytes())
-	brokerFeeLimitBin := utils.BytesToHash(big.NewInt(brokerFeeLimit).Bytes())
+	brokerFeeLimitBin := utils.BytesToHash(utils.MustDecimalToBigInt(utils.ToWad(brokerFeeLimit)).Bytes())
 	flagsBin := utils.BytesToHash(big.NewInt(flags).Bytes())
 	saltBin := utils.BytesToHash(big.NewInt(salt).Bytes())
 

@@ -1,7 +1,7 @@
 // Code generated - DO NOT EDIT.
 // This file is a generated binding and any manual changes will be lost.
 
-package reader
+package broker
 
 import (
 	"math/big"
@@ -27,137 +27,126 @@ var (
 	_ = event.NewSubscription
 )
 
-// MarginAccount is an auto generated low-level Go binding around an user-defined struct.
-type MarginAccount struct {
-	Cash     *big.Int
-	Position *big.Int
+// Order is an auto generated low-level Go binding around an user-defined struct.
+type Order struct {
+	Trader         common.Address
+	Broker         common.Address
+	Relayer        common.Address
+	Referrer       common.Address
+	LiquidityPool  common.Address
+	MinTradeAmount *big.Int
+	Amount         *big.Int
+	LimitPrice     *big.Int
+	TriggerPrice   *big.Int
+	ChainID        *big.Int
+	ExpiredAt      uint64
+	PerpetualIndex uint32
+	BrokerFeeLimit uint32
+	Flags          uint32
+	Salt           uint32
 }
 
-// ReaderLiquidityPoolReaderResult is an auto generated low-level Go binding around an user-defined struct.
-type ReaderLiquidityPoolReaderResult struct {
-	IsRunning             bool
-	IsFastCreationEnabled bool
-	Addresses             [7]common.Address
-	VaultFeeRate          *big.Int
-	PoolCash              *big.Int
-	CollateralDecimals    *big.Int
-	PerpetualCount        *big.Int
-	FundingTime           *big.Int
-	Perpetuals            []ReaderPerpetualReaderResult
+// BrokerABI is the input ABI used to generate the binding from.
+const BrokerABI = "[{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"orderHash\",\"type\":\"bytes32\"}],\"name\":\"CancelOrder\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"trader\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Deposit\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"orderHash\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"int256\",\"name\":\"fillAmount\",\"type\":\"int256\"}],\"name\":\"FillOrder\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"orderHash\",\"type\":\"bytes32\"},{\"components\":[{\"internalType\":\"address\",\"name\":\"trader\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"broker\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"relayer\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"referrer\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"liquidityPool\",\"type\":\"address\"},{\"internalType\":\"int256\",\"name\":\"minTradeAmount\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"amount\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"limitPrice\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"triggerPrice\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"chainID\",\"type\":\"uint256\"},{\"internalType\":\"uint64\",\"name\":\"expiredAt\",\"type\":\"uint64\"},{\"internalType\":\"uint32\",\"name\":\"perpetualIndex\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"brokerFeeLimit\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"flags\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"salt\",\"type\":\"uint32\"}],\"indexed\":false,\"internalType\":\"structOrder\",\"name\":\"order\",\"type\":\"tuple\"},{\"indexed\":false,\"internalType\":\"int256\",\"name\":\"amount\",\"type\":\"int256\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"reason\",\"type\":\"string\"}],\"name\":\"TradeFailed\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"orderHash\",\"type\":\"bytes32\"},{\"components\":[{\"internalType\":\"address\",\"name\":\"trader\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"broker\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"relayer\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"referrer\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"liquidityPool\",\"type\":\"address\"},{\"internalType\":\"int256\",\"name\":\"minTradeAmount\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"amount\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"limitPrice\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"triggerPrice\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"chainID\",\"type\":\"uint256\"},{\"internalType\":\"uint64\",\"name\":\"expiredAt\",\"type\":\"uint64\"},{\"internalType\":\"uint32\",\"name\":\"perpetualIndex\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"brokerFeeLimit\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"flags\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"salt\",\"type\":\"uint32\"}],\"indexed\":false,\"internalType\":\"structOrder\",\"name\":\"order\",\"type\":\"tuple\"},{\"indexed\":false,\"internalType\":\"int256\",\"name\":\"amount\",\"type\":\"int256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"gasReward\",\"type\":\"uint256\"}],\"name\":\"TradeSuccess\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Transfer\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"trader\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Withdraw\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"trader\",\"type\":\"address\"}],\"name\":\"balanceOf\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes[]\",\"name\":\"compressedOrders\",\"type\":\"bytes[]\"},{\"internalType\":\"int256[]\",\"name\":\"amounts\",\"type\":\"int256[]\"},{\"internalType\":\"uint256[]\",\"name\":\"gasRewards\",\"type\":\"uint256[]\"}],\"name\":\"batchTrade\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"address\",\"name\":\"trader\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"broker\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"relayer\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"referrer\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"liquidityPool\",\"type\":\"address\"},{\"internalType\":\"int256\",\"name\":\"minTradeAmount\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"amount\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"limitPrice\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"triggerPrice\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"chainID\",\"type\":\"uint256\"},{\"internalType\":\"uint64\",\"name\":\"expiredAt\",\"type\":\"uint64\"},{\"internalType\":\"uint32\",\"name\":\"perpetualIndex\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"brokerFeeLimit\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"flags\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"salt\",\"type\":\"uint32\"}],\"internalType\":\"structOrder\",\"name\":\"order\",\"type\":\"tuple\"}],\"name\":\"cancelOrder\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"deposit\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"withdraw\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"stateMutability\":\"payable\",\"type\":\"receive\"}]"
+
+// Broker is an auto generated Go binding around an Ethereum contract.
+type Broker struct {
+	BrokerCaller     // Read-only binding to the contract
+	BrokerTransactor // Write-only binding to the contract
+	BrokerFilterer   // Log filterer for contract events
 }
 
-// ReaderPerpetualReaderResult is an auto generated low-level Go binding around an user-defined struct.
-type ReaderPerpetualReaderResult struct {
-	State             uint8
-	Oracle            common.Address
-	Nums              [34]*big.Int
-	Symbol            *big.Int
-	UnderlyingAsset   string
-	AmmCashBalance    *big.Int
-	AmmPositionAmount *big.Int
-}
-
-// ReaderABI is the input ABI used to generate the binding from.
-const ReaderABI = "[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"liquidityPool\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"perpetualIndex\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"getAccountStorage\",\"outputs\":[{\"components\":[{\"internalType\":\"int256\",\"name\":\"cash\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"position\",\"type\":\"int256\"}],\"internalType\":\"structMarginAccount\",\"name\":\"marginAccount\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"liquidityPool\",\"type\":\"address\"}],\"name\":\"getLiquidityPoolStorage\",\"outputs\":[{\"components\":[{\"internalType\":\"bool\",\"name\":\"isRunning\",\"type\":\"bool\"},{\"internalType\":\"bool\",\"name\":\"isFastCreationEnabled\",\"type\":\"bool\"},{\"internalType\":\"address[7]\",\"name\":\"addresses\",\"type\":\"address[7]\"},{\"internalType\":\"int256\",\"name\":\"vaultFeeRate\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"poolCash\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"collateralDecimals\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"perpetualCount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"fundingTime\",\"type\":\"uint256\"},{\"components\":[{\"internalType\":\"enumPerpetualState\",\"name\":\"state\",\"type\":\"uint8\"},{\"internalType\":\"address\",\"name\":\"oracle\",\"type\":\"address\"},{\"internalType\":\"int256[34]\",\"name\":\"nums\",\"type\":\"int256[34]\"},{\"internalType\":\"uint256\",\"name\":\"symbol\",\"type\":\"uint256\"},{\"internalType\":\"string\",\"name\":\"underlyingAsset\",\"type\":\"string\"},{\"internalType\":\"int256\",\"name\":\"ammCashBalance\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"ammPositionAmount\",\"type\":\"int256\"}],\"internalType\":\"structReader.PerpetualReaderResult[]\",\"name\":\"perpetuals\",\"type\":\"tuple[]\"}],\"internalType\":\"structReader.LiquidityPoolReaderResult\",\"name\":\"pool\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]"
-
-// Reader is an auto generated Go binding around an Ethereum contract.
-type Reader struct {
-	ReaderCaller     // Read-only binding to the contract
-	ReaderTransactor // Write-only binding to the contract
-	ReaderFilterer   // Log filterer for contract events
-}
-
-// ReaderCaller is an auto generated read-only Go binding around an Ethereum contract.
-type ReaderCaller struct {
+// BrokerCaller is an auto generated read-only Go binding around an Ethereum contract.
+type BrokerCaller struct {
 	contract *bind.BoundContract // Generic contract wrapper for the low level calls
 }
 
-// ReaderTransactor is an auto generated write-only Go binding around an Ethereum contract.
-type ReaderTransactor struct {
+// BrokerTransactor is an auto generated write-only Go binding around an Ethereum contract.
+type BrokerTransactor struct {
 	contract *bind.BoundContract // Generic contract wrapper for the low level calls
 }
 
-// ReaderFilterer is an auto generated log filtering Go binding around an Ethereum contract events.
-type ReaderFilterer struct {
+// BrokerFilterer is an auto generated log filtering Go binding around an Ethereum contract events.
+type BrokerFilterer struct {
 	contract *bind.BoundContract // Generic contract wrapper for the low level calls
 }
 
-// ReaderSession is an auto generated Go binding around an Ethereum contract,
+// BrokerSession is an auto generated Go binding around an Ethereum contract,
 // with pre-set call and transact options.
-type ReaderSession struct {
-	Contract     *Reader           // Generic contract binding to set the session for
+type BrokerSession struct {
+	Contract     *Broker           // Generic contract binding to set the session for
 	CallOpts     bind.CallOpts     // Call options to use throughout this session
 	TransactOpts bind.TransactOpts // Transaction auth options to use throughout this session
 }
 
-// ReaderCallerSession is an auto generated read-only Go binding around an Ethereum contract,
+// BrokerCallerSession is an auto generated read-only Go binding around an Ethereum contract,
 // with pre-set call options.
-type ReaderCallerSession struct {
-	Contract *ReaderCaller // Generic contract caller binding to set the session for
+type BrokerCallerSession struct {
+	Contract *BrokerCaller // Generic contract caller binding to set the session for
 	CallOpts bind.CallOpts // Call options to use throughout this session
 }
 
-// ReaderTransactorSession is an auto generated write-only Go binding around an Ethereum contract,
+// BrokerTransactorSession is an auto generated write-only Go binding around an Ethereum contract,
 // with pre-set transact options.
-type ReaderTransactorSession struct {
-	Contract     *ReaderTransactor // Generic contract transactor binding to set the session for
+type BrokerTransactorSession struct {
+	Contract     *BrokerTransactor // Generic contract transactor binding to set the session for
 	TransactOpts bind.TransactOpts // Transaction auth options to use throughout this session
 }
 
-// ReaderRaw is an auto generated low-level Go binding around an Ethereum contract.
-type ReaderRaw struct {
-	Contract *Reader // Generic contract binding to access the raw methods on
+// BrokerRaw is an auto generated low-level Go binding around an Ethereum contract.
+type BrokerRaw struct {
+	Contract *Broker // Generic contract binding to access the raw methods on
 }
 
-// ReaderCallerRaw is an auto generated low-level read-only Go binding around an Ethereum contract.
-type ReaderCallerRaw struct {
-	Contract *ReaderCaller // Generic read-only contract binding to access the raw methods on
+// BrokerCallerRaw is an auto generated low-level read-only Go binding around an Ethereum contract.
+type BrokerCallerRaw struct {
+	Contract *BrokerCaller // Generic read-only contract binding to access the raw methods on
 }
 
-// ReaderTransactorRaw is an auto generated low-level write-only Go binding around an Ethereum contract.
-type ReaderTransactorRaw struct {
-	Contract *ReaderTransactor // Generic write-only contract binding to access the raw methods on
+// BrokerTransactorRaw is an auto generated low-level write-only Go binding around an Ethereum contract.
+type BrokerTransactorRaw struct {
+	Contract *BrokerTransactor // Generic write-only contract binding to access the raw methods on
 }
 
-// NewReader creates a new instance of Reader, bound to a specific deployed contract.
-func NewReader(address common.Address, backend bind.ContractBackend) (*Reader, error) {
-	contract, err := bindReader(address, backend, backend, backend)
+// NewBroker creates a new instance of Broker, bound to a specific deployed contract.
+func NewBroker(address common.Address, backend bind.ContractBackend) (*Broker, error) {
+	contract, err := bindBroker(address, backend, backend, backend)
 	if err != nil {
 		return nil, err
 	}
-	return &Reader{ReaderCaller: ReaderCaller{contract: contract}, ReaderTransactor: ReaderTransactor{contract: contract}, ReaderFilterer: ReaderFilterer{contract: contract}}, nil
+	return &Broker{BrokerCaller: BrokerCaller{contract: contract}, BrokerTransactor: BrokerTransactor{contract: contract}, BrokerFilterer: BrokerFilterer{contract: contract}}, nil
 }
 
-// NewReaderCaller creates a new read-only instance of Reader, bound to a specific deployed contract.
-func NewReaderCaller(address common.Address, caller bind.ContractCaller) (*ReaderCaller, error) {
-	contract, err := bindReader(address, caller, nil, nil)
+// NewBrokerCaller creates a new read-only instance of Broker, bound to a specific deployed contract.
+func NewBrokerCaller(address common.Address, caller bind.ContractCaller) (*BrokerCaller, error) {
+	contract, err := bindBroker(address, caller, nil, nil)
 	if err != nil {
 		return nil, err
 	}
-	return &ReaderCaller{contract: contract}, nil
+	return &BrokerCaller{contract: contract}, nil
 }
 
-// NewReaderTransactor creates a new write-only instance of Reader, bound to a specific deployed contract.
-func NewReaderTransactor(address common.Address, transactor bind.ContractTransactor) (*ReaderTransactor, error) {
-	contract, err := bindReader(address, nil, transactor, nil)
+// NewBrokerTransactor creates a new write-only instance of Broker, bound to a specific deployed contract.
+func NewBrokerTransactor(address common.Address, transactor bind.ContractTransactor) (*BrokerTransactor, error) {
+	contract, err := bindBroker(address, nil, transactor, nil)
 	if err != nil {
 		return nil, err
 	}
-	return &ReaderTransactor{contract: contract}, nil
+	return &BrokerTransactor{contract: contract}, nil
 }
 
-// NewReaderFilterer creates a new log filterer instance of Reader, bound to a specific deployed contract.
-func NewReaderFilterer(address common.Address, filterer bind.ContractFilterer) (*ReaderFilterer, error) {
-	contract, err := bindReader(address, nil, nil, filterer)
+// NewBrokerFilterer creates a new log filterer instance of Broker, bound to a specific deployed contract.
+func NewBrokerFilterer(address common.Address, filterer bind.ContractFilterer) (*BrokerFilterer, error) {
+	contract, err := bindBroker(address, nil, nil, filterer)
 	if err != nil {
 		return nil, err
 	}
-	return &ReaderFilterer{contract: contract}, nil
+	return &BrokerFilterer{contract: contract}, nil
 }
 
-// bindReader binds a generic wrapper to an already deployed contract.
-func bindReader(address common.Address, caller bind.ContractCaller, transactor bind.ContractTransactor, filterer bind.ContractFilterer) (*bind.BoundContract, error) {
-	parsed, err := abi.JSON(strings.NewReader(ReaderABI))
+// bindBroker binds a generic wrapper to an already deployed contract.
+func bindBroker(address common.Address, caller bind.ContractCaller, transactor bind.ContractTransactor, filterer bind.ContractFilterer) (*bind.BoundContract, error) {
+	parsed, err := abi.JSON(strings.NewReader(BrokerABI))
 	if err != nil {
 		return nil, err
 	}
@@ -168,88 +157,1088 @@ func bindReader(address common.Address, caller bind.ContractCaller, transactor b
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_Reader *ReaderRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
-	return _Reader.Contract.ReaderCaller.contract.Call(opts, result, method, params...)
+func (_Broker *BrokerRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+	return _Broker.Contract.BrokerCaller.contract.Call(opts, result, method, params...)
 }
 
 // Transfer initiates a plain transaction to move funds to the contract, calling
 // its default method if one is available.
-func (_Reader *ReaderRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
-	return _Reader.Contract.ReaderTransactor.contract.Transfer(opts)
+func (_Broker *BrokerRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _Broker.Contract.BrokerTransactor.contract.Transfer(opts)
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_Reader *ReaderRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
-	return _Reader.Contract.ReaderTransactor.contract.Transact(opts, method, params...)
+func (_Broker *BrokerRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+	return _Broker.Contract.BrokerTransactor.contract.Transact(opts, method, params...)
 }
 
 // Call invokes the (constant) contract method with params as input values and
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_Reader *ReaderCallerRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
-	return _Reader.Contract.contract.Call(opts, result, method, params...)
+func (_Broker *BrokerCallerRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+	return _Broker.Contract.contract.Call(opts, result, method, params...)
 }
 
 // Transfer initiates a plain transaction to move funds to the contract, calling
 // its default method if one is available.
-func (_Reader *ReaderTransactorRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
-	return _Reader.Contract.contract.Transfer(opts)
+func (_Broker *BrokerTransactorRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _Broker.Contract.contract.Transfer(opts)
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_Reader *ReaderTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
-	return _Reader.Contract.contract.Transact(opts, method, params...)
+func (_Broker *BrokerTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+	return _Broker.Contract.contract.Transact(opts, method, params...)
 }
 
-// GetAccountStorage is a free data retrieval call binding the contract method 0xeb16510d.
+// BalanceOf is a free data retrieval call binding the contract method 0x70a08231.
 //
-// Solidity: function getAccountStorage(address liquidityPool, uint256 perpetualIndex, address account) constant returns(MarginAccount marginAccount)
-func (_Reader *ReaderCaller) GetAccountStorage(opts *bind.CallOpts, liquidityPool common.Address, perpetualIndex *big.Int, account common.Address) (MarginAccount, error) {
+// Solidity: function balanceOf(address trader) constant returns(uint256)
+func (_Broker *BrokerCaller) BalanceOf(opts *bind.CallOpts, trader common.Address) (*big.Int, error) {
 	var (
-		ret0 = new(MarginAccount)
+		ret0 = new(*big.Int)
 	)
 	out := ret0
-	err := _Reader.contract.Call(opts, out, "getAccountStorage", liquidityPool, perpetualIndex, account)
+	err := _Broker.contract.Call(opts, out, "balanceOf", trader)
 	return *ret0, err
 }
 
-// GetAccountStorage is a free data retrieval call binding the contract method 0xeb16510d.
+// BalanceOf is a free data retrieval call binding the contract method 0x70a08231.
 //
-// Solidity: function getAccountStorage(address liquidityPool, uint256 perpetualIndex, address account) constant returns(MarginAccount marginAccount)
-func (_Reader *ReaderSession) GetAccountStorage(liquidityPool common.Address, perpetualIndex *big.Int, account common.Address) (MarginAccount, error) {
-	return _Reader.Contract.GetAccountStorage(&_Reader.CallOpts, liquidityPool, perpetualIndex, account)
+// Solidity: function balanceOf(address trader) constant returns(uint256)
+func (_Broker *BrokerSession) BalanceOf(trader common.Address) (*big.Int, error) {
+	return _Broker.Contract.BalanceOf(&_Broker.CallOpts, trader)
 }
 
-// GetAccountStorage is a free data retrieval call binding the contract method 0xeb16510d.
+// BalanceOf is a free data retrieval call binding the contract method 0x70a08231.
 //
-// Solidity: function getAccountStorage(address liquidityPool, uint256 perpetualIndex, address account) constant returns(MarginAccount marginAccount)
-func (_Reader *ReaderCallerSession) GetAccountStorage(liquidityPool common.Address, perpetualIndex *big.Int, account common.Address) (MarginAccount, error) {
-	return _Reader.Contract.GetAccountStorage(&_Reader.CallOpts, liquidityPool, perpetualIndex, account)
+// Solidity: function balanceOf(address trader) constant returns(uint256)
+func (_Broker *BrokerCallerSession) BalanceOf(trader common.Address) (*big.Int, error) {
+	return _Broker.Contract.BalanceOf(&_Broker.CallOpts, trader)
 }
 
-// GetLiquidityPoolStorage is a free data retrieval call binding the contract method 0x574408c1.
+// BatchTrade is a paid mutator transaction binding the contract method 0xabee6e5c.
 //
-// Solidity: function getLiquidityPoolStorage(address liquidityPool) constant returns(ReaderLiquidityPoolReaderResult pool)
-func (_Reader *ReaderCaller) GetLiquidityPoolStorage(opts *bind.CallOpts, liquidityPool common.Address) (ReaderLiquidityPoolReaderResult, error) {
-	var (
-		ret0 = new(ReaderLiquidityPoolReaderResult)
-	)
-	out := ret0
-	err := _Reader.contract.Call(opts, out, "getLiquidityPoolStorage", liquidityPool)
-	return *ret0, err
+// Solidity: function batchTrade(bytes[] compressedOrders, int256[] amounts, uint256[] gasRewards) returns()
+func (_Broker *BrokerTransactor) BatchTrade(opts *bind.TransactOpts, compressedOrders [][]byte, amounts []*big.Int, gasRewards []*big.Int) (*types.Transaction, error) {
+	return _Broker.contract.Transact(opts, "batchTrade", compressedOrders, amounts, gasRewards)
 }
 
-// GetLiquidityPoolStorage is a free data retrieval call binding the contract method 0x574408c1.
+// BatchTrade is a paid mutator transaction binding the contract method 0xabee6e5c.
 //
-// Solidity: function getLiquidityPoolStorage(address liquidityPool) constant returns(ReaderLiquidityPoolReaderResult pool)
-func (_Reader *ReaderSession) GetLiquidityPoolStorage(liquidityPool common.Address) (ReaderLiquidityPoolReaderResult, error) {
-	return _Reader.Contract.GetLiquidityPoolStorage(&_Reader.CallOpts, liquidityPool)
+// Solidity: function batchTrade(bytes[] compressedOrders, int256[] amounts, uint256[] gasRewards) returns()
+func (_Broker *BrokerSession) BatchTrade(compressedOrders [][]byte, amounts []*big.Int, gasRewards []*big.Int) (*types.Transaction, error) {
+	return _Broker.Contract.BatchTrade(&_Broker.TransactOpts, compressedOrders, amounts, gasRewards)
 }
 
-// GetLiquidityPoolStorage is a free data retrieval call binding the contract method 0x574408c1.
+// BatchTrade is a paid mutator transaction binding the contract method 0xabee6e5c.
 //
-// Solidity: function getLiquidityPoolStorage(address liquidityPool) constant returns(ReaderLiquidityPoolReaderResult pool)
-func (_Reader *ReaderCallerSession) GetLiquidityPoolStorage(liquidityPool common.Address) (ReaderLiquidityPoolReaderResult, error) {
-	return _Reader.Contract.GetLiquidityPoolStorage(&_Reader.CallOpts, liquidityPool)
+// Solidity: function batchTrade(bytes[] compressedOrders, int256[] amounts, uint256[] gasRewards) returns()
+func (_Broker *BrokerTransactorSession) BatchTrade(compressedOrders [][]byte, amounts []*big.Int, gasRewards []*big.Int) (*types.Transaction, error) {
+	return _Broker.Contract.BatchTrade(&_Broker.TransactOpts, compressedOrders, amounts, gasRewards)
+}
+
+// CancelOrder is a paid mutator transaction binding the contract method 0xce4d643b.
+//
+// Solidity: function cancelOrder(Order order) returns()
+func (_Broker *BrokerTransactor) CancelOrder(opts *bind.TransactOpts, order Order) (*types.Transaction, error) {
+	return _Broker.contract.Transact(opts, "cancelOrder", order)
+}
+
+// CancelOrder is a paid mutator transaction binding the contract method 0xce4d643b.
+//
+// Solidity: function cancelOrder(Order order) returns()
+func (_Broker *BrokerSession) CancelOrder(order Order) (*types.Transaction, error) {
+	return _Broker.Contract.CancelOrder(&_Broker.TransactOpts, order)
+}
+
+// CancelOrder is a paid mutator transaction binding the contract method 0xce4d643b.
+//
+// Solidity: function cancelOrder(Order order) returns()
+func (_Broker *BrokerTransactorSession) CancelOrder(order Order) (*types.Transaction, error) {
+	return _Broker.Contract.CancelOrder(&_Broker.TransactOpts, order)
+}
+
+// Deposit is a paid mutator transaction binding the contract method 0xd0e30db0.
+//
+// Solidity: function deposit() returns()
+func (_Broker *BrokerTransactor) Deposit(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _Broker.contract.Transact(opts, "deposit")
+}
+
+// Deposit is a paid mutator transaction binding the contract method 0xd0e30db0.
+//
+// Solidity: function deposit() returns()
+func (_Broker *BrokerSession) Deposit() (*types.Transaction, error) {
+	return _Broker.Contract.Deposit(&_Broker.TransactOpts)
+}
+
+// Deposit is a paid mutator transaction binding the contract method 0xd0e30db0.
+//
+// Solidity: function deposit() returns()
+func (_Broker *BrokerTransactorSession) Deposit() (*types.Transaction, error) {
+	return _Broker.Contract.Deposit(&_Broker.TransactOpts)
+}
+
+// Withdraw is a paid mutator transaction binding the contract method 0x2e1a7d4d.
+//
+// Solidity: function withdraw(uint256 amount) returns()
+func (_Broker *BrokerTransactor) Withdraw(opts *bind.TransactOpts, amount *big.Int) (*types.Transaction, error) {
+	return _Broker.contract.Transact(opts, "withdraw", amount)
+}
+
+// Withdraw is a paid mutator transaction binding the contract method 0x2e1a7d4d.
+//
+// Solidity: function withdraw(uint256 amount) returns()
+func (_Broker *BrokerSession) Withdraw(amount *big.Int) (*types.Transaction, error) {
+	return _Broker.Contract.Withdraw(&_Broker.TransactOpts, amount)
+}
+
+// Withdraw is a paid mutator transaction binding the contract method 0x2e1a7d4d.
+//
+// Solidity: function withdraw(uint256 amount) returns()
+func (_Broker *BrokerTransactorSession) Withdraw(amount *big.Int) (*types.Transaction, error) {
+	return _Broker.Contract.Withdraw(&_Broker.TransactOpts, amount)
+}
+
+// BrokerCancelOrderIterator is returned from FilterCancelOrder and is used to iterate over the raw logs and unpacked data for CancelOrder events raised by the Broker contract.
+type BrokerCancelOrderIterator struct {
+	Event *BrokerCancelOrder // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *BrokerCancelOrderIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(BrokerCancelOrder)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(BrokerCancelOrder)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *BrokerCancelOrderIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *BrokerCancelOrderIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// BrokerCancelOrder represents a CancelOrder event raised by the Broker contract.
+type BrokerCancelOrder struct {
+	OrderHash [32]byte
+	Raw       types.Log // Blockchain specific contextual infos
+}
+
+// FilterCancelOrder is a free log retrieval operation binding the contract event 0x42c76c81a7cba1b9c861353909a184e20747ab960332628dabcbb5852fc5cbb5.
+//
+// Solidity: event CancelOrder(bytes32 orderHash)
+func (_Broker *BrokerFilterer) FilterCancelOrder(opts *bind.FilterOpts) (*BrokerCancelOrderIterator, error) {
+
+	logs, sub, err := _Broker.contract.FilterLogs(opts, "CancelOrder")
+	if err != nil {
+		return nil, err
+	}
+	return &BrokerCancelOrderIterator{contract: _Broker.contract, event: "CancelOrder", logs: logs, sub: sub}, nil
+}
+
+// WatchCancelOrder is a free log subscription operation binding the contract event 0x42c76c81a7cba1b9c861353909a184e20747ab960332628dabcbb5852fc5cbb5.
+//
+// Solidity: event CancelOrder(bytes32 orderHash)
+func (_Broker *BrokerFilterer) WatchCancelOrder(opts *bind.WatchOpts, sink chan<- *BrokerCancelOrder) (event.Subscription, error) {
+
+	logs, sub, err := _Broker.contract.WatchLogs(opts, "CancelOrder")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(BrokerCancelOrder)
+				if err := _Broker.contract.UnpackLog(event, "CancelOrder", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseCancelOrder is a log parse operation binding the contract event 0x42c76c81a7cba1b9c861353909a184e20747ab960332628dabcbb5852fc5cbb5.
+//
+// Solidity: event CancelOrder(bytes32 orderHash)
+func (_Broker *BrokerFilterer) ParseCancelOrder(log types.Log) (*BrokerCancelOrder, error) {
+	event := new(BrokerCancelOrder)
+	if err := _Broker.contract.UnpackLog(event, "CancelOrder", log); err != nil {
+		return nil, err
+	}
+	return event, nil
+}
+
+// BrokerDepositIterator is returned from FilterDeposit and is used to iterate over the raw logs and unpacked data for Deposit events raised by the Broker contract.
+type BrokerDepositIterator struct {
+	Event *BrokerDeposit // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *BrokerDepositIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(BrokerDeposit)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(BrokerDeposit)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *BrokerDepositIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *BrokerDepositIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// BrokerDeposit represents a Deposit event raised by the Broker contract.
+type BrokerDeposit struct {
+	Trader common.Address
+	Amount *big.Int
+	Raw    types.Log // Blockchain specific contextual infos
+}
+
+// FilterDeposit is a free log retrieval operation binding the contract event 0xe1fffcc4923d04b559f4d29a8bfc6cda04eb5b0d3c460751c2402c5c5cc9109c.
+//
+// Solidity: event Deposit(address trader, uint256 amount)
+func (_Broker *BrokerFilterer) FilterDeposit(opts *bind.FilterOpts) (*BrokerDepositIterator, error) {
+
+	logs, sub, err := _Broker.contract.FilterLogs(opts, "Deposit")
+	if err != nil {
+		return nil, err
+	}
+	return &BrokerDepositIterator{contract: _Broker.contract, event: "Deposit", logs: logs, sub: sub}, nil
+}
+
+// WatchDeposit is a free log subscription operation binding the contract event 0xe1fffcc4923d04b559f4d29a8bfc6cda04eb5b0d3c460751c2402c5c5cc9109c.
+//
+// Solidity: event Deposit(address trader, uint256 amount)
+func (_Broker *BrokerFilterer) WatchDeposit(opts *bind.WatchOpts, sink chan<- *BrokerDeposit) (event.Subscription, error) {
+
+	logs, sub, err := _Broker.contract.WatchLogs(opts, "Deposit")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(BrokerDeposit)
+				if err := _Broker.contract.UnpackLog(event, "Deposit", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseDeposit is a log parse operation binding the contract event 0xe1fffcc4923d04b559f4d29a8bfc6cda04eb5b0d3c460751c2402c5c5cc9109c.
+//
+// Solidity: event Deposit(address trader, uint256 amount)
+func (_Broker *BrokerFilterer) ParseDeposit(log types.Log) (*BrokerDeposit, error) {
+	event := new(BrokerDeposit)
+	if err := _Broker.contract.UnpackLog(event, "Deposit", log); err != nil {
+		return nil, err
+	}
+	return event, nil
+}
+
+// BrokerFillOrderIterator is returned from FilterFillOrder and is used to iterate over the raw logs and unpacked data for FillOrder events raised by the Broker contract.
+type BrokerFillOrderIterator struct {
+	Event *BrokerFillOrder // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *BrokerFillOrderIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(BrokerFillOrder)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(BrokerFillOrder)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *BrokerFillOrderIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *BrokerFillOrderIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// BrokerFillOrder represents a FillOrder event raised by the Broker contract.
+type BrokerFillOrder struct {
+	OrderHash  [32]byte
+	FillAmount *big.Int
+	Raw        types.Log // Blockchain specific contextual infos
+}
+
+// FilterFillOrder is a free log retrieval operation binding the contract event 0x66bc40b7d864f86356146c435fb0178293d08d80e04a8fba27d0e372ffe2d82b.
+//
+// Solidity: event FillOrder(bytes32 orderHash, int256 fillAmount)
+func (_Broker *BrokerFilterer) FilterFillOrder(opts *bind.FilterOpts) (*BrokerFillOrderIterator, error) {
+
+	logs, sub, err := _Broker.contract.FilterLogs(opts, "FillOrder")
+	if err != nil {
+		return nil, err
+	}
+	return &BrokerFillOrderIterator{contract: _Broker.contract, event: "FillOrder", logs: logs, sub: sub}, nil
+}
+
+// WatchFillOrder is a free log subscription operation binding the contract event 0x66bc40b7d864f86356146c435fb0178293d08d80e04a8fba27d0e372ffe2d82b.
+//
+// Solidity: event FillOrder(bytes32 orderHash, int256 fillAmount)
+func (_Broker *BrokerFilterer) WatchFillOrder(opts *bind.WatchOpts, sink chan<- *BrokerFillOrder) (event.Subscription, error) {
+
+	logs, sub, err := _Broker.contract.WatchLogs(opts, "FillOrder")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(BrokerFillOrder)
+				if err := _Broker.contract.UnpackLog(event, "FillOrder", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseFillOrder is a log parse operation binding the contract event 0x66bc40b7d864f86356146c435fb0178293d08d80e04a8fba27d0e372ffe2d82b.
+//
+// Solidity: event FillOrder(bytes32 orderHash, int256 fillAmount)
+func (_Broker *BrokerFilterer) ParseFillOrder(log types.Log) (*BrokerFillOrder, error) {
+	event := new(BrokerFillOrder)
+	if err := _Broker.contract.UnpackLog(event, "FillOrder", log); err != nil {
+		return nil, err
+	}
+	return event, nil
+}
+
+// BrokerTradeFailedIterator is returned from FilterTradeFailed and is used to iterate over the raw logs and unpacked data for TradeFailed events raised by the Broker contract.
+type BrokerTradeFailedIterator struct {
+	Event *BrokerTradeFailed // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *BrokerTradeFailedIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(BrokerTradeFailed)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(BrokerTradeFailed)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *BrokerTradeFailedIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *BrokerTradeFailedIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// BrokerTradeFailed represents a TradeFailed event raised by the Broker contract.
+type BrokerTradeFailed struct {
+	OrderHash [32]byte
+	Order     Order
+	Amount    *big.Int
+	Reason    string
+	Raw       types.Log // Blockchain specific contextual infos
+}
+
+// FilterTradeFailed is a free log retrieval operation binding the contract event 0x1955905acc03ff235236ed3bc847a2b24e6a1a945754ffad043f7b8e01adaeb7.
+//
+// Solidity: event TradeFailed(bytes32 orderHash, Order order, int256 amount, string reason)
+func (_Broker *BrokerFilterer) FilterTradeFailed(opts *bind.FilterOpts) (*BrokerTradeFailedIterator, error) {
+
+	logs, sub, err := _Broker.contract.FilterLogs(opts, "TradeFailed")
+	if err != nil {
+		return nil, err
+	}
+	return &BrokerTradeFailedIterator{contract: _Broker.contract, event: "TradeFailed", logs: logs, sub: sub}, nil
+}
+
+// WatchTradeFailed is a free log subscription operation binding the contract event 0x1955905acc03ff235236ed3bc847a2b24e6a1a945754ffad043f7b8e01adaeb7.
+//
+// Solidity: event TradeFailed(bytes32 orderHash, Order order, int256 amount, string reason)
+func (_Broker *BrokerFilterer) WatchTradeFailed(opts *bind.WatchOpts, sink chan<- *BrokerTradeFailed) (event.Subscription, error) {
+
+	logs, sub, err := _Broker.contract.WatchLogs(opts, "TradeFailed")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(BrokerTradeFailed)
+				if err := _Broker.contract.UnpackLog(event, "TradeFailed", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseTradeFailed is a log parse operation binding the contract event 0x1955905acc03ff235236ed3bc847a2b24e6a1a945754ffad043f7b8e01adaeb7.
+//
+// Solidity: event TradeFailed(bytes32 orderHash, Order order, int256 amount, string reason)
+func (_Broker *BrokerFilterer) ParseTradeFailed(log types.Log) (*BrokerTradeFailed, error) {
+	event := new(BrokerTradeFailed)
+	if err := _Broker.contract.UnpackLog(event, "TradeFailed", log); err != nil {
+		return nil, err
+	}
+	return event, nil
+}
+
+// BrokerTradeSuccessIterator is returned from FilterTradeSuccess and is used to iterate over the raw logs and unpacked data for TradeSuccess events raised by the Broker contract.
+type BrokerTradeSuccessIterator struct {
+	Event *BrokerTradeSuccess // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *BrokerTradeSuccessIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(BrokerTradeSuccess)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(BrokerTradeSuccess)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *BrokerTradeSuccessIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *BrokerTradeSuccessIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// BrokerTradeSuccess represents a TradeSuccess event raised by the Broker contract.
+type BrokerTradeSuccess struct {
+	OrderHash [32]byte
+	Order     Order
+	Amount    *big.Int
+	GasReward *big.Int
+	Raw       types.Log // Blockchain specific contextual infos
+}
+
+// FilterTradeSuccess is a free log retrieval operation binding the contract event 0xa31c4dcf97bfab49d7f55b0dbc9a7a49d25cdfa4cead657a12315b48bf11f89a.
+//
+// Solidity: event TradeSuccess(bytes32 orderHash, Order order, int256 amount, uint256 gasReward)
+func (_Broker *BrokerFilterer) FilterTradeSuccess(opts *bind.FilterOpts) (*BrokerTradeSuccessIterator, error) {
+
+	logs, sub, err := _Broker.contract.FilterLogs(opts, "TradeSuccess")
+	if err != nil {
+		return nil, err
+	}
+	return &BrokerTradeSuccessIterator{contract: _Broker.contract, event: "TradeSuccess", logs: logs, sub: sub}, nil
+}
+
+// WatchTradeSuccess is a free log subscription operation binding the contract event 0xa31c4dcf97bfab49d7f55b0dbc9a7a49d25cdfa4cead657a12315b48bf11f89a.
+//
+// Solidity: event TradeSuccess(bytes32 orderHash, Order order, int256 amount, uint256 gasReward)
+func (_Broker *BrokerFilterer) WatchTradeSuccess(opts *bind.WatchOpts, sink chan<- *BrokerTradeSuccess) (event.Subscription, error) {
+
+	logs, sub, err := _Broker.contract.WatchLogs(opts, "TradeSuccess")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(BrokerTradeSuccess)
+				if err := _Broker.contract.UnpackLog(event, "TradeSuccess", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseTradeSuccess is a log parse operation binding the contract event 0xa31c4dcf97bfab49d7f55b0dbc9a7a49d25cdfa4cead657a12315b48bf11f89a.
+//
+// Solidity: event TradeSuccess(bytes32 orderHash, Order order, int256 amount, uint256 gasReward)
+func (_Broker *BrokerFilterer) ParseTradeSuccess(log types.Log) (*BrokerTradeSuccess, error) {
+	event := new(BrokerTradeSuccess)
+	if err := _Broker.contract.UnpackLog(event, "TradeSuccess", log); err != nil {
+		return nil, err
+	}
+	return event, nil
+}
+
+// BrokerTransferIterator is returned from FilterTransfer and is used to iterate over the raw logs and unpacked data for Transfer events raised by the Broker contract.
+type BrokerTransferIterator struct {
+	Event *BrokerTransfer // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *BrokerTransferIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(BrokerTransfer)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(BrokerTransfer)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *BrokerTransferIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *BrokerTransferIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// BrokerTransfer represents a Transfer event raised by the Broker contract.
+type BrokerTransfer struct {
+	Sender    common.Address
+	Recipient common.Address
+	Amount    *big.Int
+	Raw       types.Log // Blockchain specific contextual infos
+}
+
+// FilterTransfer is a free log retrieval operation binding the contract event 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef.
+//
+// Solidity: event Transfer(address sender, address recipient, uint256 amount)
+func (_Broker *BrokerFilterer) FilterTransfer(opts *bind.FilterOpts) (*BrokerTransferIterator, error) {
+
+	logs, sub, err := _Broker.contract.FilterLogs(opts, "Transfer")
+	if err != nil {
+		return nil, err
+	}
+	return &BrokerTransferIterator{contract: _Broker.contract, event: "Transfer", logs: logs, sub: sub}, nil
+}
+
+// WatchTransfer is a free log subscription operation binding the contract event 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef.
+//
+// Solidity: event Transfer(address sender, address recipient, uint256 amount)
+func (_Broker *BrokerFilterer) WatchTransfer(opts *bind.WatchOpts, sink chan<- *BrokerTransfer) (event.Subscription, error) {
+
+	logs, sub, err := _Broker.contract.WatchLogs(opts, "Transfer")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(BrokerTransfer)
+				if err := _Broker.contract.UnpackLog(event, "Transfer", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseTransfer is a log parse operation binding the contract event 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef.
+//
+// Solidity: event Transfer(address sender, address recipient, uint256 amount)
+func (_Broker *BrokerFilterer) ParseTransfer(log types.Log) (*BrokerTransfer, error) {
+	event := new(BrokerTransfer)
+	if err := _Broker.contract.UnpackLog(event, "Transfer", log); err != nil {
+		return nil, err
+	}
+	return event, nil
+}
+
+// BrokerWithdrawIterator is returned from FilterWithdraw and is used to iterate over the raw logs and unpacked data for Withdraw events raised by the Broker contract.
+type BrokerWithdrawIterator struct {
+	Event *BrokerWithdraw // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *BrokerWithdrawIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(BrokerWithdraw)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(BrokerWithdraw)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *BrokerWithdrawIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *BrokerWithdrawIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// BrokerWithdraw represents a Withdraw event raised by the Broker contract.
+type BrokerWithdraw struct {
+	Trader common.Address
+	Amount *big.Int
+	Raw    types.Log // Blockchain specific contextual infos
+}
+
+// FilterWithdraw is a free log retrieval operation binding the contract event 0x884edad9ce6fa2440d8a54cc123490eb96d2768479d49ff9c7366125a9424364.
+//
+// Solidity: event Withdraw(address trader, uint256 amount)
+func (_Broker *BrokerFilterer) FilterWithdraw(opts *bind.FilterOpts) (*BrokerWithdrawIterator, error) {
+
+	logs, sub, err := _Broker.contract.FilterLogs(opts, "Withdraw")
+	if err != nil {
+		return nil, err
+	}
+	return &BrokerWithdrawIterator{contract: _Broker.contract, event: "Withdraw", logs: logs, sub: sub}, nil
+}
+
+// WatchWithdraw is a free log subscription operation binding the contract event 0x884edad9ce6fa2440d8a54cc123490eb96d2768479d49ff9c7366125a9424364.
+//
+// Solidity: event Withdraw(address trader, uint256 amount)
+func (_Broker *BrokerFilterer) WatchWithdraw(opts *bind.WatchOpts, sink chan<- *BrokerWithdraw) (event.Subscription, error) {
+
+	logs, sub, err := _Broker.contract.WatchLogs(opts, "Withdraw")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(BrokerWithdraw)
+				if err := _Broker.contract.UnpackLog(event, "Withdraw", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseWithdraw is a log parse operation binding the contract event 0x884edad9ce6fa2440d8a54cc123490eb96d2768479d49ff9c7366125a9424364.
+//
+// Solidity: event Withdraw(address trader, uint256 amount)
+func (_Broker *BrokerFilterer) ParseWithdraw(log types.Log) (*BrokerWithdraw, error) {
+	event := new(BrokerWithdraw)
+	if err := _Broker.contract.UnpackLog(event, "Withdraw", log); err != nil {
+		return nil, err
+	}
+	return event, nil
 }
