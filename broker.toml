@@ -7,6 +7,7 @@ jwt_secret = "test"
 reader_address = "0xe38b806282c777F5257e7cDd8c05eb2f2200cA2a"
 broker_address = "0x00000000000000000000000000"
 watcher_id = 1
+white_list = ["0xe38b806282c777F5257e7cDd8c05eb2f2200cA2a"]
 
 [gas_station]
 gas_price = 1000000
@@ -22,3 +23,5 @@ interval = "5s"
 timeout = "5s"
 provider_url = "http://server10.jy.mcarlo.com:8747"
 password = "qedaxzop"
+
+[wi]

@@ -164,3 +164,7 @@ func GasBalanceError() *ApiError {
 func CloseOnlyError() *ApiError {
 	return &ApiError{Code: -23, Desc: "amount is not right for close only order"}
 }
+
+func AddressNotInWhiteListError() *ApiError {
+	return &ApiError{Code: -24, Desc: "address is not in whitelist"}
+}

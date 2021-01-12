@@ -17,6 +17,7 @@ type Config struct {
 	ReaderAddress string     `toml:"reader_address"`
 	BrokerAddress string     `toml:"broker_address"`
 	WatcherID     int        `toml:"watcher_id"`
+	WhiteList     []string   `toml:"white_list"`
 	GasStation    gasStation `toml:"gas_station"`
 	BlockChain    blockchain `toml:"blockchain"`
 	Subgraph      subgraph   `toml:"subgraph"`
