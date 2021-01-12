@@ -22,7 +22,7 @@ type (
 		BaseReq
 		OrderHash            string `json:"orderHash"  validate:"required"`
 		LiquidityPoolAddress string `json:"liquidityPoolAddress" validate:"required"`
-		PerpetualIndex       int64  `json:"perpetualIndex" validate:"required"`
+		PerpetualIndex       int64  `json:"perpetualIndex"`
 		BrokerAddress        string `json:"brokerAddress" validate:"required"`
 		RelayerAddress       string `json:"relayerAddress" validate:"required"`
 		ReferrerAddress      string `json:"referrerAddress"`
@@ -88,7 +88,7 @@ type (
 	GetPerpetualReq struct {
 		BaseReq
 		LiquidityPoolAddress string `json:"liquidityPoolAddress" validate:"required"`
-		PerpetualIndex       int64  `json:"perpetualIndex" validate:"required"`
+		PerpetualIndex       int64  `json:"perpetualIndex"`
 	}
 
 	GetPerpetualResp struct {
@@ -98,7 +98,7 @@ type (
 	GetBrokerRelayReq struct {
 		BaseReq
 		LiquidityPoolAddress string `json:"liquidityPoolAddress" validate:"required"`
-		PerpetualIndex       int64  `json:"perpetualIndex" validate:"required"`
+		PerpetualIndex       int64  `json:"perpetualIndex"`
 	}
 
 	GetBrokerRelayResp struct {

@@ -59,7 +59,7 @@ func (m *match) NewOrder(order *model.Order) string {
 		return model.MatchGasNotEnoughErrorID
 	}
 
-	brokerFeeLimit = decimal.NewFromInt(order.BrokerFeeLimit)
+	brokerFeeLimit := decimal.NewFromInt(order.BrokerFeeLimit)
 	if brokerFeeLimit.LessThan(decimal.NewFromInt(int64(gasReward))) {
 		return model.MatchGasNotEnoughErrorID
 	}
