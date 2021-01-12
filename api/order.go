@@ -142,6 +142,9 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 	order.OrderParam.LiquidityPoolAddress = strings.ToLower(params.LiquidityPoolAddress)
 	order.OrderParam.PerpetualIndex = params.PerpetualIndex
 	order.OrderParam.BrokerAddress = strings.ToLower(params.BrokerAddress)
+	if order.OrderParam.BrokerAddress != strings.ToLower(conf.Conf.BrokerAddress) {
+		return nil, InternalError(fmt.Errorf("unSupport brokerAddress:%s", params.BrokerAddress))
+	}
 	order.OrderParam.RelayerAddress = strings.ToLower(params.RelayerAddress)
 	if params.ReferrerAddress == "" {
 		order.OrderParam.ReferrerAddress = ADDRESS_ZERO

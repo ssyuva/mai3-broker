@@ -4,6 +4,7 @@ import (
 	"github.com/mcarloai/mai-v3-broker/common/mai3"
 	"github.com/mcarloai/mai-v3-broker/conf"
 	"github.com/mcarloai/mai-v3-broker/dao"
+	"strings"
 )
 
 func (s *Server) GetPerpetual(p Param) (interface{}, error) {
@@ -36,8 +37,8 @@ func (s *Server) GetBrokerRelay(p Param) (interface{}, error) {
 	}
 
 	return &GetBrokerRelayResp{
-		BrokerAddress:  conf.Conf.BrokerAddress,
-		RelayerAddress: relayer,
+		BrokerAddress:  strings.ToLower(conf.Conf.BrokerAddress),
+		RelayerAddress: strings.ToLower(relayer),
 		Version:        int(mai3.ProtocolV3),
 	}, nil
 }

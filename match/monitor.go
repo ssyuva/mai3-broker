@@ -6,6 +6,7 @@ import (
 	"github.com/mcarloai/mai-v3-broker/conf"
 	"github.com/shopspring/decimal"
 	logger "github.com/sirupsen/logrus"
+	"strings"
 	"time"
 )
 
@@ -77,6 +78,15 @@ func (m *match) checkUserPendingOrders(poolStorage *model.LiquidityPoolStorage, 
 	}
 
 	for _, order := range orders[num:] {
+		if order.OrderParam.BrokerAddress != strings.ToLower(conf.Conf.BrokerAddress) {
+			cancel := &OrderCancel{
+				OrderHash: order.OrderHash,
+				Status:    order.Status,
+				ToCancel:  order.AvailableAmount,
+			}
+			cancels = append(cancels, cancel)
+			continue
+		}
 		if !m.CheckCloseOnly(account, order) {
 			cancel := &OrderCancel{
 				OrderHash: order.OrderHash,

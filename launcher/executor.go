@@ -7,6 +7,7 @@ import (
 	"github.com/mcarloai/mai-v3-broker/conf"
 	"github.com/mcarloai/mai-v3-broker/dao"
 	"github.com/mcarloai/mai-v3-broker/gasmonitor"
+	"github.com/mcarloai/mai-v3-broker/runnable"
 	"github.com/pkg/errors"
 	logger "github.com/sirupsen/logrus"
 	"time"
@@ -15,43 +16,34 @@ import (
 type Executor struct {
 	ctx        context.Context
 	dao        dao.DAO
+	runner     *runnable.Timed
 	chainCli   chain.ChainClient
 	gasMonitor *gasmonitor.GasMonitor
-	execChan   chan interface{}
+	syncer     *Syncer
 }
 
-func NewExecutor(ctx context.Context, dao dao.DAO, chainCli chain.ChainClient, execChan chan interface{}, gm *gasmonitor.GasMonitor) *Executor {
+func NewExecutor(ctx context.Context, dao dao.DAO, chainCli chain.ChainClient, syncer *Syncer, gm *gasmonitor.GasMonitor) *Executor {
 	return &Executor{
 		ctx:        ctx,
 		dao:        dao,
+		runner:     runnable.NewTimed(ChannelHWM),
 		chainCli:   chainCli,
 		gasMonitor: gm,
-		execChan:   execChan,
+		syncer:     syncer,
 	}
 }
 
-func (s *Executor) Run() {
-	for {
-		select {
-		case <-s.ctx.Done():
-			logger.Infof("Executor stop")
-			return
-		case <-s.execChan:
-		case <-time.After(5 * time.Second):
-		}
-		if err := s.executeTransaction(); err != nil {
-			logger.Errorf("executeTransaction error:%s", err.Error())
-		}
-	}
+func (s *Executor) Run() error {
+	return s.runner.Run(s.ctx, time.Second, s.executeTransaction)
 }
 
-func (s *Executor) executeTransaction() error {
+func (s *Executor) executeTransaction() {
 	ctx, done := context.WithTimeout(s.ctx, conf.Conf.BlockChain.Timeout.Duration)
 	defer done()
 	users, err := s.dao.GetUsersWithStatus(model.TxInitial)
 	if err != nil {
 		logger.Warnf("find user with status failed: %s", err)
-		return errors.Wrap(err, "fail to get users has initial transactions")
+		return
 	}
 	for _, user := range users {
 		tx, err := s.dao.FirstTxByUser(user, model.TxInitial)
@@ -63,9 +55,11 @@ func (s *Executor) executeTransaction() error {
 		err = s.sendTransaction(ctx, tx)
 		if err != nil {
 			logger.Warningf("commit new transaction failed for %v: %v", user, err)
+		} else {
+			s.syncer.runner.Trigger(nil)
 		}
 	}
-	return nil
+	return
 }
 
 func (s *Executor) sendTransaction(ctx context.Context, tx *model.LaunchTransaction) error {

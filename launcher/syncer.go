@@ -7,8 +7,10 @@ import (
 	"github.com/mcarloai/mai-v3-broker/conf"
 	"github.com/mcarloai/mai-v3-broker/dao"
 	"github.com/mcarloai/mai-v3-broker/match"
+	"github.com/mcarloai/mai-v3-broker/runnable"
 	"github.com/pkg/errors"
 	logger "github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
 	"sync"
 	"time"
 )
@@ -16,69 +18,51 @@ import (
 type Syncer struct {
 	ctx      context.Context
 	dao      dao.DAO
+	runner   *runnable.Timed
 	chainCli chain.ChainClient
 	match    *match.Server
-	syncChan chan interface{}
 }
 
 const MATURE_BLOCKNUM = 60
 
-func NewSyncer(ctx context.Context, dao dao.DAO, chainCli chain.ChainClient, syncChan chan interface{}, match *match.Server) *Syncer {
+func NewSyncer(ctx context.Context, dao dao.DAO, chainCli chain.ChainClient, match *match.Server) *Syncer {
 	return &Syncer{
 		ctx:      ctx,
 		dao:      dao,
+		runner:   runnable.NewTimed(ChannelHWM),
 		chainCli: chainCli,
-		syncChan: syncChan,
 		match:    match,
 	}
 }
 
-func (s *Syncer) Run() {
+func (s *Syncer) Run() error {
+	group, ctx := errgroup.WithContext(s.ctx)
+
 	// check unmature confirmed transaction for rollback
-	go s.checkUnmatureTransaction()
+	group.Go(func() error {
+		return s.runner.Run(ctx, time.Second, s.syncUnmatureTransaction)
+	})
 
-	for {
-		select {
-		case <-s.ctx.Done():
-			logger.Infof("Syncer stop")
-			return
-		case <-s.syncChan:
-		case <-time.After(5 * time.Second):
-		}
-		if err := s.syncTransaction(); err != nil {
-			logger.Errorf("syncTransaction error:%s", err)
-		}
-	}
+	// sync pending transaction
+	group.Go(func() error {
+		return s.runner.Run(ctx, time.Second, s.syncTransaction)
+	})
+	return group.Wait()
 }
 
-func (s *Syncer) checkUnmatureTransaction() {
-	for {
-		select {
-		case <-s.ctx.Done():
-			logger.Infof("Syncer stop")
-			return
-		case <-s.syncChan:
-		case <-time.After(5 * time.Second):
-		}
-		// check unmature confirmed transaction for rollback
-		if err := s.syncUnmatureTransaction(); err != nil {
-			logger.Errorf("syncUnMatureTransaction error:%s", err)
-		}
-	}
-}
-
-func (s *Syncer) syncUnmatureTransaction() error {
+func (s *Syncer) syncUnmatureTransaction() {
 	ctx, done := context.WithTimeout(s.ctx, conf.Conf.BlockChain.Timeout.Duration)
 	defer done()
 	blockNumber, err := s.chainCli.GetLatestBlockNumber(ctx)
 	if err != nil {
-		return err
+		logger.Infof("GetLatestBlockNumber error:%s", err)
+		return
 	}
 	begin := blockNumber - MATURE_BLOCKNUM
 	users, err := s.dao.GetUsersWithBlockNumber(begin, model.TxSuccess, model.TxFailed)
 	if err != nil {
 		logger.Warnf("find user with pending status failed: %s", err)
-		return nil
+		return
 	}
 	wg := &sync.WaitGroup{}
 	for _, user := range users {
@@ -89,14 +73,14 @@ func (s *Syncer) syncUnmatureTransaction() error {
 		}(user)
 	}
 	wg.Wait()
-	return nil
+	return
 }
 
-func (s *Syncer) syncTransaction() error {
+func (s *Syncer) syncTransaction() {
 	users, err := s.dao.GetUsersWithStatus(model.TxPending)
 	if err != nil {
 		logger.Warnf("find user with pending status failed: %s", err)
-		return nil
+		return
 	}
 	wg := &sync.WaitGroup{}
 	for _, user := range users {
@@ -107,7 +91,7 @@ func (s *Syncer) syncTransaction() error {
 		}(user)
 	}
 	wg.Wait()
-	return nil
+	return
 }
 
 func (s *Syncer) updateStatusByUser(user string) {

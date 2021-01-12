@@ -12,31 +12,35 @@ import (
 	"github.com/mcarloai/mai-v3-broker/dao"
 	"github.com/mcarloai/mai-v3-broker/gasmonitor"
 	"github.com/mcarloai/mai-v3-broker/match"
+	"github.com/mcarloai/mai-v3-broker/runnable"
+	"golang.org/x/sync/errgroup"
+
 	"github.com/shopspring/decimal"
 	logger "github.com/sirupsen/logrus"
 	"math/big"
 	"time"
 )
 
+var ChannelHWM = 64
+
 type Launcher struct {
 	ctx        context.Context
 	dao        dao.DAO
+	runner     *runnable.Timed
 	chainCli   chain.ChainClient
 	gasMonitor *gasmonitor.GasMonitor
 	match      *match.Server
-	execChan   chan interface{}
-	syncChan   chan interface{}
+	executor   *Executor
 }
 
 func NewLaunch(ctx context.Context, dao dao.DAO, chainCli chain.ChainClient, match *match.Server, gm *gasmonitor.GasMonitor) *Launcher {
 	return &Launcher{
 		ctx:        ctx,
 		dao:        dao,
+		runner:     runnable.NewTimed(ChannelHWM),
 		chainCli:   chainCli,
 		gasMonitor: gm,
 		match:      match,
-		execChan:   make(chan interface{}, 100),
-		syncChan:   make(chan interface{}, 100),
 	}
 }
 
@@ -47,26 +51,27 @@ func (l *Launcher) Start() error {
 		logger.Errorf("reload account error %s", err)
 		return err
 	}
+
+	group, ctx := errgroup.WithContext(l.ctx)
+
 	// start syncer for sync pending transactions
-	syncer := NewSyncer(l.ctx, l.dao, l.chainCli, l.syncChan, l.match)
-	go syncer.Run()
+	syncer := NewSyncer(ctx, l.dao, l.chainCli, l.match)
+	group.Go(func() error {
+		return syncer.Run()
+	})
 
 	// start executor for execute launch transactions
-	executor := NewExecutor(l.ctx, l.dao, l.chainCli, l.execChan, l.gasMonitor)
-	go executor.Run()
+	executor := NewExecutor(ctx, l.dao, l.chainCli, syncer, l.gasMonitor)
+	l.executor = executor
+	group.Go(func() error {
+		return executor.Run()
+	})
 
-	for {
-		select {
-		case <-l.ctx.Done():
-			logger.Infof("Launcher receive context done")
-			return nil
-		case <-time.After(5 * time.Second):
-			err := l.checkMatchTransaction()
-			if err != nil {
-				logger.Errorf("excuteMatchTransaction failed! err:%v", err.Error())
-			}
-		}
-	}
+	group.Go(func() error {
+		return l.runner.Run(ctx, time.Second, l.checkMatchTransaction)
+	})
+
+	return group.Wait()
 }
 
 func (l *Launcher) reloadAccount() error {
@@ -110,23 +115,25 @@ func (l *Launcher) ImportPrivateKey(pk string) (string, error) {
 	return address, err
 }
 
-func (l *Launcher) checkMatchTransaction() error {
+func (l *Launcher) checkMatchTransaction() {
 	transactions, err := l.dao.QueryMatchTransaction("", 0, []model.TransactionStatus{model.TransactionStatusInit})
 	if err != nil {
-		return fmt.Errorf("QueryUnconfirmedTransactions failed error:%w", err)
+		logger.Errorf("QueryUnconfirmedTransactions failed error:%s", err)
+		return
 	}
 	for _, transaction := range transactions {
 		if err = l.dao.LoadMatchOrders(transaction.MatchResult.MatchItems); err != nil {
-			return fmt.Errorf("LoadMatchOrders:%w", err)
+			logger.Errorf("LoadMatchOrders:%s", err)
+			return
 		}
 	}
 
 	for _, tx := range transactions {
 		if err = l.createLaunchTransaction(tx); err != nil {
-			return err
+			logger.Errorf("createLaunchTransaction:%s", err)
+			return
 		}
 	}
-	return nil
 }
 
 func (l *Launcher) createLaunchTransaction(matchTx *model.MatchTransaction) error {
@@ -181,7 +188,7 @@ func (l *Launcher) createLaunchTransaction(matchTx *model.MatchTransaction) erro
 	})
 
 	if err == nil {
-		l.execChan <- nil
+		l.executor.runner.Trigger(nil)
 	}
 	return err
 }
