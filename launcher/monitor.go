@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-type Syncer struct {
+type Monitor struct {
 	ctx      context.Context
 	dao      dao.DAO
 	runner   *runnable.Timed
@@ -22,8 +22,10 @@ type Syncer struct {
 	match    *match.Server
 }
 
-func NewSyncer(ctx context.Context, dao dao.DAO, chainCli chain.ChainClient, match *match.Server) *Syncer {
-	return &Syncer{
+const MATURE_BLOCKNUM = 60
+
+func NewMonitor(ctx context.Context, dao dao.DAO, chainCli chain.ChainClient, match *match.Server) *Monitor {
+	return &Monitor{
 		ctx:      ctx,
 		dao:      dao,
 		runner:   runnable.NewTimed(ChannelHWM),
@@ -32,13 +34,21 @@ func NewSyncer(ctx context.Context, dao dao.DAO, chainCli chain.ChainClient, mat
 	}
 }
 
-func (s *Syncer) Run() error {
-	// sync pending transaction
-	return s.runner.Run(s.ctx, time.Second, s.syncTransaction)
+func (s *Monitor) Run() error {
+	// check unmature confirmed transaction for rollback
+	return s.runner.Run(s.ctx, time.Second, s.syncUnmatureTransaction)
 }
 
-func (s *Syncer) syncTransaction() {
-	users, err := s.dao.GetUsersWithStatus(model.TxPending)
+func (s *Monitor) syncUnmatureTransaction() {
+	ctx, done := context.WithTimeout(s.ctx, conf.Conf.BlockChain.Timeout.Duration)
+	defer done()
+	blockNumber, err := s.chainCli.GetLatestBlockNumber(ctx)
+	if err != nil {
+		logger.Infof("GetLatestBlockNumber error:%s", err)
+		return
+	}
+	begin := blockNumber - MATURE_BLOCKNUM
+	users, err := s.dao.GetUsersWithBlockNumber(begin, model.TxSuccess, model.TxFailed)
 	if err != nil {
 		logger.Warnf("find user with pending status failed: %s", err)
 		return
@@ -48,16 +58,17 @@ func (s *Syncer) syncTransaction() {
 		wg.Add(1)
 		go func(user string) {
 			defer wg.Done()
-			s.updateStatusByUser(user)
+			s.updateUnmatureStatusByUser(user, &begin)
 		}(user)
 	}
 	wg.Wait()
 	return
 }
 
-func (s *Syncer) updateStatusByUser(user string) {
-	logger.Debugf("check pending transaction for %s", user)
-	txs, err := s.dao.GetTxsByUser(user, nil, model.TxPending)
+func (s *Monitor) updateUnmatureStatusByUser(user string, blockNumber *uint64) {
+	// get unmature confirmed transaction
+	logger.Debugf("check unmature transaction for %s", user)
+	txs, err := s.dao.GetTxsByUser(user, blockNumber, model.TxSuccess, model.TxFailed)
 	if dao.IsRecordNotFound(err) || len(txs) == 0 {
 		return
 	}
@@ -69,14 +80,19 @@ func (s *Syncer) updateStatusByUser(user string) {
 	ctx, done := context.WithTimeout(s.ctx, conf.Conf.BlockChain.Timeout.Duration)
 	defer done()
 
-	for i, tx := range txs {
-		if tx.TransactionHash == nil {
-			logger.Errorf("transaction hash is nill txID:%s", tx.TxID)
+	for _, tx := range txs {
+		if tx.TransactionHash == nil || tx.BlockNumber == nil {
+			logger.Errorf("transaction hash or blockNumber is nill txID:%s", tx.TxID)
 			return
 		}
 		receipt, err := s.chainCli.WaitTransactionReceipt(ctx, *tx.TransactionHash)
 		if err != nil {
 			logger.Errorf("WaitTransactionReceipt error: %s", err)
+			continue
+		}
+
+		// check blockNumber blockHash ?
+		if tx.Status == receipt.Status {
 			continue
 		}
 		err = s.dao.Transaction(context.Background(), false /* readonly */, func(dao dao.DAO) error {
@@ -86,35 +102,13 @@ func (s *Syncer) updateStatusByUser(user string) {
 			tx.BlockTime = &receipt.BlockTime
 			tx.Status = receipt.Status
 			tx.GasUsed = &receipt.GasUsed
-			// bh, err := dao.FindBlock(conf.Conf.WatcherID, int64(*tx.BlockNumber))
-			// if err != nil {
-			// 	return errors.Wrap(err, "get block header fail")
-			// }
-			// if bh.BlockHash != *tx.BlockHash {
-			// 	return fmt.Errorf("block hash check failed, blocknumber:%d", *tx.BlockNumber)
-			// }
 			if err = dao.UpdateTx(tx); err != nil {
 				return errors.Wrap(err, "fail to update transaction status")
 			}
-			// handle tx with same nonce
-			candidates, err := dao.GetTxsByNonce(tx.FromAddress, tx.Nonce)
-			if err != nil {
-				return errors.Wrap(err, "fail to find transaction by nonce")
-			}
-			for _, candidate := range candidates {
-				if *candidate.TransactionHash != *tx.TransactionHash {
-					candidate.Status = model.TxCanceled
-					dao.UpdateTx(candidate)
-				}
-			}
 
-			err = s.match.UpdateOrdersStatus(tx.TxID, tx.Status.TransactionStatus(), *tx.TransactionHash, *tx.BlockHash, *tx.BlockNumber, *tx.BlockTime)
+			err = s.match.RollbackOrdersStatus(tx.TxID, tx.Status.TransactionStatus(), *tx.TransactionHash, *tx.BlockHash, *tx.BlockNumber, *tx.BlockTime)
 			return err
 		})
-		// this case is to handle accelarate
-		if next := i + 1; next < len(txs) && *tx.Nonce == *txs[next].Nonce {
-			continue
-		}
 		if err != nil {
 			logger.Warnf("fail to check status: %s", err)
 			return

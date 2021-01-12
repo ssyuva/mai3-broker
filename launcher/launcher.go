@@ -60,6 +60,12 @@ func (l *Launcher) Start() error {
 		return syncer.Run()
 	})
 
+	// start monitor for check unmature transactions
+	monitor := NewMonitor(ctx, l.dao, l.chainCli, l.match)
+	group.Go(func() error {
+		return monitor.Run()
+	})
+
 	// start executor for execute launch transactions
 	executor := NewExecutor(ctx, l.dao, l.chainCli, syncer, l.gasMonitor)
 	l.executor = executor
