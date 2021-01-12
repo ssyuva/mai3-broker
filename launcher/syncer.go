@@ -34,6 +34,24 @@ func NewSyncer(ctx context.Context, dao dao.DAO, chainCli chain.ChainClient, syn
 }
 
 func (s *Syncer) Run() {
+	// check unmature confirmed transaction for rollback
+	go s.checkUnmatureTransaction()
+
+	for {
+		select {
+		case <-s.ctx.Done():
+			logger.Infof("Syncer stop")
+			return
+		case <-s.syncChan:
+		case <-time.After(5 * time.Second):
+		}
+		if err := s.syncTransaction(); err != nil {
+			logger.Errorf("syncTransaction error:%s", err)
+		}
+	}
+}
+
+func (s *Syncer) checkUnmatureTransaction() {
 	for {
 		select {
 		case <-s.ctx.Done():
@@ -45,10 +63,6 @@ func (s *Syncer) Run() {
 		// check unmature confirmed transaction for rollback
 		if err := s.syncUnmatureTransaction(); err != nil {
 			logger.Errorf("syncUnMatureTransaction error:%s", err)
-		}
-
-		if err := s.syncTransaction(); err != nil {
-			logger.Errorf("syncTransaction error:%s", err)
 		}
 	}
 }

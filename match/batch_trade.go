@@ -97,7 +97,7 @@ func (m *match) updateOrdersByTradeEvent(dao dao.DAO, matchTx *model.MatchTransa
 
 	orders, err := dao.GetOrderByHashs(orderHashes)
 	if err != nil {
-		logger.Errorf("UpdateOrdersStatus:%w", err)
+		logger.Errorf("UpdateOrdersStatus:%s", err)
 		return ordersToNotify, err
 	}
 	for _, order := range orders {
@@ -109,14 +109,14 @@ func (m *match) updateOrdersByTradeEvent(dao dao.DAO, matchTx *model.MatchTransa
 				oldAmount := order.AvailableAmount
 				order.AvailableAmount = order.AvailableAmount.Add(matchAmount.Sub(amount))
 				if err := m.rollbackOrderbook(oldAmount, order.PendingAmount.Sub(amount), order); err != nil {
-					logger.Errorf("UpdateOrdersStatus:%w", err)
+					logger.Errorf("UpdateOrdersStatus:%s", err)
 					return ordersToNotify, err
 				}
 			}
 			order.PendingAmount = order.PendingAmount.Sub(amount)
 			order.ConfirmedAmount = order.ConfirmedAmount.Add(amount)
 			if err := dao.UpdateOrder(order); err != nil {
-				logger.Errorf("UpdateOrdersStatus:%w", err)
+				logger.Errorf("UpdateOrdersStatus:%s", err)
 				return ordersToNotify, err
 			}
 		} else if amount, ok := orderFailMap[order.OrderHash]; ok {
@@ -125,12 +125,12 @@ func (m *match) updateOrdersByTradeEvent(dao dao.DAO, matchTx *model.MatchTransa
 			order.PendingAmount = order.PendingAmount.Sub(amount)
 			order.AvailableAmount = order.AvailableAmount.Add(amount)
 			if err := dao.UpdateOrder(order); err != nil {
-				logger.Errorf("UpdateOrdersStatus:%w", err)
+				logger.Errorf("UpdateOrdersStatus:%s", err)
 				return ordersToNotify, err
 			}
 
 			if err := m.rollbackOrderbook(oldAmount, amount, order); err != nil {
-				logger.Errorf("UpdateOrdersStatus:%w", err)
+				logger.Errorf("UpdateOrdersStatus:%s", err)
 				return ordersToNotify, err
 			}
 		}
@@ -146,6 +146,7 @@ func (m *match) rollbackOrderbook(oldAmount, delta decimal.Decimal, order *model
 			logger.Errorf("UpdateOrdersStatus:%w", err)
 			return err
 		}
+		return nil
 	}
 
 	bookOrder, ok := m.orderbook.GetOrder(order.OrderHash, order.Amount.IsNegative(), order.Price)
@@ -154,6 +155,7 @@ func (m *match) rollbackOrderbook(oldAmount, delta decimal.Decimal, order *model
 			logger.Errorf("UpdateOrdersStatus:%w", err)
 			return err
 		}
+		return nil
 	}
 	return fmt.Errorf("order %s not fund in orderbook", order.OrderHash)
 }

@@ -31,7 +31,7 @@ type (
 		StopPrice            string `json:"stopPrice"`
 		Amount               string `json:"amount"    validate:"required"`
 		MinTradeAmount       string `json:"minTradeAmount" validate:"required"`
-		BrokerFeeLimit       string `json:"brokerFeeLimit" validate:"required"`
+		BrokerFeeLimit       int64  `json:"brokerFeeLimit"`
 		Salt                 int64  `json:"salt" validate:"required"`
 		ExpiresAt            int64  `json:"expiresAt" validate:"required"`
 		R                    string `json:"r" validate:"required"`

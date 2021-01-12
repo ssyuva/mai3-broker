@@ -39,11 +39,7 @@ func IsValidSignature(address string, message string, signature string, method s
 	}
 	switch method {
 	case EthSign:
-		hash := crypto.Keccak256(
-			[]byte("\x19Ethereum Signed Message:\n32"),
-			hashBytes,
-		)
-		pk, err := crypto.PersonalEcRecover(hash, signatureByte)
+		pk, err := crypto.PersonalEcRecover(hashBytes, signatureByte)
 		if err != nil {
 			return false, err
 		}

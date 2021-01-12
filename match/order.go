@@ -26,14 +26,14 @@ func (m *match) CheckOrderMargin(poolStorage *model.LiquidityPoolStorage, accoun
 		order.Price, order.Amount,
 		poolStorage.VaultFeeRate.Add(perpetualStorage.LpFeeRate).Add(perpetualStorage.OperatorFeeRate))
 	if err != nil {
-		return true
+		return false
 	}
 	computedAccount, err := mai3.ComputeAccount(poolStorage, m.perpetual.PerpetualIndex, account)
 	if err != nil || !computedAccount.IsSafe {
 		return false
 	}
 
-	return false
+	return true
 }
 
 func (m *match) CheckCloseOnly(account *model.AccountStorage, order *model.Order) bool {

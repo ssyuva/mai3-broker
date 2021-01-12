@@ -96,7 +96,9 @@ func (m *match) checkUserPendingOrders(poolStorage *model.LiquidityPoolStorage, 
 			cancels = append(cancels, cancel)
 		}
 
-		if order.BrokerFeeLimit.LessThan(decimal.NewFromInt(int64(gasReward))) {
+		brokerFeeLimit = decimal.NewFromInt(order.BrokerFeeLimit)
+
+		if brokerFeeLimit.LessThan(decimal.NewFromInt(int64(gasReward))) {
 			cancel := &OrderCancel{
 				OrderHash: order.OrderHash,
 				Status:    order.Status,

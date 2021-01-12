@@ -1,8 +1,8 @@
 package model
 
 type Perpetual struct {
-	LiquidityPoolAddress string `json:"liquidityPoolAddress" db:"liquidity_pool_address" primaryKey:"true" gorm:"primary_key"`
-	PerpetualIndex       int64  `json:"perpetualIndex"  db:"perpetual_index" primaryKey:"true" gorm:"primary_key"`
+	LiquidityPoolAddress string `json:"liquidityPoolAddress" db:"liquidity_pool_address"`
+	PerpetualIndex       int64  `json:"perpetualIndex"  db:"perpetual_index"`
 	Symbol               string `json:"symbol"  db:"symbol"`
 	OperatorAddress      string `json:"operatorAddress"  db:"operator_address"`
 	CollateralSymbol     string `json:"collateralSymbol" db:"collateral_symbol"`

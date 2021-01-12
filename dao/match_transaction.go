@@ -53,7 +53,7 @@ func (t *matchTransactionDAO) GetMatchTransaction(ID string) (*model.MatchTransa
 func (t *matchTransactionDAO) QueryMatchTransaction(poolAddress string, perpIndex int64, status []model.TransactionStatus) (transactions []*model.MatchTransaction, err error) {
 	db := t.db
 	if poolAddress != "" {
-		db = db.Where("liquidity_address = ? AND perpetual_index = ?", poolAddress, perpIndex)
+		db = db.Where("liquidity_pool_address = ? AND perpetual_index = ?", poolAddress, perpIndex)
 	}
 	if len(status) != 0 {
 		db = db.Where("status in (?)", status)
@@ -86,15 +86,15 @@ func (t *matchTransactionDAO) UpdateMatchTransaction(transaction *model.MatchTra
 
 func (t *matchTransactionDAO) QueryUnconfirmedTransactions() (transactions []*model.MatchTransaction, err error) {
 	if err = t.db.Where("block_confirmed = ?", false).Find(&transactions).Error; err != nil {
-		err = fmt.Errorf("QueryUnstableTransactions:%w", err)
+		err = fmt.Errorf("QueryUnconfirmedTransactions:%w", err)
 		return
 	}
 	return
 }
 
 func (t *matchTransactionDAO) QueryUnconfirmedTransactionsByContract(poolAddress string, perpIndex int64) (transactions []*model.MatchTransaction, err error) {
-	if err = t.db.Where("liquidity_address = ? AND perpetual_index = ?", poolAddress, perpIndex).Where("block_confirmed = ?", false).Find(&transactions).Error; err != nil {
-		err = fmt.Errorf("QueryUnstableTransactions:%w", err)
+	if err = t.db.Where("liquidity_pool_address = ? AND perpetual_index = ?", poolAddress, perpIndex).Where("block_confirmed = ?", false).Find(&transactions).Error; err != nil {
+		err = fmt.Errorf("QueryUnconfirmedTransactionsByContract:%w", err)
 		return
 	}
 	return

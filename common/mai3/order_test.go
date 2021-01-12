@@ -31,7 +31,7 @@ func TestGenerateOrderData(t *testing.T) {
 		chainID        = 15
 		expires        = 11
 		perpetualIndex = 6
-		brokerFeeLimit = decimal.NewFromFloat(12).Div(decimal.NewFromInt(1000000000000000000))
+		brokerFeeLimit = 12
 		flags          = 0xffffffff
 		salt           = 14
 		signType       = EIP712
@@ -39,8 +39,8 @@ func TestGenerateOrderData(t *testing.T) {
 		r              = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 		s              = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 	)
-	orderData := GenerateOrderData(trader, broker, relayer, referrer, pool, minTradeAmount, amount, priceLimit, triggerPrice, brokerFeeLimit, int64(chainID),
-		int64(expires), int64(perpetualIndex), int64(flags), int64(salt), signType, v, r, s)
+	orderData := GenerateOrderData(trader, broker, relayer, referrer, pool, minTradeAmount, amount, priceLimit, triggerPrice, int64(chainID),
+		int64(expires), int64(perpetualIndex), int64(brokerFeeLimit), int64(flags), int64(salt), signType, v, r, s)
 	assert.Equal(t, "0x11111111111111111111111111111111111111112222222222222222222222222222222222222222333333333333333333333333333333333333333344444444444444444444444444444444444444445555555555555555555555555555555555555555000000000000000000000000000000000000000000000000000000000000000700000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000000000000000000000000009000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000f000000000000000b000000060000000cffffffff0000000e1b01aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", orderData)
 }
 
