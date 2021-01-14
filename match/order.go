@@ -127,13 +127,13 @@ func (m *match) MatchOrderSideBySide() []*MatchItem {
 	askMatched := decimal.Zero
 
 	if len(bidPrices) == 0 && len(askPrices) == 0 {
-		return
+		return result
 	}
 	// compute match orders
 	poolStorage, err := m.chainCli.GetLiquidityPoolStorage(m.ctx, conf.Conf.ReaderAddress, m.perpetual.LiquidityPoolAddress)
 	if err != nil {
-		logger.Errorf("matchOrders: GetLiquidityPoolStorage fail! err:%s", err.Error())
-		return
+		logger.Errorf("MatchOrderSideBySide: GetLiquidityPoolStorage fail! err:%s", err.Error())
+		return result
 	}
 	for {
 		if len(result) >= mai3.MaiV3MaxMatchGroup ||

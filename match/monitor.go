@@ -4,7 +4,6 @@ import (
 	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/mcarloai/mai-v3-broker/conf"
-	"github.com/shopspring/decimal"
 	logger "github.com/sirupsen/logrus"
 	"strings"
 	"time"

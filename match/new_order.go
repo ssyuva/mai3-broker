@@ -60,7 +60,6 @@ func (m *match) NewOrder(order *model.Order) string {
 	}
 
 	if order.BrokerFeeLimit < int64(gasReward) {
-		{
 		return model.MatchGasNotEnoughErrorID
 	}
 
