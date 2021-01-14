@@ -146,6 +146,7 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 		return nil, InternalError(fmt.Errorf("unSupport brokerAddress:%s", params.BrokerAddress))
 	}
 	order.OrderParam.RelayerAddress = strings.ToLower(params.RelayerAddress)
+	order.OrderParam.ReferrerAddress = params.ReferrerAddress
 	if params.ReferrerAddress == "" {
 		order.OrderParam.ReferrerAddress = ADDRESS_ZERO
 	}

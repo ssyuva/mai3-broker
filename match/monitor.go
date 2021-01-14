@@ -62,18 +62,20 @@ func (m *match) checkUserPendingOrders(poolStorage *model.LiquidityPoolStorage, 
 	}
 
 	// gas check
-	gasReward := m.gasMonitor.GetGasPrice() * 1e9 * conf.Conf.GasStation.GasLimit
-	maxOrderNum := utils.ToWad(gasBalance).Div(decimal.NewFromInt(int64(gasReward))).IntPart()
 	num := 0
-	if len(orders) > int(maxOrderNum) {
-		num := len(orders) - int(maxOrderNum)
-		for _, order := range orders[0:num] {
-			cancel := &OrderCancel{
-				OrderHash: order.OrderHash,
-				Status:    order.Status,
-				ToCancel:  order.AvailableAmount,
+	gasReward := m.gasMonitor.GetGasPrice() * conf.Conf.GasStation.GasLimit
+	if gasReward > 0 {
+		maxOrderNum := utils.ToGwei(gasBalance).IntPart() / int64(gasReward)
+		if len(orders) > int(maxOrderNum) {
+			num := len(orders) - int(maxOrderNum)
+			for _, order := range orders[0:num] {
+				cancel := &OrderCancel{
+					OrderHash: order.OrderHash,
+					Status:    order.Status,
+					ToCancel:  order.AvailableAmount,
+				}
+				cancels = append(cancels, cancel)
 			}
-			cancels = append(cancels, cancel)
 		}
 	}
 
@@ -106,8 +108,7 @@ func (m *match) checkUserPendingOrders(poolStorage *model.LiquidityPoolStorage, 
 			cancels = append(cancels, cancel)
 		}
 
-		brokerFeeLimit := decimal.NewFromInt(order.BrokerFeeLimit)
-		if brokerFeeLimit.LessThan(decimal.NewFromInt(int64(gasReward))) {
+		if order.BrokerFeeLimit < int64(gasReward) {
 			cancel := &OrderCancel{
 				OrderHash: order.OrderHash,
 				Status:    order.Status,

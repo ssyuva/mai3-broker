@@ -86,13 +86,6 @@ func (s *Syncer) updateStatusByUser(user string) {
 			tx.BlockTime = &receipt.BlockTime
 			tx.Status = receipt.Status
 			tx.GasUsed = &receipt.GasUsed
-			// bh, err := dao.FindBlock(conf.Conf.WatcherID, int64(*tx.BlockNumber))
-			// if err != nil {
-			// 	return errors.Wrap(err, "get block header fail")
-			// }
-			// if bh.BlockHash != *tx.BlockHash {
-			// 	return fmt.Errorf("block hash check failed, blocknumber:%d", *tx.BlockNumber)
-			// }
 			if err = dao.UpdateTx(tx); err != nil {
 				return errors.Wrap(err, "fail to update transaction status")
 			}

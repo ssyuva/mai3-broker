@@ -5,12 +5,10 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/mcarloai/mai-v3-broker/common/chain"
-	redis "github.com/mcarloai/mai-v3-broker/common/redis"
 	"github.com/mcarloai/mai-v3-broker/conf"
 	"github.com/mcarloai/mai-v3-broker/dao"
 	"github.com/mcarloai/mai-v3-broker/match"
 	logger "github.com/sirupsen/logrus"
-	limiter_redis "github.com/ulule/limiter/v3/drivers/store/redis"
 	"net/http"
 	"time"
 )
@@ -32,12 +30,6 @@ func New(ctx context.Context, cli chain.ChainClient, dao dao.DAO, match *match.S
 		Format: `{"time":"${time_rfc3339}","remote_ip":"${remote_ip}","method":"${method}","uri":"${uri}","status":${status},"error":"${error}"}` + "\n",
 	}))
 
-	var err error
-	RateLimitCacheService, err = limiter_redis.NewStore(redis.RedisClient)
-	if err != nil {
-		return nil, err
-	}
-	e.Use(IPRatelimiter())
 	e.Use(RecoverHandler)
 	e.HTTPErrorHandler = ErrorHandler
 	e.Use(InitMaiApiContext)

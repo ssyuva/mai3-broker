@@ -54,13 +54,13 @@ func (m *match) NewOrder(order *model.Order) string {
 		logger.Errorf("checkUserPendingOrders:%w", err)
 		return model.MatchInternalErrorID
 	}
-	gasReward := m.gasMonitor.GetGasPrice() * 1e9 * conf.Conf.GasStation.GasLimit * uint64(len(activeOrders)+1)
-	if utils.ToWad(gasBalance).LessThan(decimal.NewFromInt(int64(gasReward))) {
+	gasReward := m.gasMonitor.GetGasPrice() * conf.Conf.GasStation.GasLimit * uint64(len(activeOrders)+1)
+	if utils.ToGwei(gasBalance).LessThan(decimal.NewFromInt(int64(gasReward))) {
 		return model.MatchGasNotEnoughErrorID
 	}
 
-	brokerFeeLimit := decimal.NewFromInt(order.BrokerFeeLimit)
-	if brokerFeeLimit.LessThan(decimal.NewFromInt(int64(gasReward))) {
+	if order.BrokerFeeLimit < int64(gasReward) {
+		{
 		return model.MatchGasNotEnoughErrorID
 	}
 

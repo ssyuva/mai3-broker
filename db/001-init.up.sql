@@ -21,7 +21,7 @@ create table orders
   stop_price numeric(32,18),
   amount numeric(32,18) not null,
   min_trade_amount numeric(32, 18) not null,
-  broker_fee_limit integer not null,
+  broker_fee_limit bigint not null,
   expires_at timestamp,
   salt bigint not null,
   is_close_only boolean not null DEFAULT FALSE,

@@ -10,11 +10,16 @@ import (
 
 var (
 	wad, _  = decimal.NewFromString("1000000000000000000")
+	gwei, _ = decimal.NewFromString("1000000000")
 	rate, _ = decimal.NewFromString("10000")
 )
 
 func ToWad(n decimal.Decimal) decimal.Decimal {
 	return n.Mul(wad)
+}
+
+func ToGwei(n decimal.Decimal) decimal.Decimal {
+	return n.Mul(gwei)
 }
 
 func ToRate(n decimal.Decimal) decimal.Decimal {

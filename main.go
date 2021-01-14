@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"github.com/mcarloai/mai-v3-broker/common/redis"
 	"github.com/mcarloai/mai-v3-broker/dao"
 	"os"
 	"os/signal"
@@ -34,17 +33,10 @@ func main() {
 		panic(err)
 	}
 
-	// init redis
-	err := redis.Init(conf.Conf.RedisURL)
-	if err != nil {
-		logger.Errorf("create redis client fail:%s", err.Error())
-		os.Exit(-1)
-	}
-
 	// init database
 	if err = dao.ConnectPostgres(conf.Conf.DataBaseURL); err != nil {
 		logger.Errorf("create database fail:%s", err.Error())
-		os.Exit(-2)
+		os.Exit(-1)
 	}
 
 	dao := dao.New()
@@ -54,7 +46,7 @@ func main() {
 		chainCli, err = ethereum.NewClient(ctx, conf.Conf.BlockChain.ProviderURL)
 		if err != nil {
 			logger.Errorf("init ethereum client error:%s", err.Error())
-			os.Exit(-3)
+			os.Exit(-2)
 		}
 	}
 
@@ -65,7 +57,7 @@ func main() {
 	perpetualSyncer, err := perpetualsyncer.NewPerpetualSyncer(ctx, dao)
 	if err != nil {
 		logger.Errorf("NewPerpetualSyncer fail:%s", err)
-		os.Exit(-4)
+		os.Exit(-3)
 	}
 	group.Go(func() error {
 		return perpetualSyncer.Run()
@@ -85,7 +77,7 @@ func main() {
 	apiServer, err := api.New(ctx, chainCli, dao, matchServer)
 	if err != nil {
 		logger.Errorf("create api server fail:%s", err.Error())
-		os.Exit(-3)
+		os.Exit(-5)
 	}
 
 	group.Go(func() error {

@@ -26,6 +26,13 @@ func addLeadingZero(data string, length int) string {
 	return strings.Repeat("0", length-len(data)) + data
 }
 
+func addLeadingF(data string, length int) string {
+	fmt.Println(data)
+	dataTrim := strings.TrimLeft(data, "0")
+	fmt.Println(dataTrim)
+	return strings.Repeat("f", length-len(dataTrim)) + dataTrim
+}
+
 // func GetOrderData(deadline int64, version int32, ordrType int8, isCloseOnly bool, salt int64) ([]byte, error) {
 // 	var orderData [32]byte
 // 	data := GenerateOrderData(deadline, version, ordrType, isCloseOnly, salt)
@@ -83,7 +90,11 @@ func GenerateOrderData(traderAddress, brokerAddress, relayerAddress, referrerAdd
 	}
 	data.WriteString(utils.Bytes2Hex(pool))
 	data.WriteString(addLeadingZero(utils.Bytes2Hex(utils.MustDecimalToBigInt(utils.ToWad(minTradeAmount)).Bytes()), 8*8))
-	data.WriteString(addLeadingZero(utils.Bytes2Hex(utils.MustDecimalToBigInt(utils.ToWad(amount)).Bytes()), 8*8))
+	if amount.LessThan(decimal.Zero) {
+		data.WriteString(addLeadingF(utils.Bytes2Hex(utils.MustDecimalToBigInt(utils.ToWad(amount)).Bytes()), 8*8))
+	} else {
+		data.WriteString(addLeadingZero(utils.Bytes2Hex(utils.MustDecimalToBigInt(utils.ToWad(amount)).Bytes()), 8*8))
+	}
 	data.WriteString(addLeadingZero(utils.Bytes2Hex(utils.MustDecimalToBigInt(utils.ToWad(price)).Bytes()), 8*8))
 	data.WriteString(addLeadingZero(utils.Bytes2Hex(utils.MustDecimalToBigInt(utils.ToWad(triggerPrice)).Bytes()), 8*8))
 	data.WriteString(addLeadingZero(fmt.Sprintf("%x", chainID), 8*8))
