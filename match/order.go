@@ -117,7 +117,7 @@ type MatchItem struct {
 	MatchedAmount decimal.Decimal
 }
 
-func (m *match) MatchOrderSideBySide(poolStorage *model.LiquidityPoolStorage) []*MatchItem {
+func (m *match) MatchOrderSideBySide() []*MatchItem {
 	result := make([]*MatchItem, 0)
 	bidPrices := m.orderbook.GetBidPricesDesc()
 	askPrices := m.orderbook.GetAskPricesAsc()
@@ -126,6 +126,15 @@ func (m *match) MatchOrderSideBySide(poolStorage *model.LiquidityPoolStorage) []
 	bidMatched := decimal.Zero
 	askMatched := decimal.Zero
 
+	if len(bidPrices) == 0 && len(askPrices) == 0 {
+		return
+	}
+	// compute match orders
+	poolStorage, err := m.chainCli.GetLiquidityPoolStorage(m.ctx, conf.Conf.ReaderAddress, m.perpetual.LiquidityPoolAddress)
+	if err != nil {
+		logger.Errorf("matchOrders: GetLiquidityPoolStorage fail! err:%s", err.Error())
+		return
+	}
 	for {
 		if len(result) >= mai3.MaiV3MaxMatchGroup ||
 			((len(bidPrices) <= bidIdx) && len(askPrices) <= askIdx) {

@@ -84,13 +84,8 @@ func (m *match) matchOrders() {
 		logger.Infof("Match: unconfirmed transaction exists. wait for it to be confirmed perpetual:%s-%d", m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex)
 		return
 	}
-	// compute match orders
-	poolStorage, err := m.chainCli.GetLiquidityPoolStorage(m.ctx, conf.Conf.ReaderAddress, m.perpetual.LiquidityPoolAddress)
-	if err != nil {
-		logger.Errorf("matchOrders: GetLiquidityPoolStorage fail! err:%s", err.Error())
-		return
-	}
-	matchItems := m.MatchOrderSideBySide(poolStorage)
+
+	matchItems := m.MatchOrderSideBySide()
 	if len(matchItems) == 0 {
 		return
 	}
