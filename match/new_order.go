@@ -20,7 +20,7 @@ func (m *match) NewOrder(order *model.Order) string {
 	//TODO
 	account, err := m.chainCli.GetAccountStorage(m.ctx, conf.Conf.ReaderAddress, m.perpetual.PerpetualIndex, m.perpetual.LiquidityPoolAddress, order.TraderAddress)
 	if err != nil {
-		logger.Errorf("GetAccountStorage err:%s", err)
+		logger.Errorf("new order:GetAccountStorage err:%s", err)
 		return model.MatchInternalErrorID
 	}
 
@@ -30,7 +30,7 @@ func (m *match) NewOrder(order *model.Order) string {
 
 	poolStorage, err := m.chainCli.GetLiquidityPoolStorage(m.ctx, conf.Conf.ReaderAddress, m.perpetual.LiquidityPoolAddress)
 	if err != nil {
-		logger.Errorf("matchOrders: GetLiquidityPoolStorage fail! err:%s", err.Error())
+		logger.Errorf("new order: GetLiquidityPoolStorage fail! err:%s", err.Error())
 		return model.MatchInternalErrorID
 	}
 
@@ -40,7 +40,7 @@ func (m *match) NewOrder(order *model.Order) string {
 
 	activeOrders, err := m.dao.QueryOrder(order.TraderAddress, order.LiquidityPoolAddress, order.PerpetualIndex, []model.OrderStatus{model.OrderPending}, 0, 0, 0)
 	if err != nil {
-		logger.Errorf("QueryOrder err:%s", err)
+		logger.Errorf("new order: QueryOrder err:%s", err)
 		return model.MatchInternalErrorID
 	}
 
@@ -51,7 +51,7 @@ func (m *match) NewOrder(order *model.Order) string {
 	// check gas
 	gasBalance, err := m.chainCli.GetGasBalance(m.ctx, conf.Conf.BrokerAddress, order.TraderAddress)
 	if err != nil {
-		logger.Errorf("checkUserPendingOrders:%w", err)
+		logger.Errorf("new order: checkUserPendingOrders:%w", err)
 		return model.MatchInternalErrorID
 	}
 	gasReward := m.gasMonitor.GetGasPrice() * conf.Conf.GasStation.GasLimit * uint64(len(activeOrders)+1)

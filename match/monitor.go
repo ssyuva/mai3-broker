@@ -23,12 +23,15 @@ func (m *match) checkOrdersMargin() {
 func (m *match) checkPerpUserOrders() {
 	users, err := m.dao.GetPendingOrderUsers(m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex, []model.OrderStatus{model.OrderPending})
 	if err != nil {
-		logger.Errorf("checkOrdersMargin: GetPendingOrderUsers %s", err)
+		logger.Errorf("monitor: GetPendingOrderUsers %s", err)
+		return
+	}
+	if len(users) == 0 {
 		return
 	}
 	poolStorage, err := m.chainCli.GetLiquidityPoolStorage(m.ctx, conf.Conf.ReaderAddress, m.perpetual.LiquidityPoolAddress)
 	if err != nil {
-		logger.Errorf("matchOrders: GetLiquidityPoolStorage fail! err:%s", err.Error())
+		logger.Errorf("monitor: GetLiquidityPoolStorage fail! err:%s", err.Error())
 		return
 	}
 	for _, user := range users {
