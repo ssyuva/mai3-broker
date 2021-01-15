@@ -20,7 +20,6 @@ var (
 	_ = big.NewInt
 	_ = strings.NewReader
 	_ = ethereum.NotFound
-	_ = abi.U256
 	_ = bind.Bind
 	_ = common.Big1
 	_ = types.BloomLookup
@@ -168,7 +167,7 @@ func bindReader(address common.Address, caller bind.ContractCaller, transactor b
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_Reader *ReaderRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+func (_Reader *ReaderRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
 	return _Reader.Contract.ReaderCaller.contract.Call(opts, result, method, params...)
 }
 
@@ -187,7 +186,7 @@ func (_Reader *ReaderRaw) Transact(opts *bind.TransactOpts, method string, param
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_Reader *ReaderCallerRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+func (_Reader *ReaderCallerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
 	return _Reader.Contract.contract.Call(opts, result, method, params...)
 }
 
@@ -204,52 +203,62 @@ func (_Reader *ReaderTransactorRaw) Transact(opts *bind.TransactOpts, method str
 
 // GetAccountStorage is a free data retrieval call binding the contract method 0xeb16510d.
 //
-// Solidity: function getAccountStorage(address liquidityPool, uint256 perpetualIndex, address account) constant returns(MarginAccount marginAccount)
+// Solidity: function getAccountStorage(address liquidityPool, uint256 perpetualIndex, address account) view returns((int256,int256) marginAccount)
 func (_Reader *ReaderCaller) GetAccountStorage(opts *bind.CallOpts, liquidityPool common.Address, perpetualIndex *big.Int, account common.Address) (MarginAccount, error) {
-	var (
-		ret0 = new(MarginAccount)
-	)
-	out := ret0
-	err := _Reader.contract.Call(opts, out, "getAccountStorage", liquidityPool, perpetualIndex, account)
-	return *ret0, err
+	var out []interface{}
+	err := _Reader.contract.Call(opts, &out, "getAccountStorage", liquidityPool, perpetualIndex, account)
+
+	if err != nil {
+		return *new(MarginAccount), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(MarginAccount)).(*MarginAccount)
+
+	return out0, err
+
 }
 
 // GetAccountStorage is a free data retrieval call binding the contract method 0xeb16510d.
 //
-// Solidity: function getAccountStorage(address liquidityPool, uint256 perpetualIndex, address account) constant returns(MarginAccount marginAccount)
+// Solidity: function getAccountStorage(address liquidityPool, uint256 perpetualIndex, address account) view returns((int256,int256) marginAccount)
 func (_Reader *ReaderSession) GetAccountStorage(liquidityPool common.Address, perpetualIndex *big.Int, account common.Address) (MarginAccount, error) {
 	return _Reader.Contract.GetAccountStorage(&_Reader.CallOpts, liquidityPool, perpetualIndex, account)
 }
 
 // GetAccountStorage is a free data retrieval call binding the contract method 0xeb16510d.
 //
-// Solidity: function getAccountStorage(address liquidityPool, uint256 perpetualIndex, address account) constant returns(MarginAccount marginAccount)
+// Solidity: function getAccountStorage(address liquidityPool, uint256 perpetualIndex, address account) view returns((int256,int256) marginAccount)
 func (_Reader *ReaderCallerSession) GetAccountStorage(liquidityPool common.Address, perpetualIndex *big.Int, account common.Address) (MarginAccount, error) {
 	return _Reader.Contract.GetAccountStorage(&_Reader.CallOpts, liquidityPool, perpetualIndex, account)
 }
 
 // GetLiquidityPoolStorage is a free data retrieval call binding the contract method 0x574408c1.
 //
-// Solidity: function getLiquidityPoolStorage(address liquidityPool) constant returns(ReaderLiquidityPoolReaderResult pool)
+// Solidity: function getLiquidityPoolStorage(address liquidityPool) view returns((bool,bool,address[7],int256,int256,uint256,uint256,uint256,(uint8,address,int256[34],uint256,string,int256,int256)[]) pool)
 func (_Reader *ReaderCaller) GetLiquidityPoolStorage(opts *bind.CallOpts, liquidityPool common.Address) (ReaderLiquidityPoolReaderResult, error) {
-	var (
-		ret0 = new(ReaderLiquidityPoolReaderResult)
-	)
-	out := ret0
-	err := _Reader.contract.Call(opts, out, "getLiquidityPoolStorage", liquidityPool)
-	return *ret0, err
+	var out []interface{}
+	err := _Reader.contract.Call(opts, &out, "getLiquidityPoolStorage", liquidityPool)
+
+	if err != nil {
+		return *new(ReaderLiquidityPoolReaderResult), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(ReaderLiquidityPoolReaderResult)).(*ReaderLiquidityPoolReaderResult)
+
+	return out0, err
+
 }
 
 // GetLiquidityPoolStorage is a free data retrieval call binding the contract method 0x574408c1.
 //
-// Solidity: function getLiquidityPoolStorage(address liquidityPool) constant returns(ReaderLiquidityPoolReaderResult pool)
+// Solidity: function getLiquidityPoolStorage(address liquidityPool) view returns((bool,bool,address[7],int256,int256,uint256,uint256,uint256,(uint8,address,int256[34],uint256,string,int256,int256)[]) pool)
 func (_Reader *ReaderSession) GetLiquidityPoolStorage(liquidityPool common.Address) (ReaderLiquidityPoolReaderResult, error) {
 	return _Reader.Contract.GetLiquidityPoolStorage(&_Reader.CallOpts, liquidityPool)
 }
 
 // GetLiquidityPoolStorage is a free data retrieval call binding the contract method 0x574408c1.
 //
-// Solidity: function getLiquidityPoolStorage(address liquidityPool) constant returns(ReaderLiquidityPoolReaderResult pool)
+// Solidity: function getLiquidityPoolStorage(address liquidityPool) view returns((bool,bool,address[7],int256,int256,uint256,uint256,uint256,(uint8,address,int256[34],uint256,string,int256,int256)[]) pool)
 func (_Reader *ReaderCallerSession) GetLiquidityPoolStorage(liquidityPool common.Address) (ReaderLiquidityPoolReaderResult, error) {
 	return _Reader.Contract.GetLiquidityPoolStorage(&_Reader.CallOpts, liquidityPool)
 }

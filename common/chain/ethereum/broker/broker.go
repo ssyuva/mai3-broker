@@ -20,7 +20,6 @@ var (
 	_ = big.NewInt
 	_ = strings.NewReader
 	_ = ethereum.NotFound
-	_ = abi.U256
 	_ = bind.Bind
 	_ = common.Big1
 	_ = types.BloomLookup
@@ -157,7 +156,7 @@ func bindBroker(address common.Address, caller bind.ContractCaller, transactor b
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_Broker *BrokerRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+func (_Broker *BrokerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
 	return _Broker.Contract.BrokerCaller.contract.Call(opts, result, method, params...)
 }
 
@@ -176,7 +175,7 @@ func (_Broker *BrokerRaw) Transact(opts *bind.TransactOpts, method string, param
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_Broker *BrokerCallerRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+func (_Broker *BrokerCallerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
 	return _Broker.Contract.contract.Call(opts, result, method, params...)
 }
 
@@ -193,26 +192,31 @@ func (_Broker *BrokerTransactorRaw) Transact(opts *bind.TransactOpts, method str
 
 // BalanceOf is a free data retrieval call binding the contract method 0x70a08231.
 //
-// Solidity: function balanceOf(address trader) constant returns(uint256)
+// Solidity: function balanceOf(address trader) view returns(uint256)
 func (_Broker *BrokerCaller) BalanceOf(opts *bind.CallOpts, trader common.Address) (*big.Int, error) {
-	var (
-		ret0 = new(*big.Int)
-	)
-	out := ret0
-	err := _Broker.contract.Call(opts, out, "balanceOf", trader)
-	return *ret0, err
+	var out []interface{}
+	err := _Broker.contract.Call(opts, &out, "balanceOf", trader)
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
 }
 
 // BalanceOf is a free data retrieval call binding the contract method 0x70a08231.
 //
-// Solidity: function balanceOf(address trader) constant returns(uint256)
+// Solidity: function balanceOf(address trader) view returns(uint256)
 func (_Broker *BrokerSession) BalanceOf(trader common.Address) (*big.Int, error) {
 	return _Broker.Contract.BalanceOf(&_Broker.CallOpts, trader)
 }
 
 // BalanceOf is a free data retrieval call binding the contract method 0x70a08231.
 //
-// Solidity: function balanceOf(address trader) constant returns(uint256)
+// Solidity: function balanceOf(address trader) view returns(uint256)
 func (_Broker *BrokerCallerSession) BalanceOf(trader common.Address) (*big.Int, error) {
 	return _Broker.Contract.BalanceOf(&_Broker.CallOpts, trader)
 }
@@ -240,42 +244,42 @@ func (_Broker *BrokerTransactorSession) BatchTrade(compressedOrders [][]byte, am
 
 // CancelOrder is a paid mutator transaction binding the contract method 0xce4d643b.
 //
-// Solidity: function cancelOrder(Order order) returns()
+// Solidity: function cancelOrder((address,address,address,address,address,int256,int256,int256,int256,uint256,uint64,uint32,uint32,uint32,uint32) order) returns()
 func (_Broker *BrokerTransactor) CancelOrder(opts *bind.TransactOpts, order Order) (*types.Transaction, error) {
 	return _Broker.contract.Transact(opts, "cancelOrder", order)
 }
 
 // CancelOrder is a paid mutator transaction binding the contract method 0xce4d643b.
 //
-// Solidity: function cancelOrder(Order order) returns()
+// Solidity: function cancelOrder((address,address,address,address,address,int256,int256,int256,int256,uint256,uint64,uint32,uint32,uint32,uint32) order) returns()
 func (_Broker *BrokerSession) CancelOrder(order Order) (*types.Transaction, error) {
 	return _Broker.Contract.CancelOrder(&_Broker.TransactOpts, order)
 }
 
 // CancelOrder is a paid mutator transaction binding the contract method 0xce4d643b.
 //
-// Solidity: function cancelOrder(Order order) returns()
+// Solidity: function cancelOrder((address,address,address,address,address,int256,int256,int256,int256,uint256,uint64,uint32,uint32,uint32,uint32) order) returns()
 func (_Broker *BrokerTransactorSession) CancelOrder(order Order) (*types.Transaction, error) {
 	return _Broker.Contract.CancelOrder(&_Broker.TransactOpts, order)
 }
 
 // Deposit is a paid mutator transaction binding the contract method 0xd0e30db0.
 //
-// Solidity: function deposit() returns()
+// Solidity: function deposit() payable returns()
 func (_Broker *BrokerTransactor) Deposit(opts *bind.TransactOpts) (*types.Transaction, error) {
 	return _Broker.contract.Transact(opts, "deposit")
 }
 
 // Deposit is a paid mutator transaction binding the contract method 0xd0e30db0.
 //
-// Solidity: function deposit() returns()
+// Solidity: function deposit() payable returns()
 func (_Broker *BrokerSession) Deposit() (*types.Transaction, error) {
 	return _Broker.Contract.Deposit(&_Broker.TransactOpts)
 }
 
 // Deposit is a paid mutator transaction binding the contract method 0xd0e30db0.
 //
-// Solidity: function deposit() returns()
+// Solidity: function deposit() payable returns()
 func (_Broker *BrokerTransactorSession) Deposit() (*types.Transaction, error) {
 	return _Broker.Contract.Deposit(&_Broker.TransactOpts)
 }
@@ -299,6 +303,27 @@ func (_Broker *BrokerSession) Withdraw(amount *big.Int) (*types.Transaction, err
 // Solidity: function withdraw(uint256 amount) returns()
 func (_Broker *BrokerTransactorSession) Withdraw(amount *big.Int) (*types.Transaction, error) {
 	return _Broker.Contract.Withdraw(&_Broker.TransactOpts, amount)
+}
+
+// Receive is a paid mutator transaction binding the contract receive function.
+//
+// Solidity: receive() payable returns()
+func (_Broker *BrokerTransactor) Receive(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _Broker.contract.RawTransact(opts, nil) // calldata is disallowed for receive function
+}
+
+// Receive is a paid mutator transaction binding the contract receive function.
+//
+// Solidity: receive() payable returns()
+func (_Broker *BrokerSession) Receive() (*types.Transaction, error) {
+	return _Broker.Contract.Receive(&_Broker.TransactOpts)
+}
+
+// Receive is a paid mutator transaction binding the contract receive function.
+//
+// Solidity: receive() payable returns()
+func (_Broker *BrokerTransactorSession) Receive() (*types.Transaction, error) {
+	return _Broker.Contract.Receive(&_Broker.TransactOpts)
 }
 
 // BrokerCancelOrderIterator is returned from FilterCancelOrder and is used to iterate over the raw logs and unpacked data for CancelOrder events raised by the Broker contract.
@@ -431,6 +456,7 @@ func (_Broker *BrokerFilterer) ParseCancelOrder(log types.Log) (*BrokerCancelOrd
 	if err := _Broker.contract.UnpackLog(event, "CancelOrder", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -565,6 +591,7 @@ func (_Broker *BrokerFilterer) ParseDeposit(log types.Log) (*BrokerDeposit, erro
 	if err := _Broker.contract.UnpackLog(event, "Deposit", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -699,6 +726,7 @@ func (_Broker *BrokerFilterer) ParseFillOrder(log types.Log) (*BrokerFillOrder, 
 	if err := _Broker.contract.UnpackLog(event, "FillOrder", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -780,7 +808,7 @@ type BrokerTradeFailed struct {
 
 // FilterTradeFailed is a free log retrieval operation binding the contract event 0x1955905acc03ff235236ed3bc847a2b24e6a1a945754ffad043f7b8e01adaeb7.
 //
-// Solidity: event TradeFailed(bytes32 orderHash, Order order, int256 amount, string reason)
+// Solidity: event TradeFailed(bytes32 orderHash, (address,address,address,address,address,int256,int256,int256,int256,uint256,uint64,uint32,uint32,uint32,uint32) order, int256 amount, string reason)
 func (_Broker *BrokerFilterer) FilterTradeFailed(opts *bind.FilterOpts) (*BrokerTradeFailedIterator, error) {
 
 	logs, sub, err := _Broker.contract.FilterLogs(opts, "TradeFailed")
@@ -792,7 +820,7 @@ func (_Broker *BrokerFilterer) FilterTradeFailed(opts *bind.FilterOpts) (*Broker
 
 // WatchTradeFailed is a free log subscription operation binding the contract event 0x1955905acc03ff235236ed3bc847a2b24e6a1a945754ffad043f7b8e01adaeb7.
 //
-// Solidity: event TradeFailed(bytes32 orderHash, Order order, int256 amount, string reason)
+// Solidity: event TradeFailed(bytes32 orderHash, (address,address,address,address,address,int256,int256,int256,int256,uint256,uint64,uint32,uint32,uint32,uint32) order, int256 amount, string reason)
 func (_Broker *BrokerFilterer) WatchTradeFailed(opts *bind.WatchOpts, sink chan<- *BrokerTradeFailed) (event.Subscription, error) {
 
 	logs, sub, err := _Broker.contract.WatchLogs(opts, "TradeFailed")
@@ -829,12 +857,13 @@ func (_Broker *BrokerFilterer) WatchTradeFailed(opts *bind.WatchOpts, sink chan<
 
 // ParseTradeFailed is a log parse operation binding the contract event 0x1955905acc03ff235236ed3bc847a2b24e6a1a945754ffad043f7b8e01adaeb7.
 //
-// Solidity: event TradeFailed(bytes32 orderHash, Order order, int256 amount, string reason)
+// Solidity: event TradeFailed(bytes32 orderHash, (address,address,address,address,address,int256,int256,int256,int256,uint256,uint64,uint32,uint32,uint32,uint32) order, int256 amount, string reason)
 func (_Broker *BrokerFilterer) ParseTradeFailed(log types.Log) (*BrokerTradeFailed, error) {
 	event := new(BrokerTradeFailed)
 	if err := _Broker.contract.UnpackLog(event, "TradeFailed", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -916,7 +945,7 @@ type BrokerTradeSuccess struct {
 
 // FilterTradeSuccess is a free log retrieval operation binding the contract event 0xa31c4dcf97bfab49d7f55b0dbc9a7a49d25cdfa4cead657a12315b48bf11f89a.
 //
-// Solidity: event TradeSuccess(bytes32 orderHash, Order order, int256 amount, uint256 gasReward)
+// Solidity: event TradeSuccess(bytes32 orderHash, (address,address,address,address,address,int256,int256,int256,int256,uint256,uint64,uint32,uint32,uint32,uint32) order, int256 amount, uint256 gasReward)
 func (_Broker *BrokerFilterer) FilterTradeSuccess(opts *bind.FilterOpts) (*BrokerTradeSuccessIterator, error) {
 
 	logs, sub, err := _Broker.contract.FilterLogs(opts, "TradeSuccess")
@@ -928,7 +957,7 @@ func (_Broker *BrokerFilterer) FilterTradeSuccess(opts *bind.FilterOpts) (*Broke
 
 // WatchTradeSuccess is a free log subscription operation binding the contract event 0xa31c4dcf97bfab49d7f55b0dbc9a7a49d25cdfa4cead657a12315b48bf11f89a.
 //
-// Solidity: event TradeSuccess(bytes32 orderHash, Order order, int256 amount, uint256 gasReward)
+// Solidity: event TradeSuccess(bytes32 orderHash, (address,address,address,address,address,int256,int256,int256,int256,uint256,uint64,uint32,uint32,uint32,uint32) order, int256 amount, uint256 gasReward)
 func (_Broker *BrokerFilterer) WatchTradeSuccess(opts *bind.WatchOpts, sink chan<- *BrokerTradeSuccess) (event.Subscription, error) {
 
 	logs, sub, err := _Broker.contract.WatchLogs(opts, "TradeSuccess")
@@ -965,12 +994,13 @@ func (_Broker *BrokerFilterer) WatchTradeSuccess(opts *bind.WatchOpts, sink chan
 
 // ParseTradeSuccess is a log parse operation binding the contract event 0xa31c4dcf97bfab49d7f55b0dbc9a7a49d25cdfa4cead657a12315b48bf11f89a.
 //
-// Solidity: event TradeSuccess(bytes32 orderHash, Order order, int256 amount, uint256 gasReward)
+// Solidity: event TradeSuccess(bytes32 orderHash, (address,address,address,address,address,int256,int256,int256,int256,uint256,uint64,uint32,uint32,uint32,uint32) order, int256 amount, uint256 gasReward)
 func (_Broker *BrokerFilterer) ParseTradeSuccess(log types.Log) (*BrokerTradeSuccess, error) {
 	event := new(BrokerTradeSuccess)
 	if err := _Broker.contract.UnpackLog(event, "TradeSuccess", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -1106,6 +1136,7 @@ func (_Broker *BrokerFilterer) ParseTransfer(log types.Log) (*BrokerTransfer, er
 	if err := _Broker.contract.UnpackLog(event, "Transfer", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -1240,5 +1271,6 @@ func (_Broker *BrokerFilterer) ParseWithdraw(log types.Log) (*BrokerWithdraw, er
 	if err := _Broker.contract.UnpackLog(event, "Withdraw", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }

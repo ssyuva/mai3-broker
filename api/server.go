@@ -96,6 +96,7 @@ func (s *Server) initRouter() {
 
 	addRoute(s.e, "POST", "/orders", &PlaceOrderReq{}, s.PlaceOrder)
 	addRoute(s.e, "GET", "/jwt", &BaseReq{}, GetJwtAuth, MaiAuthMiddleware, CheckAuthMiddleware)
+	s.e.Add("GET", "/jwt2", CheckJwtAuthByCookie)
 	addRoute(s.e, "GET", "/perpetuals/:perpetual", &GetPerpetualReq{}, s.GetPerpetual)
 	addRoute(s.e, "GET", "/brokerRelay", &GetBrokerRelayReq{}, s.GetBrokerRelay)
 }

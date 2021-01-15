@@ -28,6 +28,7 @@ func main() {
 
 	group, ctx := errgroup.WithContext(backgroundCtx)
 
+	var err error
 	flag.Parse()
 	if err := conf.Init(); err != nil {
 		panic(err)

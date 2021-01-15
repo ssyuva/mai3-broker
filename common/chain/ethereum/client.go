@@ -138,15 +138,11 @@ func (c *Client) SendTransaction(ctx context.Context, tx *model.LaunchTransactio
 		*tx.GasLimit,
 		big.NewInt(int64(*tx.GasPrice)),
 		tx.Inputs)
-	chainID, err := c.ethCli.NetworkID(ctx)
-	if err != nil {
-		return "", errors.Wrap(err, "get network id failed")
-	}
 	acc, err := c.GetAccount(tx.FromAddress)
 	if err != nil {
 		return "", errors.Wrap(err, "account not availables")
 	}
-	signedTx, err := acc.Signer().Signer(ethtypes.NewEIP155Signer(chainID), acc.Address(), rawTx)
+	signedTx, err := acc.Signer().Signer(acc.Address(), rawTx)
 	if err != nil {
 		return "", errors.Wrap(err, "sign transaction failed")
 	}
