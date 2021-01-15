@@ -6,6 +6,8 @@ import (
 	ethCommon "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/rpc"
+
 	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/pkg/errors"
@@ -24,15 +26,19 @@ type Client struct {
 	mu       sync.RWMutex
 }
 
-func NewClient(ctx context.Context, provider string) (*Client, error) {
-	ethCli, err := ethclient.Dial(provider)
+func NewClient(ctx context.Context, provider string, headers map[string]string) (*Client, error) {
+	rpcClient, err := rpc.Dial(provider)
 	if err != nil {
 		return nil, err
 	}
 
+	for key, value := range headers {
+		rpcClient.SetHeader(key, value)
+	}
+
 	return &Client{
 		ctx:      ctx,
-		ethCli:   ethCli,
+		ethCli:   ethclient.NewClient(rpcClient),
 		accounts: make(map[ethCommon.Address]*Account),
 	}, nil
 }

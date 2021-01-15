@@ -1,5 +1,4 @@
 api_host = ":4001"
-api_rate_limit = 100
 websocket_host = ":4002"
 database_url = "postgres://postgres:postgres@localhost:5434/postgres?sslmode=disable"
 jwt_secret = "test"
@@ -20,4 +19,5 @@ chain_type = "ethereum"
 interval = "5s"
 timeout = "5s"
 provider_url = "http://server10.jy.mcarlo.com:8747"
+headers = {}
 password = "qedaxzop"

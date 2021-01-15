@@ -8,7 +8,6 @@ import (
 // Config for broker
 type Config struct {
 	APIHost       string     `toml:"api_host"`
-	APIRateLimit  int64      `toml:"api_rate_limit"`
 	WebsocketHost string     `toml:"websocket_host"`
 	DataBaseURL   string     `toml:"database_url"`
 	JwtSecret     string     `toml:"jwt_secret"`
@@ -22,11 +21,12 @@ type Config struct {
 }
 
 type blockchain struct {
-	ChainType   string   `toml:"chain_type"`
-	Interval    duration `toml:"interval"`
-	Timeout     duration `toml:"timeout"`
-	ProviderURL string   `toml:"provider_url"`
-	Password    string   `toml:"password"`
+	ChainType   string            `toml:"chain_type"`
+	Interval    duration          `toml:"interval"`
+	Timeout     duration          `toml:"timeout"`
+	ProviderURL string            `toml:"provider_url"`
+	Headers     map[string]string `toml:"headers"`
+	Password    string            `toml:"password"`
 }
 
 type gasStation struct {
