@@ -10,7 +10,6 @@ import (
 	"github.com/mcarloai/mai-v3-broker/runnable"
 	"github.com/pkg/errors"
 	logger "github.com/sirupsen/logrus"
-	"sync"
 	"time"
 )
 
@@ -36,7 +35,7 @@ func NewMonitor(ctx context.Context, dao dao.DAO, chainCli chain.ChainClient, ma
 
 func (s *Monitor) Run() error {
 	// check unmature confirmed transaction for rollback
-	return s.runner.Run(s.ctx, time.Second, s.syncUnmatureTransaction)
+	return s.runner.Run(s.ctx, time.Second*10, s.syncUnmatureTransaction)
 }
 
 func (s *Monitor) syncUnmatureTransaction() {
@@ -48,27 +47,14 @@ func (s *Monitor) syncUnmatureTransaction() {
 		return
 	}
 	begin := blockNumber - MATURE_BLOCKNUM
-	users, err := s.dao.GetUsersWithBlockNumber(begin, model.TxSuccess, model.TxFailed)
-	if err != nil {
-		logger.Warnf("find user with pending status failed: %s", err)
-		return
-	}
-	wg := &sync.WaitGroup{}
-	for _, user := range users {
-		wg.Add(1)
-		go func(user string) {
-			defer wg.Done()
-			s.updateUnmatureStatusByUser(user, &begin)
-		}(user)
-	}
-	wg.Wait()
+	s.updateUnmatureTransactionStatus(&begin)
 	return
 }
 
-func (s *Monitor) updateUnmatureStatusByUser(user string, blockNumber *uint64) {
+func (s *Monitor) updateUnmatureTransactionStatus(blockNumber *uint64) {
 	// get unmature confirmed transaction
-	logger.Debugf("check unmature transaction for %s", user)
-	txs, err := s.dao.GetTxsByUser(user, blockNumber, model.TxSuccess, model.TxFailed)
+	logger.Debugf("check unmature transaction blockNumber > %d", *blockNumber)
+	txs, err := s.dao.GetTxsByBlock(blockNumber, nil, model.TxSuccess, model.TxFailed)
 	if dao.IsRecordNotFound(err) || len(txs) == 0 {
 		return
 	}

@@ -120,6 +120,11 @@
                 "type": "string"
               },
               {
+                "internalType": "bool",
+                "name": "isMarketClosed",
+                "type": "bool"
+              },
+              {
                 "internalType": "int256",
                 "name": "ammCashBalance",
                 "type": "int256"

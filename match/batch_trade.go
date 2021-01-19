@@ -75,6 +75,7 @@ func (m *match) updateOrdersByTradeEvent(dao dao.DAO, matchTx *model.MatchTransa
 	orderMatchMap := make(map[string]decimal.Decimal)
 	orderHashes := make([]string, 0)
 	for _, event := range matchEvents {
+		logger.Infof("Trade Success: %+v", event)
 		matchInfo := &model.MatchItem{
 			OrderHash: event.OrderHash,
 			Amount:    event.Amount,

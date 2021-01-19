@@ -18,7 +18,6 @@ type LaunchTransactionDAO interface {
 	GetTxsByNonce(user string, nonce *uint64, status ...model.LaunchTransactionStatus) ([]*model.LaunchTransaction, error)
 	GetTxsByBlock(begin *uint64, end *uint64, status ...model.LaunchTransactionStatus) ([]*model.LaunchTransaction, error)
 	GetUsersWithStatus(status ...model.LaunchTransactionStatus) ([]string, error)
-	GetUsersWithBlockNumber(blockNumber uint64, status ...model.LaunchTransactionStatus) ([]string, error)
 
 	CreateTx(tx *model.LaunchTransaction) error
 	UpdateTx(tx *model.LaunchTransaction) error
@@ -114,13 +113,14 @@ func (t *launchTransactionDAO) GetTxsByNonce(addr string, nonce *uint64, status 
 func (t *launchTransactionDAO) GetTxsByBlock(begin *uint64, end *uint64, status ...model.LaunchTransactionStatus) ([]*model.LaunchTransaction, error) {
 
 	var txs []*model.LaunchTransaction
+	db := t.statusFilter(status)
 	if begin != nil {
-		t.db = t.db.Where("block_number >= ?", *begin)
+		db = db.Where("block_number >= ?", *begin)
 	}
 	if end != nil {
-		t.db = t.db.Where("block_number <= ?", *end)
+		db = db.Where("block_number <= ?", *end)
 	}
-	if err := t.statusFilter(status).Find(&txs).Error; err != nil {
+	if err := db.Find(&txs).Error; err != nil {
 		return nil, errors.Wrap(err, "fail to find transaction by block")
 	}
 	return txs, nil
@@ -135,22 +135,6 @@ func (t *launchTransactionDAO) GetUsersWithStatus(status ...model.LaunchTransact
 	err := t.statusFilter(status).Select("DISTINCT(from_address)").Find(&txs).Error
 	if err != nil {
 		return nil, fmt.Errorf("fail to get pending users: %w", err)
-	}
-	for _, tx := range txs {
-		users = append(users, tx.FromAddress)
-	}
-	return users, nil
-}
-
-func (t *launchTransactionDAO) GetUsersWithBlockNumber(blockNumber uint64, status ...model.LaunchTransactionStatus) ([]string, error) {
-	var (
-		txs   []*model.LaunchTransaction
-		users []string
-	)
-	t.db.Where("block_number >= ?", blockNumber)
-	err := t.statusFilter(status).Select("DISTINCT(from_address)").Find(&txs).Error
-	if err != nil {
-		return nil, fmt.Errorf("fail to get unmature users: %w", err)
 	}
 	for _, tx := range txs {
 		users = append(users, tx.FromAddress)
