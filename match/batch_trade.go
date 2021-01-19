@@ -19,7 +19,6 @@ func (m *match) UpdateOrdersStatus(txID string, status model.TransactionStatus, 
 	defer m.mu.Unlock()
 	ordersToNotify := make([]*model.Order, 0)
 	err := m.dao.Transaction(context.Background(), false /* readonly */, func(dao dao.DAO) error {
-		dao.ForUpdate()
 		// update match_transaction
 		matchTx, err := dao.GetMatchTransaction(txID)
 		if err != nil {
@@ -166,7 +165,6 @@ func (m *match) RollbackOrdersStatus(txID string, status model.TransactionStatus
 
 	ordersToNotify := make([]*model.Order, 0)
 	err := m.dao.Transaction(context.Background(), false /* readonly */, func(dao dao.DAO) error {
-		dao.ForUpdate()
 		// update match_transaction
 		matchTx, err := dao.GetMatchTransaction(txID)
 		if err != nil {

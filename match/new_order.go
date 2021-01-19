@@ -65,7 +65,6 @@ func (m *match) NewOrder(order *model.Order) string {
 
 	// create order and insert to db and orderbook
 	err = m.dao.Transaction(context.Background(), false /* readonly */, func(dao dao.DAO) error {
-		dao.ForUpdate()
 		if err := dao.CreateOrder(order); err != nil {
 			return err
 		}

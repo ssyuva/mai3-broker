@@ -96,7 +96,6 @@ func (s *Monitor) updateUnmatureStatusByUser(user string, blockNumber *uint64) {
 			continue
 		}
 		err = s.dao.Transaction(context.Background(), false /* readonly */, func(dao dao.DAO) error {
-			dao.ForUpdate()
 			tx.BlockNumber = &receipt.BlockNumber
 			tx.BlockHash = &receipt.BlockHash
 			tx.BlockTime = &receipt.BlockTime

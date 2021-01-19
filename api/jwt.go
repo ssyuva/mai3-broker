@@ -4,6 +4,7 @@ import (
 	"github.com/labstack/echo"
 	"github.com/mcarloai/mai-v3-broker/common/auth"
 	"github.com/mcarloai/mai-v3-broker/conf"
+	logger "github.com/sirupsen/logrus"
 	"net/http"
 	"net/url"
 	"strings"
@@ -42,13 +43,14 @@ func CheckJwtAuthByCookie(c echo.Context) error {
 	if err != nil {
 		return c.String(http.StatusForbidden, "token error")
 	}
-	token, err := url.QueryUnescape(cookie.String())
+	token, err := url.QueryUnescape(cookie.Value)
 	if err != nil {
 		return c.String(http.StatusForbidden, "token error")
 	}
 	address, err := auth.ValidateJwt(token)
 	if err != nil {
-		return c.String(http.StatusForbidden, "mai auth error")
+		logger.Infof("token:%s err:%s", token, err)
+		return c.String(http.StatusForbidden, "jwt auth error")
 	}
 
 	// white list

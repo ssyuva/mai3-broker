@@ -67,7 +67,7 @@ func (l *Launcher) Start() error {
 	})
 
 	// start executor for execute launch transactions
-	executor := NewExecutor(ctx, l.dao, l.chainCli, syncer, l.gasMonitor)
+	executor := NewExecutor(ctx, l.dao, l.chainCli, l.gasMonitor)
 	l.executor = executor
 	group.Go(func() error {
 		return executor.Run()
@@ -182,7 +182,6 @@ func (l *Launcher) createLaunchTransaction(matchTx *model.MatchTransaction) erro
 	}
 
 	err = l.dao.Transaction(context.Background(), false /* readonly */, func(dao dao.DAO) error {
-		dao.ForUpdate()
 		if err := dao.CreateTx(tx); err != nil {
 			return fmt.Errorf("create transaction failed error:%w", err)
 		}

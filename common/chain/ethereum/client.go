@@ -91,34 +91,6 @@ func (c *Client) GetLatestBlockNumber(ctx context.Context) (uint64, error) {
 	return block.NumberU64(), nil
 }
 
-func (c *Client) HeaderByNumber(ctx context.Context, number *big.Int) (*model.BlockHeader, error) {
-	header, err := c.ethCli.HeaderByNumber(ctx, number)
-	if err != nil {
-		return nil, err
-	}
-	block := &model.BlockHeader{
-		BlockNumber: header.Number.Int64(),
-		BlockHash:   strings.ToLower(header.Hash().Hex()),
-		ParentHash:  strings.ToLower(header.ParentHash.Hex()),
-		BlockTime:   time.Unix(int64(header.Time), 0).UTC(),
-	}
-	return block, nil
-}
-
-func (c *Client) HeaderByHash(ctx context.Context, hash string) (*model.BlockHeader, error) {
-	header, err := c.ethCli.HeaderByHash(ctx, ethCommon.HexToHash(hash))
-	if err != nil {
-		return nil, err
-	}
-	block := &model.BlockHeader{
-		BlockNumber: header.Number.Int64(),
-		BlockHash:   strings.ToLower(header.Hash().Hex()),
-		ParentHash:  strings.ToLower(header.ParentHash.Hex()),
-		BlockTime:   time.Unix(int64(header.Time), 0).UTC(),
-	}
-	return block, nil
-}
-
 func (c *Client) PendingNonceAt(ctx context.Context, account string) (uint64, error) {
 	address := ethCommon.HexToAddress(account)
 	return c.ethCli.PendingNonceAt(ctx, address)

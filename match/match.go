@@ -103,7 +103,6 @@ func (m *match) matchOrders() {
 	}
 	orders := make([]*model.Order, 0)
 	err = m.dao.Transaction(context.Background(), false /* readonly */, func(dao dao.DAO) error {
-		dao.ForUpdate()
 		for _, item := range matchItems {
 			order, err := dao.GetOrder(item.Order.ID)
 			if err != nil {

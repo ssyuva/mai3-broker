@@ -39,7 +39,6 @@ func (m *match) cancelOrderWithoutLock(orderHash string, reason model.CancelReas
 	cancelDBAmount := cancelAmount
 	err := m.dao.Transaction(context.Background(), false /* readonly */, func(dao dao.DAO) error {
 		var err error
-		dao.ForUpdate()
 		order, err = dao.GetOrder(orderHash)
 		if err != nil {
 			return err

@@ -19,17 +19,15 @@ type Executor struct {
 	runner     *runnable.Timed
 	chainCli   chain.ChainClient
 	gasMonitor *gasmonitor.GasMonitor
-	syncer     *Syncer
 }
 
-func NewExecutor(ctx context.Context, dao dao.DAO, chainCli chain.ChainClient, syncer *Syncer, gm *gasmonitor.GasMonitor) *Executor {
+func NewExecutor(ctx context.Context, dao dao.DAO, chainCli chain.ChainClient, gm *gasmonitor.GasMonitor) *Executor {
 	return &Executor{
 		ctx:        ctx,
 		dao:        dao,
 		runner:     runnable.NewTimed(ChannelHWM),
 		chainCli:   chainCli,
 		gasMonitor: gm,
-		syncer:     syncer,
 	}
 }
 
@@ -55,8 +53,6 @@ func (s *Executor) executeTransaction() {
 		err = s.sendTransaction(ctx, tx)
 		if err != nil {
 			logger.Warningf("commit new transaction failed for %v: %v", user, err)
-		} else {
-			s.syncer.runner.Trigger(nil)
 		}
 	}
 	return
@@ -93,7 +89,6 @@ func (s *Executor) sendTransaction(ctx context.Context, tx *model.LaunchTransact
 	}
 	// allocate nonce
 	if err := s.dao.Transaction(context.Background(), false /* readonly */, func(dao dao.DAO) error {
-		dao.ForUpdate()
 		tx.Nonce = model.Uint64(expNonce)
 		if err := dao.UpdateTx(tx); err != nil {
 			return errors.Wrap(err, "save nonce failed")
@@ -164,7 +159,6 @@ func (s *Executor) prepare(ctx context.Context, tx *model.LaunchTransaction) err
 
 func (s *Executor) send(ctx context.Context, tx *model.LaunchTransaction) error {
 	return s.dao.Transaction(context.Background(), false /* readonly */, func(dao dao.DAO) error {
-		dao.ForUpdate()
 		prevHash := tx.TransactionHash
 		err := s.prepare(ctx, tx)
 		if err != nil {

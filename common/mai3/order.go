@@ -40,11 +40,16 @@ func BigPow(a, b int64) *big.Int {
 }
 
 func encodeNumber(d decimal.Decimal) string {
+	b := encodeNumberToByte(d)
+	return addLeadingZero(utils.Bytes2Hex(b), 8*8)
+}
+
+func encodeNumberToByte(d decimal.Decimal) []byte {
 	b := utils.MustDecimalToBigInt(utils.ToWad(d))
 	if d.IsNegative() {
 		b = new(big.Int).Add(s256, b)
 	}
-	return addLeadingZero(utils.Bytes2Hex(b.Bytes()), 8*8)
+	return b.Bytes()
 }
 
 func GenerateOrderFlags(orderType model.OrderType, isCloseOnly bool) int {
@@ -91,15 +96,8 @@ func GenerateOrderData(traderAddress, brokerAddress, relayerAddress, referrerAdd
 	data.WriteString(encodeNumber(minTradeAmount))
 	data.WriteString(encodeNumber(amount))
 	data.WriteString(encodeNumber(price))
-	data.WriteString(encodeNumber(triggerPrice))
+	data.WriteString(addLeadingZero(utils.Bytes2Hex(encodeNumberToByte(triggerPrice)), 8*8))
 
-	// if amount.LessThan(decimal.Zero) {
-	// 	data.WriteString(addLeadingF(utils.Bytes2Hex(utils.MustDecimalToBigInt(utils.ToWad(amount)).Bytes()), 8*8))
-	// } else {
-	// 	data.WriteString(addLeadingZero(utils.Bytes2Hex(utils.MustDecimalToBigInt(utils.ToWad(amount)).Bytes()), 8*8))
-	// }
-	// data.WriteString(addLeadingZero(utils.Bytes2Hex(utils.MustDecimalToBigInt(utils.ToWad(price)).Bytes()), 8*8))
-	// data.WriteString(addLeadingZero(utils.Bytes2Hex(utils.MustDecimalToBigInt(utils.ToWad(triggerPrice)).Bytes()), 8*8))
 	data.WriteString(addLeadingZero(fmt.Sprintf("%x", chainID), 8*8))
 	data.WriteString(addLeadingZero(fmt.Sprintf("%x", expiredAt), 8*2))
 	data.WriteString(addLeadingZero(fmt.Sprintf("%x", perpetualIndex), 8))
@@ -145,7 +143,7 @@ func GetOrderHash(traderAddress, brokerAddress, relayerAddress, referrerAddress,
 	}
 
 	minTradeAmountBin := utils.BytesToHash(utils.MustDecimalToBigInt(utils.ToWad(minTradeAmount)).Bytes())
-	amountBin := utils.BytesToHash(utils.MustDecimalToBigInt(utils.ToWad(amount)).Bytes())
+	amountBin := utils.BytesToHash(encodeNumberToByte(amount))
 	priceBin := utils.BytesToHash(utils.MustDecimalToBigInt(utils.ToWad(price)).Bytes())
 	triggerPriceBin := utils.BytesToHash(utils.MustDecimalToBigInt(utils.ToWad(triggerPrice)).Bytes())
 	chainIDBin := utils.BytesToHash(big.NewInt(chainID).Bytes())

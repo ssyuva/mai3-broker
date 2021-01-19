@@ -71,16 +71,15 @@ func (s *Syncer) updateStatusByUser(user string) {
 
 	for i, tx := range txs {
 		if tx.TransactionHash == nil {
-			logger.Errorf("transaction hash is nill txID:%s", tx.TxID)
+			logger.Errorf("syncer: transaction hash is nill txID:%s", tx.TxID)
 			return
 		}
 		receipt, err := s.chainCli.WaitTransactionReceipt(ctx, *tx.TransactionHash)
 		if err != nil {
-			logger.Errorf("WaitTransactionReceipt error: %s", err)
+			logger.Errorf("syncer: WaitTransactionReceipt error: %s", err)
 			continue
 		}
 		err = s.dao.Transaction(context.Background(), false /* readonly */, func(dao dao.DAO) error {
-			dao.ForUpdate()
 			tx.BlockNumber = &receipt.BlockNumber
 			tx.BlockHash = &receipt.BlockHash
 			tx.BlockTime = &receipt.BlockTime
