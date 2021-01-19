@@ -52,7 +52,7 @@ func (c *Client) FilterTradeSuccess(ctx context.Context, brokerAddress string, s
 		return rsp, fmt.Errorf("filter trade event failed:%w", err)
 	}
 
-	if iter.Next() {
+	for iter.Next() {
 		match := &model.TradeSuccessEvent{
 			PerpetualAddress: strings.ToLower(iter.Event.Raw.Address.Hex()),
 			TransactionSeq:   int(iter.Event.Raw.TxIndex),
