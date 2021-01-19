@@ -13,8 +13,9 @@ import (
 )
 
 func (c *Client) GetAccountStorage(ctx context.Context, readerAddress string, perpetualIndex int64, poolAddress, trader string) (*model.AccountStorage, error) {
-	var opts *ethBind.CallOpts
-	opts.Context = ctx
+	opts = &ethBind.CallOpts{
+		Context: ctx,
+	}
 
 	address, err := HexToAddress(readerAddress)
 	if err != nil {
@@ -47,8 +48,9 @@ func (c *Client) GetAccountStorage(ctx context.Context, readerAddress string, pe
 }
 
 func (c *Client) GetLiquidityPoolStorage(ctx context.Context, readerAddress, poolAddress string) (*model.LiquidityPoolStorage, error) {
-	var opts *ethBind.CallOpts
-	opts.Context = ctx
+	opts = &ethBind.CallOpts{
+		Context: ctx,
+	}
 
 	address, err := HexToAddress(readerAddress)
 	if err != nil {

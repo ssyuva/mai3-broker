@@ -71,8 +71,9 @@ func (c *Client) FilterTradeSuccess(ctx context.Context, brokerAddress string, s
 }
 
 func (c *Client) GetGasBalance(ctx context.Context, brokerAddress string, address string) (decimal.Decimal, error) {
-	var opts *ethBind.CallOpts
-	opts.Context = ctx
+	opts = &ethBind.CallOpts{
+		Context: ctx,
+	}
 
 	var rsp decimal.Decimal
 
