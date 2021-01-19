@@ -2,10 +2,11 @@ package api
 
 import (
 	"errors"
-	"github.com/labstack/echo"
-	v "gopkg.in/go-playground/validator.v9"
 	"net/http"
 	"reflect"
+
+	"github.com/labstack/echo"
+	v "gopkg.in/go-playground/validator.v9"
 )
 
 var validate = v.New()

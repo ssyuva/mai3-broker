@@ -1,0 +1,30 @@
+[
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "functionSignature",
+          "type": "string"
+        },
+        {
+          "internalType": "bytes",
+          "name": "callData",
+          "type": "bytes"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "userData",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes",
+          "name": "signature",
+          "type": "bytes"
+        }
+      ],
+      "name": "callFunction",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ]

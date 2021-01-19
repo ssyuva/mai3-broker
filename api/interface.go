@@ -106,6 +106,28 @@ type (
 		Version        int    `json:"version"`
 		RelayerAddress string `json:"relayerAddress"`
 	}
+
+	GetL2RelayerReq struct {
+		BaseReq
+	}
+
+	GetL2RelayerResp struct {
+		L2RelayerAddress string `json:"l2RelayerAddress"`
+	}
+
+	CallL2FunctionReq struct {
+		BaseReq
+		FunctionSignature string `json:"functionSignature"`
+		CallData          string `json:"callData"`
+		Nonce             uint32 `json:"nonce"`
+		Expiration        uint32 `json:"expiration"`
+		GasFeeLimit       uint64 `json:"gasFeeLimit"`
+		Signature         string `json:"signature"`
+	}
+
+	CallL2FunctionResp struct {
+		TansactionHash string `json:"transactionHash"`
+	}
 )
 
 func (b *BaseReq) GetAddress() string {
