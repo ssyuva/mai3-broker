@@ -13,9 +13,7 @@ import (
 	"github.com/pkg/errors"
 	"math/big"
 	"math/rand"
-	"strings"
 	"sync"
-	"time"
 )
 
 type Client struct {
