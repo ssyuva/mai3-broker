@@ -19,21 +19,21 @@ func TestGenerateOrderFlags(t *testing.T) {
 
 func TestGenerateOrderData(t *testing.T) {
 	var (
-		trader         = "0x1111111111111111111111111111111111111111"
-		broker         = "0x2222222222222222222222222222222222222222"
-		relayer        = "0x3333333333333333333333333333333333333333"
+		trader         = "0xe87c5839421579552e676ab0627ae03a7bf9b6d1"
+		broker         = "0x0ce5953e6f05a6100e2fffb38d4163624912670b"
+		relayer        = "0xd595f7c2c071d3fd8f5587931edf34e92f9ad39f"
 		referrer       = "0x0000000000000000000000000000000000000000"
-		pool           = "0x5555555555555555555555555555555555555555"
-		minTradeAmount = decimal.NewFromFloat(7).Div(decimal.NewFromInt(1000000000000000000))
-		amount         = decimal.NewFromFloat(-1)
-		priceLimit     = decimal.NewFromFloat(9).Div(decimal.NewFromInt(1000000000000000000))
-		triggerPrice   = decimal.NewFromFloat(10).Div(decimal.NewFromInt(1000000000000000000))
-		chainID        = 15
-		expires        = 11
-		perpetualIndex = 6
-		brokerFeeLimit = 12
-		flags          = 0xffffffff
-		salt           = 14
+		pool           = "0x39b5b39de93e60081dcdc94a8b4180a8063959cc"
+		minTradeAmount = decimal.NewFromFloat(1)
+		amount         = decimal.NewFromFloat(0.007)
+		priceLimit     = decimal.NewFromFloat(1343.3835)
+		triggerPrice   = decimal.NewFromFloat(0)
+		chainID        = 1337
+		expires        = 1611113371
+		perpetualIndex = 0
+		brokerFeeLimit = 9000000
+		flags          = 0x00000000
+		salt           = 3057603
 		signType       = EIP712
 		v              = "1b"
 		r              = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
@@ -46,21 +46,21 @@ func TestGenerateOrderData(t *testing.T) {
 
 func TestGetOrderHash(t *testing.T) {
 	var (
-		trader         = "0x1111111111111111111111111111111111111111"
-		broker         = "0x2222222222222222222222222222222222222222"
-		relayer        = "0x3333333333333333333333333333333333333333"
-		referrer       = "0x4444444444444444444444444444444444444444"
-		pool           = "0x5555555555555555555555555555555555555555"
-		minTradeAmount = decimal.NewFromFloat(7).Div(decimal.NewFromInt(1000000000000000000))
-		amount         = decimal.NewFromFloat(8).Div(decimal.NewFromInt(1000000000000000000))
-		priceLimit     = decimal.NewFromFloat(9).Div(decimal.NewFromInt(1000000000000000000))
-		triggerPrice   = decimal.NewFromFloat(10).Div(decimal.NewFromInt(1000000000000000000))
-		chainID        = 15
-		expires        = 11
-		perpetualIndex = 6
-		brokerFeeLimit = 12
-		flags          = 0xffffffff
-		salt           = 14
+		trader         = "0xe87c5839421579552e676ab0627ae03a7bf9b6d1"
+		broker         = "0x0ce5953e6f05a6100e2fffb38d4163624912670b"
+		relayer        = "0xd595f7c2c071d3fd8f5587931edf34e92f9ad39f"
+		referrer       = "0x0000000000000000000000000000000000000000"
+		pool           = "0x39b5b39de93e60081dcdc94a8b4180a8063959cc"
+		minTradeAmount = decimal.NewFromFloat(1)
+		amount         = decimal.NewFromFloat(0.007)
+		priceLimit     = decimal.NewFromFloat(1343.3835)
+		triggerPrice   = decimal.NewFromFloat(0)
+		chainID        = 1337
+		expires        = 1611113371
+		perpetualIndex = 0
+		brokerFeeLimit = 9000000
+		flags          = 0x00000000
+		salt           = 3057603
 	)
 	orderHash, err := GetOrderHash(trader, broker, relayer, referrer, pool, minTradeAmount, amount, priceLimit, triggerPrice, int64(chainID),
 		int64(expires), int64(perpetualIndex), int64(brokerFeeLimit), int64(flags), int64(salt))

@@ -11,13 +11,12 @@ import (
 	logger "github.com/sirupsen/logrus"
 )
 
-const MAX_ORDER_NUM = 20
+const MAX_ORDER_NUM = 10
 
 func (m *match) NewOrder(order *model.Order) string {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	//TODO
 	account, err := m.chainCli.GetAccountStorage(m.ctx, conf.Conf.ReaderAddress, m.perpetual.PerpetualIndex, m.perpetual.LiquidityPoolAddress, order.TraderAddress)
 	if err != nil {
 		logger.Errorf("new order:GetAccountStorage err:%s", err)
@@ -54,8 +53,9 @@ func (m *match) NewOrder(order *model.Order) string {
 		logger.Errorf("new order: checkUserPendingOrders:%w", err)
 		return model.MatchInternalErrorID
 	}
-	gasReward := m.gasMonitor.GetGasPrice() * conf.Conf.GasStation.GasLimit * uint64(len(activeOrders)+1)
-	if utils.ToGwei(gasBalance).LessThan(decimal.NewFromInt(int64(gasReward))) {
+	gasReward := m.gasMonitor.GetGasPrice() * conf.Conf.GasStation.GasLimit
+	ordersGasReword := gasReward * uint64(len(activeOrders)+1)
+	if utils.ToGwei(gasBalance).LessThan(decimal.NewFromInt(int64(ordersGasReword))) {
 		return model.MatchGasNotEnoughErrorID
 	}
 
