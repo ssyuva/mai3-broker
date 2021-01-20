@@ -125,6 +125,9 @@ func (r *L2Relayer) Trade(ctx context.Context, order *model.Order) (tx string, e
 		return "", fmt.Errorf("Trade:%w", err)
 	}
 
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
 	transaction, err := r.contract.Trade(&opts, compressedOrder, order.Amount.BigInt(), big.NewInt(r.tradeFee))
 	if err != nil {
 		return "", fmt.Errorf("Trade:%e:%w", err, BlockchainError)
