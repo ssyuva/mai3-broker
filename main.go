@@ -3,10 +3,11 @@ package main
 import (
 	"context"
 	"flag"
-	"github.com/mcarloai/mai-v3-broker/dao"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/mcarloai/mai-v3-broker/dao"
 
 	"github.com/mcarloai/mai-v3-broker/api"
 	"github.com/mcarloai/mai-v3-broker/common/chain"
@@ -103,7 +104,7 @@ func main() {
 }
 
 func WaitExitSignal(ctxStop context.CancelFunc) {
-	var exitSignal = make(chan os.Signal)
+	var exitSignal = make(chan os.Signal, 1)
 	signal.Notify(exitSignal, syscall.SIGTERM)
 	signal.Notify(exitSignal, syscall.SIGINT)
 

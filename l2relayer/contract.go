@@ -9,8 +9,7 @@ import (
 	"math/big"
 	"strings"
 
-	contract "github.com/mcarloai/mai-v3-broker/common/chain/ethereum/l2relayer"
-	"github.com/shopspring/decimal"
+	"github.com/mcarloai/mai-v3-broker/common/chain/ethereum/broker"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -28,7 +27,7 @@ type Mai3SignedCallMessage struct {
 	Nonce             uint32
 	Expiration        uint32
 	GasFeeLimit       uint64
-	Signaure          string
+	Signaure          []byte
 	UserData          [32]byte
 }
 
@@ -62,7 +61,7 @@ func NewMai3SignedCallMessage(functionSignature string, callData string, userAdd
 		Nonce:             nonce,
 		Expiration:        expiration,
 		GasFeeLimit:       gasFeeLimit,
-		Signaure:          signature,
+		Signaure:          common.Hex2Bytes(signature),
 		UserData:          userData,
 	}, nil
 
@@ -73,62 +72,31 @@ func (tx *Mai3SignedCallMessage) FunctionCallParams() []interface{} {
 }
 
 type L2RelayerContract struct {
-	address    common.Address
-	abi        abi.ABI
-	transactor bind.ContractTransactor
+	address common.Address
+	abi     abi.ABI
+	backend bind.ContractBackend
+	broker  *broker.Broker
 }
 
-func NewRelayerContract(address common.Address, transactor bind.ContractTransactor) (*L2RelayerContract, error) {
-	parsed, err := abi.JSON(strings.NewReader(contract.L2RelayerABI))
+func NewRelayerContract(address common.Address, backend bind.ContractBackend) (*L2RelayerContract, error) {
+	parsed, err := abi.JSON(strings.NewReader(broker.BrokerABI))
+	if err != nil {
+		return nil, err
+	}
+	broker, err := broker.NewBroker(address, backend)
 	if err != nil {
 		return nil, err
 	}
 	return &L2RelayerContract{
-		address:    address,
-		abi:        parsed,
-		transactor: transactor,
+		address: address,
+		abi:     parsed,
+		backend: backend,
+		broker:  broker,
 	}, nil
 }
 
 func (c *L2RelayerContract) CallFunction(opts *bind.TransactOpts, msg *Mai3SignedCallMessage) (*types.Transaction, error) {
-	input, err := c.abi.Pack("callFunction", msg.FunctionCallParams()...)
-	if err != nil {
-		return nil, err
-	}
-	value := opts.Value
-	if value == nil {
-		value = new(big.Int)
-	}
-
-	var nonce uint64
-	if opts.Nonce == nil {
-		nonce, err = c.transactor.PendingNonceAt(ensureContext(opts.Context), opts.From)
-		if err != nil {
-			return nil, fmt.Errorf("failed to retrieve account nonce: %v", err)
-		}
-	} else {
-		nonce = opts.Nonce.Uint64()
-	}
-
-	gasPrice := opts.GasPrice
-	if gasPrice == nil {
-		return nil, errors.New("invalid gas price")
-	}
-
-	gasLimit := opts.GasLimit
-	if gasLimit == 0 {
-		return nil, errors.New("invlid gas limit")
-	}
-
-	rawTx := types.NewTransaction(nonce, c.address, value, gasLimit, gasPrice, input)
-	signedTx, err := opts.Signer(opts.From, rawTx)
-	if err != nil {
-		return nil, err
-	}
-	if err := c.transactor.SendTransaction(ensureContext(opts.Context), signedTx); err != nil {
-		return nil, err
-	}
-	return signedTx, nil
+	return c.broker.CallFunction(opts, msg.FunctionSignature, msg.CallData, msg.UserData, msg.Signaure)
 }
 
 func (c *L2RelayerContract) EstimateFunctionGas(opts *bind.TransactOpts, msg *Mai3SignedCallMessage) (uint64, error) {
@@ -147,15 +115,22 @@ func (c *L2RelayerContract) EstimateFunctionGas(opts *bind.TransactOpts, msg *Ma
 	}
 
 	txMsg := ethereum.CallMsg{From: opts.From, To: &c.address, GasPrice: gasPrice, Value: value, Data: input}
-	gasLimit, err := c.transactor.EstimateGas(ensureContext(opts.Context), txMsg)
+	gasLimit, err := c.backend.EstimateGas(ensureContext(opts.Context), txMsg)
 	if err != nil {
 		return 0, fmt.Errorf("failed to estimate gas needed: %w", err)
 	}
 	return gasLimit, nil
 }
 
-func (c *L2RelayerContract) ReservedGas(userAddress common.Address) (decimal.Decimal, error) {
-	return decimal.Zero, nil
+func (c *L2RelayerContract) BalanceOf(opts *bind.CallOpts, userAddress common.Address) (*big.Int, error) {
+	return c.broker.BalanceOf(opts, userAddress)
+}
+
+func (c *L2RelayerContract) Trade(opts *bind.TransactOpts, compressedOrder []byte, amount *big.Int, gasReward *big.Int) (*types.Transaction, error) {
+	orders := [][]byte{compressedOrder}
+	amounts := []*big.Int{amount}
+	gasRewards := []*big.Int{gasReward}
+	return c.broker.BatchTrade(opts, orders, amounts, gasRewards)
 }
 
 // ensureContext is a helper method to ensure a context is not nil, even if the

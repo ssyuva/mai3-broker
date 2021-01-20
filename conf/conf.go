@@ -19,14 +19,21 @@ type Config struct {
 	GasPrice uint64 `envconfig:"gas_price"`
 	GasLimit uint64 `envconfig:"gas_limit"`
 
-	ChainType   string            `envconfig:"chain_type"`
-	Interval    time.Duration     `envconfig:"interval"`
-	Timeout     time.Duration     `envconfig:"timeout"`
-	ProviderURL string            `envconfig:"provider_url"`
-	Headers     map[string]string `envconfig:"headers"`
-	Password    string            `envconfig:"password"`
+	ChainType    string            `envconfig:"chain_type"`
+	Interval     time.Duration     `envconfig:"interval"`
+	ChainTimeout time.Duration     `envconfig:"timeout"`
+	ProviderURL  string            `envconfig:"provider_url"`
+	Headers      map[string]string `envconfig:"headers"`
+	Password     string            `envconfig:"password"`
 
 	SubgraphURL string `envconfig:"subgraph_url"`
+
+	L2Timeout              duration `toml:"l2_timeout"`
+	MaxTradeExpiration     duration `toml:"max_trade_expiration"`
+	GasPrice               uint64   `toml:"gasPrice"`
+	CallFunctionFeePercent uint32   `toml:"call_function_fee_percent"`
+	TradeFee               int64    `toml:"trade_fee"`
+	Key                    string   `toml:"key"`
 }
 
 var (

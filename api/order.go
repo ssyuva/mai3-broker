@@ -5,14 +5,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/mcarloai/mai-v3-broker/common/mai3"
 	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/mcarloai/mai-v3-broker/conf"
 	"github.com/mcarloai/mai-v3-broker/dao"
 	"github.com/shopspring/decimal"
-	"strings"
-	"time"
 )
 
 const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000"
@@ -107,8 +108,7 @@ func (s *Server) GetOrdersByOrderHashs(p Param) (interface{}, error) {
 	return res, nil
 }
 
-func (s *Server) PlaceOrder(p Param) (interface{}, error) {
-	params := p.(*PlaceOrderReq)
+func GetOrderFromPalceOrderReq(params *PlaceOrderReq) (*model.Order, error) {
 	err := validatePlaceOrder(params)
 	if err != nil {
 		return nil, err
@@ -180,6 +180,16 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 	if !valid {
 		return nil, BadSignatureError()
 	}
+	return &order, nil
+}
+
+func (s *Server) PlaceOrder(p Param) (interface{}, error) {
+	params := p.(*PlaceOrderReq)
+
+	order, err := GetOrderFromPalceOrderReq(params)
+	if err != nil {
+		return nil, err
+	}
 
 	_, err = s.dao.GetPerpetualByPoolAddressAndIndex(order.LiquidityPoolAddress, order.PerpetualIndex, true)
 	if err != nil {
@@ -204,7 +214,7 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 		return nil, InternalError(errors.New("get order fail"))
 	}
 
-	errID := s.match.NewOrder(&order)
+	errID := s.match.NewOrder(order)
 	switch errID {
 	case model.MatchOK:
 		return nil, nil

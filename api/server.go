@@ -2,6 +2,9 @@ package api
 
 import (
 	"context"
+	"net/http"
+	"time"
+
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/mcarloai/mai-v3-broker/common/chain"
@@ -9,8 +12,6 @@ import (
 	"github.com/mcarloai/mai-v3-broker/dao"
 	"github.com/mcarloai/mai-v3-broker/match"
 	logger "github.com/sirupsen/logrus"
-	"net/http"
-	"time"
 )
 
 type Server struct {

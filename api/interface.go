@@ -107,11 +107,11 @@ type (
 		RelayerAddress string `json:"relayerAddress"`
 	}
 
-	GetL2RelayerReq struct {
+	GetL2RelayerAddressReq struct {
 		BaseReq
 	}
 
-	GetL2RelayerResp struct {
+	GetL2RelayerAddressResp struct {
 		L2RelayerAddress string `json:"l2RelayerAddress"`
 	}
 
@@ -126,7 +126,11 @@ type (
 	}
 
 	CallL2FunctionResp struct {
-		TansactionHash string `json:"transactionHash"`
+		TransactionHash string `json:"transactionHash"`
+	}
+
+	L2TradeResp struct {
+		TransactionHash string `json:"transactionHash"`
 	}
 )
 

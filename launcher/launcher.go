@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+
 	"github.com/mcarloai/mai-v3-broker/common/chain"
 	"github.com/mcarloai/mai-v3-broker/common/mai3"
 	mai3Utils "github.com/mcarloai/mai-v3-broker/common/mai3/utils"
@@ -15,10 +16,11 @@ import (
 	"github.com/mcarloai/mai-v3-broker/runnable"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/shopspring/decimal"
-	logger "github.com/sirupsen/logrus"
 	"math/big"
 	"time"
+
+	"github.com/shopspring/decimal"
+	logger "github.com/sirupsen/logrus"
 )
 
 var ChannelHWM = 64
@@ -152,7 +154,7 @@ func (l *Launcher) createLaunchTransaction(matchTx *model.MatchTransaction) erro
 	matchAmounts := make([]decimal.Decimal, 0)
 	gasRewards := make([]*big.Int, 0)
 	for _, item := range matchTx.MatchResult.MatchItems {
-		data, err := getCompressOrderData(item.Order)
+		data, err := GetCompressOrderData(item.Order)
 		if err != nil {
 			return err
 		}
@@ -198,15 +200,15 @@ func (l *Launcher) createLaunchTransaction(matchTx *model.MatchTransaction) erro
 	return err
 }
 
-func getCompressOrderData(order *model.Order) ([]byte, error) {
+func GetCompressOrderData(order *model.Order) ([]byte, error) {
 	if order == nil {
-		return nil, fmt.Errorf("getCompressOrderData:nil order")
+		return nil, fmt.Errorf("GetCompressOrderData:nil order")
 	}
 	flags := mai3.GenerateOrderFlags(order.Type, order.IsCloseOnly)
 	var orderSig model.OrderSignature
 	err := json.Unmarshal([]byte(order.Signature), &orderSig)
 	if err != nil {
-		return nil, fmt.Errorf("getCompressOrderData:%w", err)
+		return nil, fmt.Errorf("GetCompressOrderData:%w", err)
 	}
 	orderData := mai3.GenerateOrderData(
 		order.TraderAddress,
@@ -232,7 +234,7 @@ func getCompressOrderData(order *model.Order) ([]byte, error) {
 
 	bytes, err := mai3Utils.Hex2Bytes(orderData)
 	if err != nil {
-		return nil, fmt.Errorf("getCompressOrderData:%w", err)
+		return nil, fmt.Errorf("GetCompressOrderData:%w", err)
 	}
 	return bytes, nil
 }
