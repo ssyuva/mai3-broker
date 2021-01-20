@@ -66,7 +66,7 @@ func (s *Syncer) updateStatusByUser(user string) {
 		return
 	}
 
-	ctx, done := context.WithTimeout(s.ctx, conf.Conf.BlockChain.Timeout.Duration)
+	ctx, done := context.WithTimeout(s.ctx, conf.Conf.Timeout)
 	defer done()
 
 	for i, tx := range txs {

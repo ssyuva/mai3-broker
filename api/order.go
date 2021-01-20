@@ -190,7 +190,7 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 	}
 
 	// check ChainID
-	ctx, cancel := context.WithTimeout(s.ctx, conf.Conf.BlockChain.Timeout.Duration)
+	ctx, cancel := context.WithTimeout(s.ctx, conf.Conf.Timeout)
 	defer cancel()
 	chainID, err := s.chainCli.GetChainID(ctx)
 	if err != nil || chainID.Int64() != params.ChainID {

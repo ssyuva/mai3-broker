@@ -43,5 +43,5 @@ func (p *GasMonitor) run() {
 
 func (p *GasMonitor) getPriceInfo() (uint64, error) {
 	//TODO update gas price
-	return conf.Conf.GasStation.GasPrice, nil
+	return conf.Conf.GasPrice, nil
 }

@@ -65,7 +65,7 @@ func (m *match) checkUserPendingOrders(poolStorage *model.LiquidityPoolStorage, 
 
 	// gas check
 	num := 0
-	gasReward := m.gasMonitor.GetGasPrice() * conf.Conf.GasStation.GasLimit
+	gasReward := m.gasMonitor.GetGasPrice() * conf.Conf.GasLimit
 	if gasReward > 0 {
 		maxOrderNum := utils.ToGwei(gasBalance).IntPart() / int64(gasReward)
 		if len(orders) > int(maxOrderNum) {

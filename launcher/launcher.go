@@ -86,7 +86,7 @@ func (l *Launcher) reloadAccount() error {
 		return err
 	}
 	for _, s := range stores {
-		p, err := l.chainCli.DecryptKey(s.Value, conf.Conf.BlockChain.Password)
+		p, err := l.chainCli.DecryptKey(s.Value, conf.Conf.Password)
 		if err != nil {
 			return err
 		}
@@ -104,7 +104,7 @@ func (l *Launcher) ImportPrivateKey(pk string) (string, error) {
 		return address, err
 	}
 
-	b, err := l.chainCli.EncryptKey(p, conf.Conf.BlockChain.Password)
+	b, err := l.chainCli.EncryptKey(p, conf.Conf.Password)
 	if err != nil {
 		return address, fmt.Errorf("fail to encrypt key", err)
 	}
@@ -158,7 +158,7 @@ func (l *Launcher) createLaunchTransaction(matchTx *model.MatchTransaction) erro
 		}
 		orders = append(orders, data)
 		matchAmounts = append(matchAmounts, item.Amount)
-		gasReward := l.gasMonitor.GetGasPrice() * 1e9 * conf.Conf.GasStation.GasLimit
+		gasReward := l.gasMonitor.GetGasPrice() * 1e9 * conf.Conf.GasLimit
 		gasRewards = append(gasRewards, big.NewInt(int64(gasReward)))
 	}
 	inputs, err := l.chainCli.BatchTradeDataPack(orders, matchAmounts, gasRewards)

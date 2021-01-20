@@ -39,7 +39,7 @@ func (s *Monitor) Run() error {
 }
 
 func (s *Monitor) syncUnmatureTransaction() {
-	ctx, done := context.WithTimeout(s.ctx, conf.Conf.BlockChain.Timeout.Duration)
+	ctx, done := context.WithTimeout(s.ctx, conf.Conf.Timeout)
 	defer done()
 	blockNumber, err := s.chainCli.GetLatestBlockNumber(ctx)
 	if err != nil {
@@ -63,7 +63,7 @@ func (s *Monitor) updateUnmatureTransactionStatus(blockNumber *uint64) {
 		return
 	}
 
-	ctx, done := context.WithTimeout(s.ctx, conf.Conf.BlockChain.Timeout.Duration)
+	ctx, done := context.WithTimeout(s.ctx, conf.Conf.Timeout)
 	defer done()
 
 	for _, tx := range txs {

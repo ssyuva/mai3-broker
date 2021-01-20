@@ -84,7 +84,7 @@ func (p *PerpetualSyncer) syncPerpetual() {
 	}`
 	params.Query = fmt.Sprintf(queryFormat, p.syncedBlockNumber)
 
-	err, code, res := p.httpClient.Post(conf.Conf.Subgraph.URL, nil, params, nil)
+	err, code, res := p.httpClient.Post(conf.Conf.SubgraphURL, nil, params, nil)
 	if err != nil || code != 200 {
 		logger.Infof("get perpetuals error. err:%s, code:%d", err, code)
 		return

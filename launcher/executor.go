@@ -36,7 +36,7 @@ func (s *Executor) Run() error {
 }
 
 func (s *Executor) executeTransaction() {
-	ctx, done := context.WithTimeout(s.ctx, conf.Conf.BlockChain.Timeout.Duration)
+	ctx, done := context.WithTimeout(s.ctx, conf.Conf.Timeout)
 	defer done()
 	users, err := s.dao.GetUsersWithStatus(model.TxInitial)
 	if err != nil {
@@ -150,7 +150,7 @@ func (s *Executor) prepare(ctx context.Context, tx *model.LaunchTransaction) err
 		return errors.New("missing nonce")
 	}
 
-	limit := conf.Conf.GasStation.GasLimit
+	limit := conf.Conf.GasLimit
 	tx.GasLimit = &limit
 	price := s.gasMonitor.GetGasPrice() * 1e9
 	tx.GasPrice = &price

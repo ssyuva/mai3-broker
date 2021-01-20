@@ -64,7 +64,7 @@ func (m *match) UpdateOrdersStatus(txID string, status model.TransactionStatus, 
 
 func (m *match) updateOrdersByTradeEvent(dao dao.DAO, matchTx *model.MatchTransaction, blockNumber uint64) ([]*model.Order, error) {
 	ordersToNotify := make([]*model.Order, 0)
-	ctxTimeout, ctxTimeoutCancel := context.WithTimeout(m.ctx, conf.Conf.BlockChain.Timeout.Duration)
+	ctxTimeout, ctxTimeoutCancel := context.WithTimeout(m.ctx, conf.Conf.Timeout)
 	defer ctxTimeoutCancel()
 	matchEvents, err := m.chainCli.FilterTradeSuccess(ctxTimeout, matchTx.BrokerAddress, blockNumber, blockNumber)
 	if err != nil {
