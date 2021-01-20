@@ -24,18 +24,18 @@ func main() {
 
 	var err error
 	flag.Parse()
-	if err := conf.Init(); err != nil {
+	if err := conf.InitL2RelayerConf(); err != nil {
 		panic(err)
 	}
 
 	relayer, err := l2relayer.NewL2Relayer(
-		conf.Conf.BlockChain.ProviderURL,
-		big.NewInt(conf.Conf.BlockChain.ChainID),
-		conf.Conf.L2Relayer.Key,
-		conf.Conf.BrokerAddress,
-		conf.Conf.L2Relayer.GasPrice,
-		conf.Conf.L2Relayer.CallFunctionFeePercent,
-		conf.Conf.L2Relayer.TradeFee)
+		conf.L2RelayerConf.ProviderURL,
+		big.NewInt(conf.L2RelayerConf.ChainID),
+		conf.L2RelayerConf.L2RelayerKey,
+		conf.L2RelayerConf.BrokerAddress,
+		conf.L2RelayerConf.GasPrice,
+		conf.L2RelayerConf.L2CallFunctionFeePercent,
+		conf.L2RelayerConf.L2TradeFee)
 
 	if err != nil {
 		logger.Errorf("create l2 relayer fail:%s", err.Error())

@@ -2,6 +2,8 @@ package launcher
 
 import (
 	"context"
+	"time"
+
 	"github.com/mcarloai/mai-v3-broker/common/chain"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/mcarloai/mai-v3-broker/conf"
@@ -10,7 +12,6 @@ import (
 	"github.com/mcarloai/mai-v3-broker/runnable"
 	"github.com/pkg/errors"
 	logger "github.com/sirupsen/logrus"
-	"time"
 )
 
 type Monitor struct {
@@ -39,7 +40,7 @@ func (s *Monitor) Run() error {
 }
 
 func (s *Monitor) syncUnmatureTransaction() {
-	ctx, done := context.WithTimeout(s.ctx, conf.Conf.Timeout)
+	ctx, done := context.WithTimeout(s.ctx, conf.Conf.ChainTimeout)
 	defer done()
 	blockNumber, err := s.chainCli.GetLatestBlockNumber(ctx)
 	if err != nil {
@@ -63,7 +64,7 @@ func (s *Monitor) updateUnmatureTransactionStatus(blockNumber *uint64) {
 		return
 	}
 
-	ctx, done := context.WithTimeout(s.ctx, conf.Conf.Timeout)
+	ctx, done := context.WithTimeout(s.ctx, conf.Conf.ChainTimeout)
 	defer done()
 
 	for _, tx := range txs {

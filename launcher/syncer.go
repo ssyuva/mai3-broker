@@ -2,6 +2,9 @@ package launcher
 
 import (
 	"context"
+	"sync"
+	"time"
+
 	"github.com/mcarloai/mai-v3-broker/common/chain"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/mcarloai/mai-v3-broker/conf"
@@ -10,8 +13,6 @@ import (
 	"github.com/mcarloai/mai-v3-broker/runnable"
 	"github.com/pkg/errors"
 	logger "github.com/sirupsen/logrus"
-	"sync"
-	"time"
 )
 
 type Syncer struct {
@@ -66,7 +67,7 @@ func (s *Syncer) updateStatusByUser(user string) {
 		return
 	}
 
-	ctx, done := context.WithTimeout(s.ctx, conf.Conf.Timeout)
+	ctx, done := context.WithTimeout(s.ctx, conf.Conf.ChainTimeout)
 	defer done()
 
 	for i, tx := range txs {

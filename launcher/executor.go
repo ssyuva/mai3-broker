@@ -2,6 +2,8 @@ package launcher
 
 import (
 	"context"
+	"time"
+
 	"github.com/mcarloai/mai-v3-broker/common/chain"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/mcarloai/mai-v3-broker/conf"
@@ -10,7 +12,6 @@ import (
 	"github.com/mcarloai/mai-v3-broker/runnable"
 	"github.com/pkg/errors"
 	logger "github.com/sirupsen/logrus"
-	"time"
 )
 
 type Executor struct {
@@ -36,7 +37,7 @@ func (s *Executor) Run() error {
 }
 
 func (s *Executor) executeTransaction() {
-	ctx, done := context.WithTimeout(s.ctx, conf.Conf.Timeout)
+	ctx, done := context.WithTimeout(s.ctx, conf.Conf.ChainTimeout)
 	defer done()
 	users, err := s.dao.GetUsersWithStatus(model.TxInitial)
 	if err != nil {

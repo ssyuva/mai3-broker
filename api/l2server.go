@@ -55,7 +55,7 @@ func NewL2RelayerServer(ctx context.Context, r *l2relayer.L2Relayer) (*L2Relayer
 
 func (s *L2RelayerServer) Start() error {
 	srv := &http.Server{
-		Addr:         conf.Conf.APIHost,
+		Addr:         conf.L2RelayerConf.L2RelayerHost,
 		ReadTimeout:  20 * time.Second,
 		WriteTimeout: 20 * time.Second,
 	}
@@ -101,7 +101,7 @@ func (s *L2RelayerServer) GetL2RelayerAddress(p Param) (interface{}, error) {
 func (s *L2RelayerServer) CallL2Function(p Param) (interface{}, error) {
 	params := p.(*CallL2FunctionReq)
 
-	ctx, cancel := context.WithTimeout(s.ctx, conf.Conf.L2Relayer.L2Timeout.Duration)
+	ctx, cancel := context.WithTimeout(s.ctx, conf.L2RelayerConf.L2Timeout)
 	defer cancel()
 	tx, err := s.r.CallFunction(ctx, params.FunctionSignature, params.CallData, params.Address, params.Nonce, params.Expiration, params.GasFeeLimit, params.Signature)
 	if err != nil {
@@ -130,11 +130,11 @@ func (s *L2RelayerServer) Trade(p Param) (interface{}, error) {
 	}
 
 	// OnlyAllow 60s ExpiresAt
-	if order.CreatedAt.Add(conf.Conf.L2Relayer.MaxTradeExpiration.Duration).After(order.ExpiresAt) {
-		return nil, InternalError(fmt.Errorf("too large expiration, max=%s", conf.Conf.L2Relayer.MaxTradeExpiration.String()))
+	if order.CreatedAt.Add(conf.L2RelayerConf.L2MaxTradeExpiration).After(order.ExpiresAt) {
+		return nil, InternalError(fmt.Errorf("too large expiration, max=%s", conf.L2RelayerConf.L2MaxTradeExpiration.String()))
 	}
 
-	ctx, cancel := context.WithTimeout(s.ctx, conf.Conf.L2Relayer.L2Timeout.Duration)
+	ctx, cancel := context.WithTimeout(s.ctx, conf.L2RelayerConf.L2Timeout)
 	defer cancel()
 	tx, err := s.r.Trade(ctx, order)
 	if err != nil {

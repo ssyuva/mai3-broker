@@ -3,13 +3,14 @@ package match
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/mcarloai/mai-v3-broker/common/message"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/mcarloai/mai-v3-broker/conf"
 	"github.com/mcarloai/mai-v3-broker/dao"
 	"github.com/shopspring/decimal"
 	"gopkg.in/guregu/null.v3"
-	"time"
 
 	logger "github.com/sirupsen/logrus"
 )
@@ -64,7 +65,7 @@ func (m *match) UpdateOrdersStatus(txID string, status model.TransactionStatus, 
 
 func (m *match) updateOrdersByTradeEvent(dao dao.DAO, matchTx *model.MatchTransaction, blockNumber uint64) ([]*model.Order, error) {
 	ordersToNotify := make([]*model.Order, 0)
-	ctxTimeout, ctxTimeoutCancel := context.WithTimeout(m.ctx, conf.Conf.Timeout)
+	ctxTimeout, ctxTimeoutCancel := context.WithTimeout(m.ctx, conf.Conf.ChainTimeout)
 	defer ctxTimeoutCancel()
 	matchEvents, err := m.chainCli.FilterTradeSuccess(ctxTimeout, matchTx.BrokerAddress, blockNumber, blockNumber)
 	if err != nil {
