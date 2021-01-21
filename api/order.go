@@ -66,9 +66,19 @@ func (s *Server) GetOrders(p Param) (interface{}, error) {
 	if params.Limit > 0 {
 		limit = params.Limit
 	}
-	orders, err := s.dao.QueryOrder(params.Address, params.LiquidityPoolAddress, params.PerpetualIndex, queryStatus, beforeOrderID, afterOrderID, limit)
-	if err != nil {
-		return nil, InternalError(err)
+	var orders []*model.Order
+	if params.BeginTime != 0 && params.EndTime != 0 {
+		beginTime := time.Unix(params.BeginTime, 0).UTC()
+		endTime := time.Unix(params.EndTime, 0).UTC()
+		orders, err = s.dao.QueryOrderWithCreateTime(params.Address, params.LiquidityPoolAddress, params.PerpetualIndex, queryStatus, beforeOrderID, afterOrderID, beginTime, endTime, limit)
+		if err != nil {
+			return nil, InternalError(err)
+		}
+	} else {
+		orders, err = s.dao.QueryOrder(params.Address, params.LiquidityPoolAddress, params.PerpetualIndex, queryStatus, beforeOrderID, afterOrderID, limit)
+		if err != nil {
+			return nil, InternalError(err)
+		}
 	}
 
 	res := &QueryOrdersResp{
@@ -257,8 +267,8 @@ func validatePlaceOrder(req *PlaceOrderReq) error {
 		return InvalidPriceAmountError(fmt.Sprintf("parse minTradeAmount[%s] error", req.MinTradeAmount))
 	}
 
-	if minTradeAmount.LessThanOrEqual(decimal.Zero) {
-		return InvalidPriceAmountError("minTradeAmount <= 0")
+	if minTradeAmount.IsZero() || minTradeAmount.Abs().GreaterThan(amount.Abs()) {
+		return InvalidPriceAmountError("minTradeAmount invalid")
 	}
 
 	// order dealine

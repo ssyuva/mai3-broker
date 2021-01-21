@@ -17,6 +17,8 @@ type OrderDAO interface {
 	GetOrder(orderHash string) (*model.Order, error)
 	GetPendingOrderUsers(poolAddress string, perpIndex int64, status []model.OrderStatus) ([]string, error)
 	QueryOrder(traderAddress string, poolAddress string, perpIndex int64, status []model.OrderStatus, beforeOrderID, afterOrderID int64, limit int) ([]*model.Order, error)
+	QueryOrderWithCreateTime(traderAddress string, poolAddress string, perpIndex int64,
+		status []model.OrderStatus, beforeOrderID, afterOrderID int64, beginTime, endTime time.Time, limit int) ([]*model.Order, error)
 	GetOrderByHashs(hashs []string) ([]*model.Order, error)
 	UpdateOrder(order *model.Order) error
 	LoadMatchOrders(matchItems []*model.MatchItem) error
@@ -126,6 +128,52 @@ func (o *orderDAO) QueryOrder(traderAddress string, poolAddress string, perpInde
 	if afterOrderID > 0 {
 		where = where.Where("id > ?", afterOrderID)
 	}
+
+	if limit > 0 {
+		where = where.Order("id desc")
+		where = where.Limit(limit)
+	}
+
+	if err = where.Find(&dbOrders).Error; err != nil {
+		err = fmt.Errorf("QueryOrder:%w", err)
+		return
+	}
+
+	for _, o := range dbOrders {
+		if loadErr := o.unmarshalCancelReason(); loadErr != nil {
+			logger.Warnf("load order cancel reason error:%v", loadErr)
+		}
+		orders = append(orders, &o.Order)
+	}
+	return
+}
+
+func (o *orderDAO) QueryOrderWithCreateTime(traderAddress string, poolAddress string, perpIndex int64,
+	status []model.OrderStatus, beforeOrderID, afterOrderID int64, beginTime, endTime time.Time, limit int) (orders []*model.Order, err error) {
+	var dbOrders []*dbOrder
+	where := o.db.Table("orders")
+
+	if traderAddress != "" {
+		where = where.Where("trader_address=?", traderAddress)
+	}
+
+	if poolAddress != "" {
+		where = where.Where("liquidity_pool_address = ? AND perpetual_index = ?", poolAddress, perpIndex)
+	}
+
+	if len(status) > 0 {
+		where = where.Where("status in (?)", status)
+	}
+
+	if beforeOrderID > 0 {
+		where = where.Where("id < ?", beforeOrderID)
+	}
+
+	if afterOrderID > 0 {
+		where = where.Where("id > ?", afterOrderID)
+	}
+
+	where = where.Where("created_at > ? and created_at < ?", beginTime, endTime)
 
 	if limit > 0 {
 		where = where.Order("id desc")

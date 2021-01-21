@@ -78,6 +78,8 @@ type (
 		Status               string `json:"status" query:"status"`
 		BeforeOrderHash      string `json:"beforeOrderHash" query:"beforeOrderHash"`
 		AfterOrderHash       string `json:"afterOrderHash"  query:"afterOrderHash"`
+		BeginTime            int64  `json:"beginTime" query:"beginTime"`
+		EndTime              int64  `json:"endTime" query:"endTime"`
 		Limit                int    `json:"limit" query:"limit"`
 	}
 
