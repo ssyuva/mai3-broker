@@ -67,6 +67,7 @@ func (s *Server) GetOrders(p Param) (interface{}, error) {
 		limit = params.Limit
 	}
 	var orders []*model.Order
+	var err error
 	if params.BeginTime != 0 && params.EndTime != 0 {
 		beginTime := time.Unix(params.BeginTime, 0).UTC()
 		endTime := time.Unix(params.EndTime, 0).UTC()
