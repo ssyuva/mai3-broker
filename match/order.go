@@ -123,8 +123,7 @@ func (m *match) MatchOrderSideBySide() []*MatchItem {
 	askPrices := m.orderbook.GetAskPricesAsc()
 	bidIdx := 0
 	askIdx := 0
-	bidMatched := decimal.Zero
-	askMatched := decimal.Zero
+	isContinue := true
 
 	if len(bidPrices) == 0 && len(askPrices) == 0 {
 		return result
@@ -136,22 +135,17 @@ func (m *match) MatchOrderSideBySide() []*MatchItem {
 		return result
 	}
 	for {
-		if len(result) >= mai3.MaiV3MaxMatchGroup ||
-			((len(bidPrices) <= bidIdx) && len(askPrices) <= askIdx) {
-			break
-		}
-
 		if len(bidPrices) > bidIdx {
-			result, bidMatched = m.matchOneSide(poolStorage, bidPrices[bidIdx], true, result)
+			result, isContinue = m.matchOneSide(poolStorage, bidPrices[bidIdx], true, result)
 			bidIdx++
 		}
 
-		if len(askPrices) > askIdx {
-			result, askMatched = m.matchOneSide(poolStorage, askPrices[askIdx], false, result)
+		if len(askPrices) > askIdx && isContinue {
+			result, isContinue = m.matchOneSide(poolStorage, askPrices[askIdx], false, result)
 			askIdx++
 		}
 
-		if bidMatched.IsZero() && askMatched.IsZero() {
+		if !isContinue || ((len(bidPrices) <= bidIdx) && len(askPrices) <= askIdx) {
 			break
 		}
 	}
@@ -159,8 +153,7 @@ func (m *match) MatchOrderSideBySide() []*MatchItem {
 	return result
 }
 
-func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice decimal.Decimal, isBuy bool, result []*MatchItem) ([]*MatchItem, decimal.Decimal) {
-	matchedAmount := decimal.Zero
+func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice decimal.Decimal, isBuy bool, result []*MatchItem) ([]*MatchItem, bool) {
 	orders := make([]*orderbook.MemoryOrder, 0)
 	if isBuy {
 		orders = append(orders, m.orderbook.GetBidOrdersByPrice(tradePrice)...)
@@ -168,22 +161,21 @@ func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice
 		orders = append(orders, m.orderbook.GetAskOrdersByPrice(tradePrice)...)
 	}
 	if len(orders) == 0 {
-		return result, matchedAmount
+		return result, true
 	}
 
 	perpetual, ok := poolStorage.Perpetuals[m.perpetual.PerpetualIndex]
 	if !ok {
-		return result, matchedAmount
+		return result, false
 	}
 
 	maxTradeAmount := mai3.ComputeAMMAmountWithPrice(poolStorage, m.perpetual.PerpetualIndex, isBuy, tradePrice)
 	if maxTradeAmount.IsZero() || !utils.HasTheSameSign(maxTradeAmount, orders[0].Amount) {
-		return result, matchedAmount
+		return result, false
 	}
-	matchedAmount = maxTradeAmount
 	for _, order := range orders {
 		if len(result) == mai3.MaiV3MaxMatchGroup {
-			return result, matchedAmount
+			return result, false
 		}
 		// check stop order
 		if order.Type == model.StopLimitOrder {
@@ -197,7 +189,7 @@ func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice
 		account, err := m.chainCli.GetAccountStorage(m.ctx, conf.Conf.ReaderAddress, m.perpetual.PerpetualIndex, m.perpetual.LiquidityPoolAddress, order.Trader)
 		if err != nil {
 			logger.Errorf("matchOneSide: GetAccountStorage fail! err:%s", err.Error())
-			return result, decimal.Zero
+			return result, false
 		}
 
 		if maxTradeAmount.Abs().GreaterThanOrEqual(order.Amount.Abs()) {
@@ -213,7 +205,7 @@ func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice
 			_, err = mai3.ComputeAMMTrade(poolStorage, m.perpetual.PerpetualIndex, account, order.Amount)
 			if err != nil {
 				logger.Errorf("matchOneSide: ComputeAMMTrade fail. err:%s", err)
-				return result, decimal.Zero
+				return result, false
 			}
 			maxTradeAmount = maxTradeAmount.Sub(order.Amount)
 		} else {
@@ -229,7 +221,7 @@ func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice
 			_, err = mai3.ComputeAMMTrade(poolStorage, m.perpetual.PerpetualIndex, account, maxTradeAmount)
 			if err != nil {
 				logger.Errorf("matchOneSide: ComputeAMMTrade fail. err:%s", err)
-				return result, decimal.Zero
+				return result, false
 			}
 			if order.Amount.Sub(maxTradeAmount).Abs().LessThan(order.MinTradeAmount.Abs()) {
 				matchItem.OrderCancelAmounts = append(matchItem.OrderCancelAmounts, order.Amount.Sub(maxTradeAmount))
@@ -240,5 +232,6 @@ func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice
 		}
 
 	}
-	return result, matchedAmount
+
+	return result, true
 }

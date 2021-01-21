@@ -53,8 +53,6 @@ type (
 
 	CancelAllOrdersReq struct {
 		BaseReq
-		LiquidityPoolAddress string `json:"liquidityPoolAddress"`
-		PerpetualIndex       int64  `json:"perpetualIndex"`
 	}
 
 	QuerySingleOrderReq struct {

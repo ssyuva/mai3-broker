@@ -78,14 +78,6 @@ func (s *Server) CancelOrder(poolAddress string, perpetualIndex int64, orderHash
 	return handler.CancelOrder(orderHash, model.CancelReasonUserCancel, true, decimal.Zero)
 }
 
-func (s *Server) CancelAllOrders(poolAddress string, perpetualIndex int64, trader string) error {
-	handler := s.getMatchHandler(poolAddress, perpetualIndex)
-	if handler == nil {
-		return fmt.Errorf("CancelAllOrders error: perpetual[%s-%d] is not open.", poolAddress, perpetualIndex)
-	}
-	return handler.CancelAllOrders(poolAddress, perpetualIndex, trader)
-}
-
 func (s *Server) ClosePerpetual(poolAddress string, perpIndex int64) error {
 	handler := s.getMatchHandler(poolAddress, perpIndex)
 	if handler == nil {

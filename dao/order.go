@@ -173,7 +173,12 @@ func (o *orderDAO) QueryOrderWithCreateTime(traderAddress string, poolAddress st
 		where = where.Where("id > ?", afterOrderID)
 	}
 
-	where = where.Where("created_at > ? and created_at < ?", beginTime, endTime)
+	if !beginTime.IsZero() {
+		where = where.Where("created_at > ?", beginTime)
+	}
+	if !endTime.IsZero() {
+		where = where.Where("created_at < ?", endTime)
+	}
 
 	if limit > 0 {
 		where = where.Order("id desc")

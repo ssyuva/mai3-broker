@@ -2,7 +2,6 @@ package match
 
 import (
 	"context"
-	"fmt"
 	"github.com/mcarloai/mai-v3-broker/common/message"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/mcarloai/mai-v3-broker/dao"
@@ -14,23 +13,6 @@ func (m *match) CancelOrder(orderHash string, reason model.CancelReasonType, can
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return m.cancelOrderWithoutLock(orderHash, reason, cancelAll, cancelAmount)
-}
-
-func (m *match) CancelAllOrders(poolAddress string, perpIndex int64, trader string) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	const cancelAll = true
-	orders, err := m.dao.QueryOrder(trader, poolAddress, perpIndex, []model.OrderStatus{model.OrderPending}, 0, 0, 0)
-	if err != nil {
-		return fmt.Errorf("CancelAllOrders:%w", err)
-	}
-	for _, order := range orders {
-		err = m.cancelOrderWithoutLock(order.OrderHash, model.CancelReasonUserCancel, cancelAll, decimal.Zero)
-		if err != nil {
-			return fmt.Errorf("CancelAllOrders:%w", err)
-		}
-	}
-	return nil
 }
 
 func (m *match) cancelOrderWithoutLock(orderHash string, reason model.CancelReasonType, cancelAll bool, cancelAmount decimal.Decimal) error {

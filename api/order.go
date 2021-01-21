@@ -68,9 +68,15 @@ func (s *Server) GetOrders(p Param) (interface{}, error) {
 	}
 	var orders []*model.Order
 	var err error
-	if params.BeginTime != 0 && params.EndTime != 0 {
+	if params.BeginTime != 0 || params.EndTime != 0 {
 		beginTime := time.Unix(params.BeginTime, 0).UTC()
 		endTime := time.Unix(params.EndTime, 0).UTC()
+		if params.BeginTime == 0 {
+			beginTime = time.Time{}
+		}
+		if params.EndTime == 0 {
+			endTime = time.Time{}
+		}
 		orders, err = s.dao.QueryOrderWithCreateTime(params.Address, params.LiquidityPoolAddress, params.PerpetualIndex, queryStatus, beforeOrderID, afterOrderID, beginTime, endTime, limit)
 		if err != nil {
 			return nil, InternalError(err)
@@ -323,8 +329,19 @@ func (s *Server) CancelOrder(p Param) (interface{}, error) {
 
 func (s *Server) CancelAllOrders(p Param) (interface{}, error) {
 	params := p.(*CancelAllOrdersReq)
-	if err := s.match.CancelAllOrders(strings.ToLower(params.LiquidityPoolAddress), params.PerpetualIndex, params.Address); err != nil {
+	orders, err := m.dao.QueryOrder(trader, "", 0, []model.OrderStatus{model.OrderPending}, 0, 0, 0)
+	if err != nil {
 		return nil, InternalError(err)
 	}
+	if len(orders) == 0 {
+		return nil, nil
+	}
+	go func() {
+		for _, order := range orders {
+			if err = s.match.CancelOrder(order.LiquidityPoolAddress, order.PerpetualIndex, order.OrderHash); err != nil {
+				logger.Errorf("CancelAllOrders. order_hash:%s, err:%s", order.OrderHash, err.Error())
+			}
+		}
+	}()
 	return nil, nil
 }
