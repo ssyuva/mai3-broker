@@ -109,7 +109,6 @@ func (m *match) CheckAndModifyCloseOnly(account *model.AccountStorage, activeOrd
 
 type MatchItem struct {
 	Order              *orderbook.MemoryOrder // NOTE: mutable! should only be modified where execute match
-	OrderOriginAmount  decimal.Decimal
 	OrderCancelAmounts []decimal.Decimal
 	OrderCancelReasons []model.CancelReasonType
 	OrderTotalCancel   decimal.Decimal
@@ -123,7 +122,8 @@ func (m *match) MatchOrderSideBySide() []*MatchItem {
 	askPrices := m.orderbook.GetAskPricesAsc()
 	bidIdx := 0
 	askIdx := 0
-	isContinue := true
+	bidContinue := true
+	askContinue := true
 
 	if len(bidPrices) == 0 && len(askPrices) == 0 {
 		return result
@@ -136,16 +136,16 @@ func (m *match) MatchOrderSideBySide() []*MatchItem {
 	}
 	for {
 		if len(bidPrices) > bidIdx {
-			result, isContinue = m.matchOneSide(poolStorage, bidPrices[bidIdx], true, result)
+			result, bidContinue = m.matchOneSide(poolStorage, bidPrices[bidIdx], true, result)
 			bidIdx++
 		}
 
-		if len(askPrices) > askIdx && isContinue {
-			result, isContinue = m.matchOneSide(poolStorage, askPrices[askIdx], false, result)
+		if len(askPrices) > askIdx {
+			result, askContinue = m.matchOneSide(poolStorage, askPrices[askIdx], false, result)
 			askIdx++
 		}
 
-		if !isContinue || ((len(bidPrices) <= bidIdx) && len(askPrices) <= askIdx) {
+		if (!bidContinue && !askContinue) || ((len(bidPrices) <= bidIdx) && len(askPrices) <= askIdx) {
 			break
 		}
 	}
@@ -206,7 +206,6 @@ func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice
 				OrderCancelAmounts: make([]decimal.Decimal, 0),
 				OrderCancelReasons: make([]model.CancelReasonType, 0),
 				OrderTotalCancel:   decimal.Zero,
-				OrderOriginAmount:  order.Amount,
 				MatchedAmount:      order.Amount,
 			}
 			result = append(result, matchItem)
@@ -222,7 +221,6 @@ func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice
 				OrderCancelAmounts: make([]decimal.Decimal, 0),
 				OrderCancelReasons: make([]model.CancelReasonType, 0),
 				OrderTotalCancel:   decimal.Zero,
-				OrderOriginAmount:  order.Amount,
 				MatchedAmount:      maxTradeAmount,
 			}
 			result = append(result, matchItem)
