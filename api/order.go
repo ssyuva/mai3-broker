@@ -14,6 +14,7 @@ import (
 	"github.com/mcarloai/mai-v3-broker/conf"
 	"github.com/mcarloai/mai-v3-broker/dao"
 	"github.com/shopspring/decimal"
+	logger "github.com/sirupsen/logrus"
 )
 
 const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000"
@@ -329,7 +330,7 @@ func (s *Server) CancelOrder(p Param) (interface{}, error) {
 
 func (s *Server) CancelAllOrders(p Param) (interface{}, error) {
 	params := p.(*CancelAllOrdersReq)
-	orders, err := m.dao.QueryOrder(trader, "", 0, []model.OrderStatus{model.OrderPending}, 0, 0, 0)
+	orders, err := s.dao.QueryOrder(strings.ToLower(params.Address), "", 0, []model.OrderStatus{model.OrderPending}, 0, 0, 0)
 	if err != nil {
 		return nil, InternalError(err)
 	}
