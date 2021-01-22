@@ -246,6 +246,8 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 		return nil, GasBalanceError()
 	case model.MatchCloseOnlyErrorID:
 		return nil, CloseOnlyError()
+	case model.MatchStopOrderErrorID:
+		return nil, StopOrderError()
 	default:
 		return nil, InternalError(errors.New("unknown match error"))
 	}
