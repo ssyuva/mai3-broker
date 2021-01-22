@@ -30,3 +30,14 @@ type TradeSuccessEvent struct {
 	Amount           decimal.Decimal
 	Gas              decimal.Decimal
 }
+
+type TradeFailedEvent struct {
+	PerpetualAddress string
+	BlockNumber      int64
+	TransactionSeq   int
+	TransactionHash  string
+	TraderAddress    string
+	OrderHash        string
+	Amount           decimal.Decimal
+	Reason           string
+}

@@ -26,8 +26,9 @@ const (
 )
 
 type MatchResult struct {
-	MatchItems   []*MatchItem `json:"matchItems"`
-	ReceiptItems []*MatchItem `json:"receiptItems"`
+	MatchItems  []*MatchItem `json:"matchItems"`
+	SuccItems   []*MatchItem `json:"succItems"`
+	FailedItems []*MatchItem `json:"failedItems"`
 }
 type MatchItem struct {
 	OrderHash string          `json:"orderHash"`

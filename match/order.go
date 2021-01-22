@@ -179,9 +179,9 @@ func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice
 		}
 		// check stop order
 		if order.Type == model.StopLimitOrder {
-			if order.Amount.IsPositive() && order.StopPrice.GreaterThan(perpetual.IndexPrice) { //buy
+			if order.Amount.IsPositive() && order.StopPrice.LessThan(perpetual.IndexPrice) { //buy
 				continue
-			} else if order.Amount.IsNegative() && order.StopPrice.LessThan(perpetual.IndexPrice) { //sell
+			} else if order.Amount.IsNegative() && order.StopPrice.GreaterThan(perpetual.IndexPrice) { //sell
 				continue
 			}
 		}

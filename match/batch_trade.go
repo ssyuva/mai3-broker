@@ -67,22 +67,42 @@ func (m *match) updateOrdersByTradeEvent(dao dao.DAO, matchTx *model.MatchTransa
 	ordersToNotify := make([]*model.Order, 0)
 	ctxTimeout, ctxTimeoutCancel := context.WithTimeout(m.ctx, conf.Conf.ChainTimeout)
 	defer ctxTimeoutCancel()
-	matchEvents, err := m.chainCli.FilterTradeSuccess(ctxTimeout, matchTx.BrokerAddress, blockNumber, blockNumber)
+	tradeSuccess, err := m.chainCli.FilterTradeSuccess(ctxTimeout, matchTx.BrokerAddress, blockNumber, blockNumber)
 	if err != nil {
 		return ordersToNotify, err
 	}
+	TradeFailed, err := m.chainCli.FilterTradeFailed(ctxTimeout, matchTx.BrokerAddress, blockNumber, blockNumber)
+	if err != nil {
+		return ordersToNotify, err
+	}
+	// orders trade success
 	orderSuccMap := make(map[string]decimal.Decimal)
+	// orders trade failed, need to be cancel
 	orderFailMap := make(map[string]decimal.Decimal)
+	// orders are not excuted, need to be reload
+	orderReloadMap := make(map[string]decimal.Decimal)
+
 	orderMatchMap := make(map[string]decimal.Decimal)
 	orderHashes := make([]string, 0)
-	for _, event := range matchEvents {
+	for _, event := range tradeSuccess {
 		logger.Infof("Trade Success: %+v", event)
 		matchInfo := &model.MatchItem{
 			OrderHash: event.OrderHash,
 			Amount:    event.Amount,
 		}
-		matchTx.MatchResult.ReceiptItems = append(matchTx.MatchResult.ReceiptItems, matchInfo)
+		matchTx.MatchResult.SuccItems = append(matchTx.MatchResult.SuccItems, matchInfo)
 		orderSuccMap[event.OrderHash] = event.Amount
+		orderHashes = append(orderHashes, event.OrderHash)
+	}
+
+	for _, event := range TradeFailed {
+		logger.Infof("Trade Failed: %+v", event)
+		matchInfo := &model.MatchItem{
+			OrderHash: event.OrderHash,
+			Amount:    event.Amount,
+		}
+		matchTx.MatchResult.FailedItems = append(matchTx.MatchResult.FailedItems, matchInfo)
+		orderFailMap[event.OrderHash] = event.Amount
 		orderHashes = append(orderHashes, event.OrderHash)
 	}
 
@@ -91,8 +111,8 @@ func (m *match) updateOrdersByTradeEvent(dao dao.DAO, matchTx *model.MatchTransa
 		if _, ok := orderSuccMap[item.OrderHash]; ok {
 			continue
 		}
-		// order failed
-		orderFailMap[item.OrderHash] = item.Amount
+		// order not be excuted
+		orderReloadMap[item.OrderHash] = item.Amount
 		orderHashes = append(orderHashes, item.OrderHash)
 	}
 
@@ -121,7 +141,22 @@ func (m *match) updateOrdersByTradeEvent(dao dao.DAO, matchTx *model.MatchTransa
 				return ordersToNotify, err
 			}
 		} else if amount, ok := orderFailMap[order.OrderHash]; ok {
-			// order failed, reload order in orderbook
+			// order failed, cancel order
+			order.PendingAmount = order.PendingAmount.Sub(amount)
+			order.CanceledAmount = order.CanceledAmount.Add(amount)
+			r := &model.OrderCancelReason{
+				Reason:          model.CancelReasonTransactionFail,
+				Amount:          amount,
+				TransactionHash: matchTx.TransactionHash.String,
+				CanceledAt:      matchTx.ExecutedAt.Time,
+			}
+			order.CancelReasons = append(order.CancelReasons, r)
+			if err := dao.UpdateOrder(order); err != nil {
+				logger.Errorf("UpdateOrdersStatus:%s", err)
+				return ordersToNotify, err
+			}
+		} else {
+			// order not excute, reload order in orderbook
 			oldAmount := order.AvailableAmount
 			order.PendingAmount = order.PendingAmount.Sub(amount)
 			order.AvailableAmount = order.AvailableAmount.Add(amount)
@@ -219,7 +254,7 @@ func (m *match) rollbackOrdersOnTransactionFail(dao dao.DAO, matchTx *model.Matc
 	orderRollbackMap := make(map[string]decimal.Decimal)
 	orderHashes := make([]string, 0)
 	// success orders
-	for _, item := range matchTx.MatchResult.ReceiptItems {
+	for _, item := range matchTx.MatchResult.SuccItems {
 		orderRollbackMap[item.OrderHash] = item.Amount
 		orderHashes = append(orderHashes, item.OrderHash)
 	}

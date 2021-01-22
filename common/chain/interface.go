@@ -26,5 +26,6 @@ type ChainClient interface {
 	GetAccountStorage(ctx context.Context, readerAddress string, perpetualIndex int64, poolAddress, account string) (*model.AccountStorage, error)
 	GetLiquidityPoolStorage(ctx context.Context, readerAddress, poolAddress string) (*model.LiquidityPoolStorage, error)
 	FilterTradeSuccess(ctx context.Context, poolAddress string, start, end uint64) ([]*model.TradeSuccessEvent, error)
+	FilterTradeFailed(ctx context.Context, poolAddress string, start, end uint64) ([]*model.TradeFailedEvent, error)
 	BatchTradeDataPack(compressedOrders [][]byte, matchAmounts []decimal.Decimal, gasRewards []*big.Int) ([]byte, error)
 }

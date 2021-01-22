@@ -49,7 +49,7 @@ func (c *Client) FilterTradeSuccess(ctx context.Context, brokerAddress string, s
 
 	iter, err := contract.FilterTradeSuccess(opts)
 	if err != nil {
-		return rsp, fmt.Errorf("filter trade event failed:%w", err)
+		return rsp, fmt.Errorf("filter trade success event failed:%w", err)
 	}
 
 	for iter.Next() {
@@ -62,6 +62,48 @@ func (c *Client) FilterTradeSuccess(ctx context.Context, brokerAddress string, s
 			OrderHash:        utils.Bytes2HexP(iter.Event.OrderHash[:]),
 			Amount:           decimal.NewFromBigInt(iter.Event.Amount, -mai3.DECIMALS),
 			Gas:              decimal.NewFromBigInt(iter.Event.GasReward, -mai3.DECIMALS),
+		}
+
+		rsp = append(rsp, match)
+	}
+
+	return rsp, nil
+}
+
+func (c *Client) FilterTradeFailed(ctx context.Context, brokerAddress string, start, end uint64) ([]*model.TradeFailedEvent, error) {
+	opts := &ethBind.FilterOpts{
+		Start:   start,
+		End:     &end,
+		Context: ctx,
+	}
+
+	rsp := make([]*model.TradeSuccessEvent, 0)
+
+	address, err := HexToAddress(brokerAddress)
+	if err != nil {
+		return rsp, fmt.Errorf("invalid broker address:%w", err)
+	}
+
+	contract, err := broker.NewBroker(address, c.ethCli)
+	if err != nil {
+		return rsp, fmt.Errorf("init broker contract failed:%w", err)
+	}
+
+	iter, err := contract.FilterTradeFailed(opts)
+	if err != nil {
+		return rsp, fmt.Errorf("filter trade failed event failed:%w", err)
+	}
+
+	for iter.Next() {
+		match := &model.TradeFailedEvent{
+			PerpetualAddress: strings.ToLower(iter.Event.Raw.Address.Hex()),
+			TransactionSeq:   int(iter.Event.Raw.TxIndex),
+			TransactionHash:  strings.ToLower(iter.Event.Raw.TxHash.Hex()),
+			BlockNumber:      int64(iter.Event.Raw.BlockNumber),
+			TraderAddress:    strings.ToLower(iter.Event.Order.Trader.Hex()),
+			OrderHash:        utils.Bytes2HexP(iter.Event.OrderHash[:]),
+			Amount:           decimal.NewFromBigInt(iter.Event.Amount, -mai3.DECIMALS),
+			Reason:           iter.Event.Reason,
 		}
 
 		rsp = append(rsp, match)
