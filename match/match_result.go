@@ -84,6 +84,9 @@ func (m *match) updateOrdersByTradeEvent(dao dao.DAO, matchTx *model.MatchTransa
 	orderHashes := make([]string, 0)
 	for _, event := range tradeSuccess {
 		logger.Infof("Trade Success: %+v", event)
+		if event.TransactionHash != matchTx.TransactionHash.String {
+			continue
+		}
 		matchInfo := &model.MatchItem{
 			OrderHash: event.OrderHash,
 			Amount:    event.Amount,
@@ -94,6 +97,9 @@ func (m *match) updateOrdersByTradeEvent(dao dao.DAO, matchTx *model.MatchTransa
 
 	for _, event := range TradeFailed {
 		logger.Infof("Trade Failed: %+v", event)
+		if event.TransactionHash != matchTx.TransactionHash.String {
+			continue
+		}
 		matchInfo := &model.MatchItem{
 			OrderHash: event.OrderHash,
 			Amount:    event.Amount,
