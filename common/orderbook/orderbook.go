@@ -184,8 +184,10 @@ func (book *Orderbook) RemoveOrder(order *MemoryOrder) error {
 	defer book.lock.Unlock()
 
 	var tree *llrb.LLRB
+	isBuy := true
 	if order.Amount.IsNegative() {
 		tree = book.asksTree
+		isBuy = false
 	} else {
 		tree = book.bidsTree
 	}
@@ -208,7 +210,7 @@ func (book *Orderbook) RemoveOrder(order *MemoryOrder) error {
 
 	if price.Len() <= 0 {
 		tree.Delete(price)
-		if order.Amount.IsNegative() {
+		if !isBuy {
 			delete(book.askPrices, order.Price.String())
 		} else {
 			delete(book.bidPrices, order.Price.String())

@@ -208,12 +208,12 @@ func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice
 				OrderTotalCancel:   decimal.Zero,
 				MatchedAmount:      order.Amount,
 			}
-			result = append(result, matchItem)
 			_, err = mai3.ComputeAMMTrade(poolStorage, m.perpetual.PerpetualIndex, account, order.Amount)
 			if err != nil {
 				logger.Errorf("matchOneSide: ComputeAMMTrade fail. err:%s", err)
 				return result, false
 			}
+			result = append(result, matchItem)
 			maxTradeAmount = maxTradeAmount.Sub(order.Amount)
 		} else {
 			matchItem := &MatchItem{
@@ -223,12 +223,12 @@ func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice
 				OrderTotalCancel:   decimal.Zero,
 				MatchedAmount:      maxTradeAmount,
 			}
-			result = append(result, matchItem)
 			_, err = mai3.ComputeAMMTrade(poolStorage, m.perpetual.PerpetualIndex, account, maxTradeAmount)
 			if err != nil {
 				logger.Errorf("matchOneSide: ComputeAMMTrade fail. err:%s", err)
 				return result, false
 			}
+			result = append(result, matchItem)
 			if order.Amount.Sub(maxTradeAmount).Abs().LessThan(order.MinTradeAmount.Abs()) {
 				matchItem.OrderCancelAmounts = append(matchItem.OrderCancelAmounts, order.Amount.Sub(maxTradeAmount))
 				matchItem.OrderCancelReasons = append(matchItem.OrderCancelReasons, model.CancelReasonRemainTooSmall)
