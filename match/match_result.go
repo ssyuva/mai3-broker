@@ -79,8 +79,6 @@ func (m *match) updateOrdersByTradeEvent(dao dao.DAO, matchTx *model.MatchTransa
 	orderSuccMap := make(map[string]decimal.Decimal)
 	// orders trade failed, need to be cancel
 	orderFailMap := make(map[string]decimal.Decimal)
-	// orders are not excuted, need to be reload
-	orderReloadMap := make(map[string]decimal.Decimal)
 
 	orderMatchMap := make(map[string]decimal.Decimal)
 	orderHashes := make([]string, 0)
@@ -92,7 +90,6 @@ func (m *match) updateOrdersByTradeEvent(dao dao.DAO, matchTx *model.MatchTransa
 		}
 		matchTx.MatchResult.SuccItems = append(matchTx.MatchResult.SuccItems, matchInfo)
 		orderSuccMap[event.OrderHash] = event.Amount
-		orderHashes = append(orderHashes, event.OrderHash)
 	}
 
 	for _, event := range TradeFailed {
@@ -103,19 +100,10 @@ func (m *match) updateOrdersByTradeEvent(dao dao.DAO, matchTx *model.MatchTransa
 		}
 		matchTx.MatchResult.FailedItems = append(matchTx.MatchResult.FailedItems, matchInfo)
 		orderFailMap[event.OrderHash] = event.Amount
-		orderHashes = append(orderHashes, event.OrderHash)
 	}
 
 	for _, item := range matchTx.MatchResult.MatchItems {
 		orderMatchMap[item.OrderHash] = item.Amount
-		if _, ok := orderSuccMap[item.OrderHash]; ok {
-			continue
-		}
-		if _, ok := orderFailMap[item.OrderHash]; ok {
-			continue
-		}
-		// order not be excuted
-		orderReloadMap[item.OrderHash] = item.Amount
 		orderHashes = append(orderHashes, item.OrderHash)
 	}
 
@@ -160,9 +148,10 @@ func (m *match) updateOrdersByTradeEvent(dao dao.DAO, matchTx *model.MatchTransa
 			}
 		} else {
 			// order not excute, reload order in orderbook
+			matchAmount := orderMatchMap[order.OrderHash]
 			oldAmount := order.AvailableAmount
-			order.PendingAmount = order.PendingAmount.Sub(amount)
-			order.AvailableAmount = order.AvailableAmount.Add(amount)
+			order.PendingAmount = order.PendingAmount.Sub(matchAmount)
+			order.AvailableAmount = order.AvailableAmount.Add(matchAmount)
 			if err := dao.UpdateOrder(order); err != nil {
 				logger.Errorf("UpdateOrdersStatus:%s", err)
 				return ordersToNotify, err
