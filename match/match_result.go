@@ -111,6 +111,9 @@ func (m *match) updateOrdersByTradeEvent(dao dao.DAO, matchTx *model.MatchTransa
 		if _, ok := orderSuccMap[item.OrderHash]; ok {
 			continue
 		}
+		if _, ok := orderFailMap[item.OrderHash]; ok {
+			continue
+		}
 		// order not be excuted
 		orderReloadMap[item.OrderHash] = item.Amount
 		orderHashes = append(orderHashes, item.OrderHash)
@@ -134,7 +137,7 @@ func (m *match) updateOrdersByTradeEvent(dao dao.DAO, matchTx *model.MatchTransa
 					return ordersToNotify, err
 				}
 			}
-			order.PendingAmount = order.PendingAmount.Sub(amount)
+			order.PendingAmount = order.PendingAmount.Sub(matchAmount)
 			order.ConfirmedAmount = order.ConfirmedAmount.Add(amount)
 			if err := dao.UpdateOrder(order); err != nil {
 				logger.Errorf("UpdateOrdersStatus:%s", err)
