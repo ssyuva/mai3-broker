@@ -77,7 +77,7 @@ func (c *Client) FilterTradeFailed(ctx context.Context, brokerAddress string, st
 		Context: ctx,
 	}
 
-	rsp := make([]*model.TradeSuccessEvent, 0)
+	rsp := make([]*model.TradeFailedEvent, 0)
 
 	address, err := HexToAddress(brokerAddress)
 	if err != nil {
