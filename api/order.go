@@ -298,6 +298,11 @@ func validatePlaceOrder(req *PlaceOrderReq) error {
 		if stopPrice.LessThanOrEqual(decimal.Zero) {
 			return InvalidPriceAmountError("stop price <= 0")
 		}
+
+		if (amount.IsPositive() && stopPrice.GreaterThan(price)) ||
+			(amount.IsNegative() && stopPrice.LessThan(price)) {
+			return InvalidPriceAmountError("stop price and limit price are not appropriate")
+		}
 	} else if req.OrderType != int(model.LimitOrder) {
 		return InternalError(errors.New("order type must be limit/stop-limit"))
 	}
