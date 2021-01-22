@@ -177,19 +177,27 @@ func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice
 		if len(result) == mai3.MaiV3MaxMatchGroup {
 			return result, false
 		}
-		// check stop order
-		if order.Type == model.StopLimitOrder {
-			if order.Amount.IsPositive() && order.StopPrice.GreaterThan(perpetual.IndexPrice) { //buy
-				continue
-			} else if order.Amount.IsNegative() && order.StopPrice.LessThan(perpetual.IndexPrice) { //sell
-				continue
-			}
-		}
 
 		account, err := m.chainCli.GetAccountStorage(m.ctx, conf.Conf.ReaderAddress, m.perpetual.PerpetualIndex, m.perpetual.LiquidityPoolAddress, order.Trader)
 		if err != nil {
 			logger.Errorf("matchOneSide: GetAccountStorage fail! err:%s", err.Error())
 			return result, false
+		}
+
+		// check stop order
+		if order.Type == model.StopLimitOrder {
+			if account.PositionAmount.IsZero() ||
+				utils.HasTheSameSign(account.PositionAmount, order.Amount) {
+				// will be canceled by monitor
+				continue
+			}
+			// When position > 0, if stop loss order: index price must <= trigger price,
+			// When position < 0, if stop loss order: index price must >= trigger price,
+			if account.PositionAmount.IsPositive() && perpetual.IndexPrice.GreaterThan(order.StopPrice) {
+				continue
+			} else if account.PositionAmount.IsNegative() && perpetual.IndexPrice.LessThan(order.StopPrice) {
+				continue
+			}
 		}
 
 		if maxTradeAmount.Abs().GreaterThanOrEqual(order.Amount.Abs()) {
