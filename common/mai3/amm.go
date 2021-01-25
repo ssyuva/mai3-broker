@@ -60,6 +60,29 @@ func copyAMMTradingContext(ammContext *model.AMMTradingContext) *model.AMMTradin
 }
 
 // get the price if ΔN -> 0. equal to lim_(ΔN -> 0) (computeDeltaMargin / (ΔN))
+func ComputeBestAskBidPrice(p *model.LiquidityPoolStorage, perpetualIndex int64, isAMMBuy bool) decimal.Decimal {
+	context := initAMMTradingContext(p, perpetualIndex)
+	isAMMClosing := false
+	beta := context.OpenSlippageFactor
+	if (context.Position1.GreaterThan(_0) && !isAMMBuy) || (context.Position1.LessThan(_0) && isAMMBuy) {
+		isAMMClosing = true
+		beta = context.CloseSlippageFactor
+	}
+	if !isAMMSafe(context, beta) {
+		if !isAMMClosing {
+			logger.Errorf("ComputeBestAskBidPrice: AMM can not open position anymore: unsafe before trade")
+			return _0
+		}
+		return computeBestAskBidPriceIfUnsafe(context)
+	}
+	if err := computeAMMPoolMargin(context, beta); err != nil {
+		logger.Errorf("ComputeBestAskBidPrice: computeAMMPoolMargin error:%s", err)
+		return _0
+	}
+	return computeBestAskBidPriceIfSafe(context, beta, isAMMBuy)
+}
+
+// get the price if ΔN -> 0. equal to lim_(ΔN -> 0) (computeDeltaMargin / (ΔN))
 // call computeAMMPoolMargin before this function. make sure isAMMSafe before this function
 func computeBestAskBidPriceIfSafe(context *model.AMMTradingContext, beta decimal.Decimal, isAMMBuy bool) decimal.Decimal {
 	if context.PoolMargin.LessThanOrEqual(_0) {

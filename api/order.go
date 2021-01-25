@@ -297,6 +297,10 @@ func validatePlaceOrder(req *PlaceOrderReq) error {
 		if triggerPrice.LessThanOrEqual(decimal.Zero) {
 			return InvalidPriceAmountError("trigger price <= 0")
 		}
+		if (amount.IsPositive() && triggerPrice.GreaterThan(price)) ||
+			(amount.IsNegative() && triggerPrice.LessThan(price)) {
+			return InvalidPriceAmountError("trigger price and limit price are not appropriate")
+		}
 	case model.LimitOrder:
 	default:
 		return InvalidOrderTypeError()

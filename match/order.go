@@ -164,7 +164,7 @@ func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice
 		return result, true
 	}
 
-	perpetual, ok := poolStorage.Perpetuals[m.perpetual.PerpetualIndex]
+	_, ok := poolStorage.Perpetuals[m.perpetual.PerpetualIndex]
 	if !ok {
 		return result, false
 	}
@@ -173,34 +173,44 @@ func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice
 	if maxTradeAmount.IsZero() || !utils.HasTheSameSign(maxTradeAmount, orders[0].Amount) {
 		return result, false
 	}
+
+	bestPrice := decimal.Zero
 	for _, order := range orders {
 		if len(result) == mai3.MaiV3MaxMatchGroup {
 			return result, false
+		}
+
+		// check stop order
+		if order.Type == model.StopLimitOrder || order.Type == model.TakeProfitOrder {
+			bestPrice = mai3.ComputeBestAskBidPrice(poolStorage, m.perpetual.PerpetualIndex, order.Amount.IsNegative())
+			// 0 after compute
+			if bestPrice.IsZero() {
+				continue
+			}
+
+			if order.Type == model.StopLimitOrder {
+				// When amount > 0, if stop loss order: index price must >= trigger price,
+				// When amount < 0, if stop loss order: index price must <= trigger price,
+				if order.Amount.IsPositive() && bestPrice.LessThan(order.TriggerPrice) {
+					continue
+				} else if order.Amount.IsNegative() && bestPrice.GreaterThan(order.TriggerPrice) {
+					continue
+				}
+			} else {
+				// When amount > 0, if take profit order: index price must <= trigger price,
+				// When amount < 0, if take profit order: index price must >= trigger price,
+				if order.Amount.IsPositive() && bestPrice.GreaterThan(order.TriggerPrice) {
+					continue
+				} else if order.Amount.IsNegative() && bestPrice.LessThan(order.TriggerPrice) {
+					continue
+				}
+			}
 		}
 
 		account, err := m.chainCli.GetAccountStorage(m.ctx, conf.Conf.ReaderAddress, m.perpetual.PerpetualIndex, m.perpetual.LiquidityPoolAddress, order.Trader)
 		if err != nil {
 			logger.Errorf("matchOneSide: GetAccountStorage fail! err:%s", err.Error())
 			return result, false
-		}
-
-		// check stop order
-		if order.Type == model.StopLimitOrder {
-			// When amount > 0, if stop loss order: index price must >= trigger price,
-			// When amount < 0, if stop loss order: index price must <= trigger price,
-			if order.Amount.IsPositive() && perpetual.IndexPrice.LessThan(order.TriggerPrice) {
-				continue
-			} else if order.Amount.IsNegative() && perpetual.IndexPrice.GreaterThan(order.TriggerPrice) {
-				continue
-			}
-		} else if order.Type == model.TakeProfitOrder {
-			// When amount > 0, if take profit order: index price must <= trigger price,
-			// When amount < 0, if take profit order: index price must >= trigger price,
-			if order.Amount.IsPositive() && perpetual.IndexPrice.GreaterThan(order.TriggerPrice) {
-				continue
-			} else if order.Amount.IsNegative() && perpetual.IndexPrice.LessThan(order.TriggerPrice) {
-				continue
-			}
 		}
 
 		if maxTradeAmount.Abs().GreaterThanOrEqual(order.Amount.Abs()) {
@@ -239,7 +249,6 @@ func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice
 			}
 			break
 		}
-
 	}
 
 	return result, true
