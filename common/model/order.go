@@ -43,6 +43,7 @@ const (
 	MASK_TAKE_PROFIT_ORDER           = 0x10000000
 	LimitOrder             OrderType = 1
 	StopLimitOrder         OrderType = 2
+	TakeProfitOrder        OrderType = 3
 )
 
 type OrderStatus string
@@ -72,7 +73,7 @@ type OrderParam struct {
 	Price                decimal.Decimal `json:"price" db:"price"`
 	Amount               decimal.Decimal `json:"amount" db:"amount"`
 	MinTradeAmount       decimal.Decimal `json:"minTradeAmount" db:"min_trade_amount"`
-	StopPrice            decimal.Decimal `json:"stopPrice" db:"stopPrice"`
+	TriggerPrice         decimal.Decimal `json:"triggerPrice" db:"trigger_price"`
 	BrokerFeeLimit       int64           `json:"brokerFeeLimit" db:"broker_fee_limit"`
 	ExpiresAt            time.Time       `json:"expiresAt" db:"expires_at"`
 	Salt                 int64           `json:"-" db:"salt"`

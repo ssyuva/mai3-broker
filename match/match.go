@@ -199,7 +199,7 @@ func (m *match) getMemoryOrder(order *model.Order) *orderbook.MemoryOrder {
 		LiquidityPoolAddress: order.LiquidityPoolAddress,
 		PerpetualIndex:       order.PerpetualIndex,
 		Price:                order.Price,
-		StopPrice:            order.StopPrice,
+		TriggerPrice:         order.TriggerPrice,
 		Amount:               order.AvailableAmount,
 		MinTradeAmount:       order.MinTradeAmount,
 		Type:                 order.Type,

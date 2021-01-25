@@ -140,7 +140,7 @@ func GetOrderFromPalceOrderReq(params *PlaceOrderReq) (*model.Order, error) {
 	order.OrderParam.Amount, _ = decimal.NewFromString(params.Amount)
 	order.OrderParam.ChainID = params.ChainID
 	order.OrderParam.Price, _ = decimal.NewFromString(params.Price)
-	order.OrderParam.StopPrice, _ = decimal.NewFromString(params.StopPrice)
+	order.OrderParam.TriggerPrice, _ = decimal.NewFromString(params.TriggerPrice)
 	order.OrderParam.IsCloseOnly = params.IsCloseOnly
 	order.OrderParam.ExpiresAt = time.Unix(params.ExpiresAt, 0).UTC()
 	order.OrderParam.Salt = params.Salt
@@ -179,7 +179,7 @@ func GetOrderFromPalceOrderReq(params *PlaceOrderReq) (*model.Order, error) {
 	// check orderhash
 	flags := mai3.GenerateOrderFlags(order.Type, order.IsCloseOnly)
 	orderHash, err := mai3.GetOrderHash(order.TraderAddress, order.BrokerAddress, order.RelayerAddress, order.ReferrerAddress, order.LiquidityPoolAddress,
-		order.MinTradeAmount, order.Amount, order.Price, order.StopPrice, order.ChainID, params.ExpiresAt, order.PerpetualIndex, order.BrokerFeeLimit,
+		order.MinTradeAmount, order.Amount, order.Price, order.TriggerPrice, order.ChainID, params.ExpiresAt, order.PerpetualIndex, order.BrokerFeeLimit,
 		int64(flags), order.Salt)
 	if err != nil {
 		return nil, InternalError(fmt.Errorf("get order hash fail err:%s", err))
@@ -288,23 +288,20 @@ func validatePlaceOrder(req *PlaceOrderReq) error {
 		return OrderExpired()
 	}
 
-	// Price OrderType
-	if req.OrderType == int(model.StopLimitOrder) {
-		stopPrice, err := decimal.NewFromString(req.StopPrice)
+	// trigger Price
+	switch model.OrderType(req.OrderType) {
+	case model.StopLimitOrder, model.TakeProfitOrder:
+		triggerPrice, err := decimal.NewFromString(req.TriggerPrice)
 		if err != nil {
-			return InvalidPriceAmountError(fmt.Sprintf("parse price[%s] error", req.StopPrice))
+			return InvalidPriceAmountError(fmt.Sprintf("parse price[%s] error", req.TriggerPrice))
 		}
 
-		if stopPrice.LessThanOrEqual(decimal.Zero) {
-			return InvalidPriceAmountError("stop price <= 0")
+		if triggerPrice.LessThanOrEqual(decimal.Zero) {
+			return InvalidPriceAmountError("trigger price <= 0")
 		}
-
-		if (amount.IsPositive() && stopPrice.GreaterThan(price)) ||
-			(amount.IsNegative() && stopPrice.LessThan(price)) {
-			return InvalidPriceAmountError("stop price and limit price are not appropriate")
-		}
-	} else if req.OrderType != int(model.LimitOrder) {
-		return InternalError(errors.New("order type must be limit/stop-limit"))
+	case model.LimitOrder:
+	default:
+		return InvalidOrderTypeError()
 	}
 
 	// broker contract address

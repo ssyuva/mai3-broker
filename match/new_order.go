@@ -23,14 +23,6 @@ func (m *match) NewOrder(order *model.Order) string {
 		return model.MatchInternalErrorID
 	}
 
-	// stop order check
-	if order.Type == model.StopLimitOrder {
-		if account.PositionAmount.IsZero() || utils.HasTheSameSign(account.PositionAmount, order.Amount) {
-			logger.Errorf("new order:stop order check fail. orderHash:%s", order.OrderHash)
-			return model.MatchStopOrderErrorID
-		}
-	}
-
 	if !m.CheckCloseOnly(account, order) {
 		return model.MatchCloseOnlyErrorID
 	}

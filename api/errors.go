@@ -169,6 +169,6 @@ func AddressNotInWhiteListError() *ApiError {
 	return &ApiError{Code: -24, Desc: "address is not in whitelist"}
 }
 
-func StopOrderError() *ApiError {
-	return &ApiError{Code: -25, Desc: "stop order amount not available"}
+func InvalidOrderTypeError() *ApiError {
+	return &ApiError{Code: -25, Desc: "invalid order type"}
 }

@@ -8,13 +8,31 @@ import (
 	"testing"
 )
 
-func TestGenerateOrderFlags(t *testing.T) {
+func TestStopLimitOrderFlags(t *testing.T) {
 	var (
 		orderType   = model.StopLimitOrder
 		isCloseOnly = true
 	)
 	flags := GenerateOrderFlags(orderType, isCloseOnly)
 	assert.Equal(t, 0x0a0000000, flags)
+}
+
+func TestLimitOrderFlags(t *testing.T) {
+	var (
+		orderType   = model.LimitOrder
+		isCloseOnly = false
+	)
+	flags := GenerateOrderFlags(orderType, isCloseOnly)
+	assert.Equal(t, 0x000000000, flags)
+}
+
+func TestTakeProfitOrderFlags(t *testing.T) {
+	var (
+		orderType   = model.TakeProfitOrder
+		isCloseOnly = true
+	)
+	flags := GenerateOrderFlags(orderType, isCloseOnly)
+	assert.Equal(t, 0x090000000, flags)
 }
 
 func TestGenerateOrderData(t *testing.T) {

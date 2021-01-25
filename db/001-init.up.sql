@@ -18,7 +18,7 @@ create table orders
   trader_address text not null,
   type integer not null,
   price numeric(32,18) not null,
-  stop_price numeric(32,18),
+  trigger_price numeric(32,18),
   amount numeric(32,18) not null,
   min_trade_amount numeric(32, 18) not null,
   broker_fee_limit bigint not null,

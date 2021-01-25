@@ -92,19 +92,6 @@ func (m *match) checkUserPendingOrders(poolStorage *model.LiquidityPoolStorage, 
 			continue
 		}
 
-		// stop order check
-		if order.Type == model.StopLimitOrder {
-			if account.PositionAmount.IsZero() || utils.HasTheSameSign(account.PositionAmount, order.Amount) {
-				cancel := &OrderCancel{
-					OrderHash: order.OrderHash,
-					Status:    order.Status,
-					ToCancel:  order.AvailableAmount,
-				}
-				cancels = append(cancels, cancel)
-				continue
-			}
-		}
-
 		if !m.CheckCloseOnly(account, order) {
 			cancel := &OrderCancel{
 				OrderHash: order.OrderHash,

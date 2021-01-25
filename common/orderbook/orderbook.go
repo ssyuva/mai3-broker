@@ -20,7 +20,7 @@ type (
 		LiquidityPoolAddress string          `json:"liquidityPoolAddress"`
 		PerpetualIndex       int64           `json:"perpetualIndex"`
 		Price                decimal.Decimal `json:"price"`
-		StopPrice            decimal.Decimal `json:"stopPrice"`
+		TriggerPrice         decimal.Decimal `json:"triggerPrice"`
 		Amount               decimal.Decimal `json:"amount"`
 		MinTradeAmount       decimal.Decimal `json:"minTradeAmount"`
 		Type                 model.OrderType `json:"type"`

@@ -186,16 +186,19 @@ func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice
 
 		// check stop order
 		if order.Type == model.StopLimitOrder {
-			if account.PositionAmount.IsZero() ||
-				utils.HasTheSameSign(account.PositionAmount, order.Amount) {
-				// will be canceled by monitor
+			// When amount > 0, if stop loss order: index price must >= trigger price,
+			// When amount < 0, if stop loss order: index price must <= trigger price,
+			if order.Amount.IsPositive() && perpetual.IndexPrice.LessThan(order.TriggerPrice) {
+				continue
+			} else if order.Amount.IsNegative() && perpetual.IndexPrice.GreaterThan(order.TriggerPrice) {
 				continue
 			}
-			// When position > 0, if stop loss order: index price must <= trigger price,
-			// When position < 0, if stop loss order: index price must >= trigger price,
-			if account.PositionAmount.IsPositive() && perpetual.IndexPrice.GreaterThan(order.StopPrice) {
+		} else if order.Type == model.TakeProfitOrder {
+			// When amount > 0, if take profit order: index price must <= trigger price,
+			// When amount < 0, if take profit order: index price must >= trigger price,
+			if order.Amount.IsPositive() && perpetual.IndexPrice.GreaterThan(order.TriggerPrice) {
 				continue
-			} else if account.PositionAmount.IsNegative() && perpetual.IndexPrice.LessThan(order.StopPrice) {
+			} else if order.Amount.IsNegative() && perpetual.IndexPrice.LessThan(order.TriggerPrice) {
 				continue
 			}
 		}

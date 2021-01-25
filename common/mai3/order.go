@@ -59,6 +59,8 @@ func GenerateOrderFlags(orderType model.OrderType, isCloseOnly bool) int {
 	}
 	if orderType == model.StopLimitOrder {
 		flags = flags | model.MASK_STOP_LOSS_ORDER
+	} else if orderType == model.TakeProfitOrder {
+		flags = flags | model.MASK_TAKE_PROFIT_ORDER
 	}
 	return flags
 }

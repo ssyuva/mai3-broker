@@ -219,7 +219,7 @@ func GetCompressOrderData(order *model.Order) ([]byte, error) {
 		order.MinTradeAmount,
 		order.Amount,
 		order.Price,
-		order.StopPrice,
+		order.TriggerPrice,
 		order.ChainID,
 		order.ExpiresAt.UTC().Unix(),
 		order.PerpetualIndex,

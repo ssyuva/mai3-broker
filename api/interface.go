@@ -28,7 +28,7 @@ type (
 		ReferrerAddress      string `json:"referrerAddress"`
 		OrderType            int    `json:"orderType" validate:"required,oneof=0 1 2"`
 		Price                string `json:"price"     validate:"required"`
-		StopPrice            string `json:"stopPrice"`
+		TriggerPrice         string `json:"triggerPrice"`
 		Amount               string `json:"amount"    validate:"required"`
 		MinTradeAmount       string `json:"minTradeAmount" validate:"required"`
 		BrokerFeeLimit       int64  `json:"brokerFeeLimit"`
