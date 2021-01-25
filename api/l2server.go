@@ -103,7 +103,7 @@ func (s *L2RelayerServer) CallL2Function(p Param) (interface{}, error) {
 
 	ctx, cancel := context.WithTimeout(s.ctx, conf.L2RelayerConf.L2Timeout)
 	defer cancel()
-	tx, err := s.r.CallFunction(ctx, params.FunctionSignature, params.CallData, params.Address, params.Nonce, params.Expiration, params.GasFeeLimit, params.Signature)
+	tx, err := s.r.CallFunction(ctx, params.From, params.To, params.FunctionSignature, params.CallData, params.From, params.Nonce, params.Expiration, params.GasLimit, params.Signature)
 	if err != nil {
 		// TODO
 		return nil, InternalError(err)

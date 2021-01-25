@@ -76,8 +76,8 @@ func (r *L2Relayer) Address() string {
 	return r.address.Hex()
 }
 
-func (r *L2Relayer) CallFunction(ctx context.Context, functionSignature string, callData string, userAddress string, nonce uint32, expiration uint32, gasFeeLimit uint64, signature string) (tx string, err error) {
-	msg, err := NewMai3SignedCallMessage(functionSignature, callData, userAddress, nonce, expiration, gasFeeLimit, signature)
+func (r *L2Relayer) CallFunction(ctx context.Context, from, to, functionSignature, callData string, nonce uint32, expiration uint32, gasLimit uint64, signature string) (tx string, err error) {
+	msg, err := NewMai3SignedCallMessage(from, to, functionSignature, callData, nonce, expiration, gasLimit, signature, 0)
 	if err != nil {
 		return "", fmt.Errorf("%e:%w", err, InvalidParamError)
 	}
@@ -90,14 +90,16 @@ func (r *L2Relayer) CallFunction(ctx context.Context, functionSignature string, 
 	}
 
 	fee := gas * uint64(r.callFunctionFeePercent) / 100
-	if fee > gasFeeLimit {
+	if fee > gasLimit {
 		return "", fmt.Errorf("CallFunction:%w", GasLimitTooSmallError)
 	}
 
-	err = r.checkFeeBalance(ctx, fee, msg.UserAddress)
+	err = r.checkFeeBalance(ctx, fee, msg.From)
 	if err != nil {
 		return "", fmt.Errorf("CallFunction:%w", err)
 	}
+
+	msg.SetUserDataFee(fee)
 
 	opts.GasLimit = gas * GasLimitRelax / 100
 

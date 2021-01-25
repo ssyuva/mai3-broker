@@ -117,11 +117,13 @@ type (
 
 	CallL2FunctionReq struct {
 		BaseReq
+		From              string `json:"from"`
+		To                string `json:"to"`
 		FunctionSignature string `json:"functionSignature"`
 		CallData          string `json:"callData"`
 		Nonce             uint32 `json:"nonce"`
 		Expiration        uint32 `json:"expiration"`
-		GasFeeLimit       uint64 `json:"gasFeeLimit"`
+		GasLimit          uint64 `json:"gasLimit"`
 		Signature         string `json:"signature"`
 	}
 
