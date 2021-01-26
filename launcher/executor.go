@@ -2,7 +2,6 @@ package launcher
 
 import (
 	"context"
-	"time"
 
 	"github.com/mcarloai/mai-v3-broker/common/chain"
 	"github.com/mcarloai/mai-v3-broker/common/model"
@@ -33,7 +32,7 @@ func NewExecutor(ctx context.Context, dao dao.DAO, chainCli chain.ChainClient, g
 }
 
 func (s *Executor) Run() error {
-	return s.runner.Run(s.ctx, time.Second, s.executeTransaction)
+	return s.runner.Run(s.ctx, conf.Conf.ExecutorInterval, s.executeTransaction)
 }
 
 func (s *Executor) executeTransaction() {

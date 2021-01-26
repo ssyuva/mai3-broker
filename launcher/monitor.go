@@ -2,7 +2,6 @@ package launcher
 
 import (
 	"context"
-	"time"
 
 	"github.com/mcarloai/mai-v3-broker/common/chain"
 	"github.com/mcarloai/mai-v3-broker/common/model"
@@ -36,7 +35,7 @@ func NewMonitor(ctx context.Context, dao dao.DAO, chainCli chain.ChainClient, ma
 
 func (s *Monitor) Run() error {
 	// check unmature confirmed transaction for rollback
-	return s.runner.Run(s.ctx, time.Second*10, s.syncUnmatureTransaction)
+	return s.runner.Run(s.ctx, conf.Conf.LauncherMonitorInterval, s.syncUnmatureTransaction)
 }
 
 func (s *Monitor) syncUnmatureTransaction() {

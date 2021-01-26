@@ -165,7 +165,7 @@ func (m *match) runMatch() {
 		select {
 		case <-m.ctx.Done():
 			return
-		case <-time.After(time.Second):
+		case <-time.After(conf.Conf.MatchInterval):
 			m.matchOrders()
 		}
 	}

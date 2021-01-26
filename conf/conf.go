@@ -17,6 +17,13 @@ type Config struct {
 	BrokerAddress string   `envconfig:"broker_address"`
 	WhiteList     []string `envconfig:"white_list"`
 
+	MatchInterval           time.Duration `envconfig:"match_interval"`
+	MatchMonitorInterval    time.Duration `envconfig:"match_monitor_interval"`
+	LauncherInterval        time.Duration `envconfig:"launcher_interval"`
+	ExecutorInterval        time.Duration `envconfig:"executor_interval"`
+	SyncerInterval          time.Duration `envconfig:"syncer_interval"`
+	LauncherMonitorInterval time.Duration `envconfig:"launcher_monitor_interval"`
+
 	GasPrice uint64 `envconfig:"gas_price"`
 	GasLimit uint64 `envconfig:"gas_limit"`
 

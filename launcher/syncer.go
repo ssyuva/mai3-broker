@@ -3,7 +3,6 @@ package launcher
 import (
 	"context"
 	"sync"
-	"time"
 
 	"github.com/mcarloai/mai-v3-broker/common/chain"
 	"github.com/mcarloai/mai-v3-broker/common/model"
@@ -35,7 +34,7 @@ func NewSyncer(ctx context.Context, dao dao.DAO, chainCli chain.ChainClient, mat
 
 func (s *Syncer) Run() error {
 	// sync pending transaction
-	return s.runner.Run(s.ctx, time.Second, s.syncTransaction)
+	return s.runner.Run(s.ctx, conf.Conf.SyncerInterval, s.syncTransaction)
 }
 
 func (s *Syncer) syncTransaction() {

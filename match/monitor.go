@@ -14,7 +14,7 @@ func (m *match) checkOrdersMargin() {
 		select {
 		case <-m.ctx.Done():
 			return
-		case <-time.After(10 * time.Second):
+		case <-time.After(conf.Conf.MatchMonitorInterval):
 			m.checkPerpUserOrders()
 		}
 	}

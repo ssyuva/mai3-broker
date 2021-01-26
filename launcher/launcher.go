@@ -76,7 +76,7 @@ func (l *Launcher) Start() error {
 	})
 
 	group.Go(func() error {
-		return l.runner.Run(ctx, time.Second, l.checkMatchTransaction)
+		return l.runner.Run(ctx, conf.Conf.LauncherInterval, l.checkMatchTransaction)
 	})
 
 	return group.Wait()
