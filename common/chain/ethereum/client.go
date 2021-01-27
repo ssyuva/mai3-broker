@@ -58,8 +58,12 @@ func NewClient(ctx context.Context, providers []string, timeout time.Duration, t
 
 func (c *Client) GetEthClient() *ethclient.Client {
 	rand.Seed(time.Now().Unix())
+	cliLen := len(c.ethClis)
+	if cliLen == 0 {
+		return nil
+	}
 	idx := rand.Intn(cliLen)
-	return c.ethClis(idx)
+	return c.ethClis[idx]
 }
 
 func (c *Client) call(method string, args ...interface{}) (interface{}, error) {
@@ -105,7 +109,7 @@ func (c *Client) call(method string, args ...interface{}) (interface{}, error) {
 			}
 			loopErr = err
 		case "SendTransaction":
-			err = ethCli.SendTransaction(ctx, args[0].(*types.Transaction))
+			err := ethCli.SendTransaction(ctx, args[0].(*ethtypes.Transaction))
 			if err == nil {
 				return nil, nil
 			}
@@ -174,7 +178,7 @@ func (c *Client) GetChainID() (*big.Int, error) {
 	if err != nil {
 		return nil, err
 	}
-	return chainID, nil
+	return chainID.(*big.Int), nil
 }
 
 func (c *Client) GetLatestBlockNumber() (uint64, error) {
