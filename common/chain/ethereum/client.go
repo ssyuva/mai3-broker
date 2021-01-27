@@ -3,10 +3,12 @@ package ethereum
 import (
 	"context"
 	"crypto/ecdsa"
+	"fmt"
 	ethCommon "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
+	"time"
 
 	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
 	"github.com/mcarloai/mai-v3-broker/common/model"
@@ -17,28 +19,118 @@ import (
 )
 
 type Client struct {
-	ctx      context.Context
-	ethCli   *ethclient.Client
-	accounts map[ethCommon.Address]*Account //accounts for sign transaction
-	aliases  []string
-	mu       sync.RWMutex
+	ctx         context.Context
+	ethClis     []*ethclient.Client
+	accounts    map[ethCommon.Address]*Account //accounts for sign transaction
+	aliases     []string
+	callTimeout time.Duration
+	tryTimes    int
+	mu          sync.RWMutex
 }
 
-func NewClient(ctx context.Context, provider string, headers map[string]string) (*Client, error) {
-	rpcClient, err := rpc.Dial(provider)
-	if err != nil {
-		return nil, err
+func NewClient(ctx context.Context, providers []string, timeout time.Duration, tryTimes int, headers map[string]string) (*Client, error) {
+	cli := &Client{
+		ctx:         ctx,
+		ethClis:     make([]*ethclient.Client, 0),
+		accounts:    make(map[ethCommon.Address]*Account),
+		callTimeout: timeout,
+		tryTimes:    tryTimes,
+	}
+	for _, provider := range providers {
+		rpcClient, err := rpc.Dial(provider)
+		if err != nil {
+			return nil, err
+		}
+
+		for key, value := range headers {
+			rpcClient.SetHeader(key, value)
+		}
+
+		cli.ethClis = append(cli.ethClis, ethclient.NewClient(rpcClient))
 	}
 
-	for key, value := range headers {
-		rpcClient.SetHeader(key, value)
+	if len(cli.ethClis) < cli.tryTimes {
+		cli.tryTimes = len(cli.ethClis)
 	}
 
-	return &Client{
-		ctx:      ctx,
-		ethCli:   ethclient.NewClient(rpcClient),
-		accounts: make(map[ethCommon.Address]*Account),
-	}, nil
+	return cli, nil
+}
+
+func (c *Client) GetEthClient() *ethclient.Client {
+	rand.Seed(time.Now().Unix())
+	idx := rand.Intn(cliLen)
+	return c.ethClis(idx)
+}
+
+func (c *Client) call(method string, args ...interface{}) (interface{}, error) {
+	cliLen := len(c.ethClis)
+	if cliLen == 0 {
+		return nil, fmt.Errorf("no client for call")
+	}
+
+	var loopErr error
+	rand.Seed(time.Now().Unix())
+	idx := rand.Intn(cliLen)
+	for i := 0; i < c.tryTimes; i++ {
+		ethCli := c.ethClis[idx]
+		ctx, cancel := context.WithTimeout(c.ctx, c.callTimeout)
+		defer cancel()
+		switch method {
+		case "ChainID":
+			chainID, err := ethCli.ChainID(ctx)
+			if err == nil {
+				return chainID, nil
+			}
+			loopErr = err
+		case "PendingNonceAt":
+			nonce, err := ethCli.PendingNonceAt(ctx, args[0].(ethCommon.Address))
+			if err == nil {
+				return nonce, nil
+			}
+			loopErr = err
+		case "BlockByNumber":
+			var blockNumber *big.Int
+			if args[0] != nil {
+				blockNumber = args[0].(*big.Int)
+			}
+			block, err := ethCli.BlockByNumber(ctx, blockNumber)
+			if err == nil {
+				return block, nil
+			}
+			loopErr = err
+		case "TransactionByHash":
+			_, isPending, err := ethCli.TransactionByHash(ctx, args[0].(ethCommon.Hash))
+			if err == nil {
+				return isPending, nil
+			}
+			loopErr = err
+		case "SendTransaction":
+			err = ethCli.SendTransaction(ctx, args[0].(*types.Transaction))
+			if err == nil {
+				return nil, nil
+			}
+			loopErr = err
+		case "TransactionReceipt":
+			rcpt, err := ethCli.TransactionReceipt(ctx, args[0].(ethCommon.Hash))
+			if err == nil {
+				return rcpt, nil
+			}
+			loopErr = err
+		default:
+			return nil, fmt.Errorf("unsupport method %s", method)
+		}
+
+		if !errors.Is(loopErr, context.DeadlineExceeded) {
+			return nil, loopErr
+		}
+
+		idx++
+		if idx == cliLen {
+			idx = 0
+		}
+	}
+
+	return nil, loopErr
 }
 
 func (c *Client) GetSignAccount() (string, error) {
@@ -49,6 +141,7 @@ func (c *Client) GetSignAccount() (string, error) {
 		return "", errors.New("no account added")
 	}
 
+	rand.Seed(time.Now().Unix())
 	idx := rand.Intn(accLen)
 	return c.aliases[idx], nil
 }
@@ -76,31 +169,42 @@ func (c *Client) GetAccount(account string) (*Account, error) {
 	return acc, nil
 }
 
-func (c *Client) GetChainID(ctx context.Context) (*big.Int, error) {
-	return c.ethCli.ChainID(ctx)
+func (c *Client) GetChainID() (*big.Int, error) {
+	chainID, err := c.call("ChainID")
+	if err != nil {
+		return nil, err
+	}
+	return chainID, nil
 }
 
-func (c *Client) GetLatestBlockNumber(ctx context.Context) (uint64, error) {
-	block, err := c.ethCli.BlockByNumber(ctx, nil)
+func (c *Client) GetLatestBlockNumber() (uint64, error) {
+	block, err := c.call("BlockByNumber", nil)
 	if err != nil {
 		return 0, errors.Wrap(err, "fail to get latest block number")
 	}
 
-	return block.NumberU64(), nil
+	return block.(*ethtypes.Block).NumberU64(), nil
 }
 
-func (c *Client) PendingNonceAt(ctx context.Context, account string) (uint64, error) {
+func (c *Client) PendingNonceAt(account string) (uint64, error) {
 	address := ethCommon.HexToAddress(account)
-	return c.ethCli.PendingNonceAt(ctx, address)
+	nonce, err := c.call("PendingNonceAt", address)
+	if err != nil {
+		return 0, err
+	}
+	return nonce.(uint64), nil
 }
 
-func (c *Client) TransactionByHash(ctx context.Context, txHash string) (bool, error) {
+func (c *Client) TransactionByHash(txHash string) (bool, error) {
 	transactionHash := ethCommon.HexToHash(txHash)
-	_, isPending, err := c.ethCli.TransactionByHash(ctx, transactionHash)
-	return isPending, err
+	isPending, err := c.call("TransactionByHash", transactionHash)
+	if err != nil {
+		return false, err
+	}
+	return isPending.(bool), nil
 }
 
-func (c *Client) SendTransaction(ctx context.Context, tx *model.LaunchTransaction) (string, error) {
+func (c *Client) SendTransaction(tx *model.LaunchTransaction) (string, error) {
 	rawTx := ethtypes.NewTransaction(
 		*tx.Nonce,
 		ethCommon.HexToAddress(tx.ToAddress),
@@ -116,23 +220,25 @@ func (c *Client) SendTransaction(ctx context.Context, tx *model.LaunchTransactio
 	if err != nil {
 		return "", errors.Wrap(err, "sign transaction failed")
 	}
-	if err = c.ethCli.SendTransaction(ctx, signedTx); err != nil {
+	_, err = c.call("SendTransaction", signedTx)
+	if err != nil {
 		return "", errors.Wrap(err, "send transaction failed")
 	}
 	return signedTx.Hash().Hex(), nil
 }
 
-func (c *Client) WaitTransactionReceipt(ctx context.Context, txHash string) (*model.Receipt, error) {
-	rcpt, err := c.ethCli.TransactionReceipt(ctx, ethCommon.HexToHash(txHash))
+func (c *Client) WaitTransactionReceipt(txHash string) (*model.Receipt, error) {
+	res, err := c.call("TransactionReceipt", ethCommon.HexToHash(txHash))
 	if err != nil {
 		return nil, err
 	}
 
+	rcpt := res.(*ethtypes.Receipt)
 	if rcpt.BlockNumber == nil {
 		return nil, errors.New("empty block number")
 	}
 
-	block, err := c.ethCli.BlockByNumber(ctx, rcpt.BlockNumber)
+	block, err := c.call("BlockByNumber", rcpt.BlockNumber)
 	if err != nil {
 		return nil, errors.Wrap(err, "fail to retrieve block for transaction")
 	}
@@ -141,7 +247,7 @@ func (c *Client) WaitTransactionReceipt(ctx context.Context, txHash string) (*mo
 		BlockNumber: rcpt.BlockNumber.Uint64(),
 		BlockHash:   rcpt.BlockHash.Hex(),
 		GasUsed:     rcpt.GasUsed,
-		BlockTime:   block.Time(),
+		BlockTime:   block.(*ethtypes.Block).Time(),
 	}
 	if rcpt.Status == ethtypes.ReceiptStatusSuccessful {
 		receipt.Status = model.TxSuccess

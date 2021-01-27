@@ -63,14 +63,15 @@ func (s *Monitor) updateUnmatureTransactionStatus(blockNumber *uint64) {
 		return
 	}
 
-	ctx, done := context.WithTimeout(s.ctx, conf.Conf.ChainTimeout)
-	defer done()
-
 	for _, tx := range txs {
 		if tx.TransactionHash == nil || tx.BlockNumber == nil {
 			logger.Errorf("transaction hash or blockNumber is nill txID:%s", tx.TxID)
 			return
 		}
+
+		ctx, done := context.WithTimeout(s.ctx, conf.Conf.ChainTimeout)
+		defer done()
+
 		receipt, err := s.chainCli.WaitTransactionReceipt(ctx, *tx.TransactionHash)
 		if err != nil {
 			logger.Errorf("WaitTransactionReceipt error: %s", err)

@@ -66,14 +66,15 @@ func (s *Syncer) updateStatusByUser(user string) {
 		return
 	}
 
-	ctx, done := context.WithTimeout(s.ctx, conf.Conf.ChainTimeout)
-	defer done()
-
 	for i, tx := range txs {
 		if tx.TransactionHash == nil {
 			logger.Errorf("syncer: transaction hash is nill txID:%s", tx.TxID)
 			return
 		}
+
+		ctx, done := context.WithTimeout(s.ctx, conf.Conf.ChainTimeout)
+		defer done()
+
 		receipt, err := s.chainCli.WaitTransactionReceipt(ctx, *tx.TransactionHash)
 		if err != nil {
 			logger.Errorf("syncer: WaitTransactionReceipt error: %s", err)

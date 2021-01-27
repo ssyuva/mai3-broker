@@ -20,6 +20,11 @@
     "name": "getAccountStorage",
     "outputs": [
       {
+        "internalType": "bool",
+        "name": "isSynced",
+        "type": "bool"
+      },
+      {
         "components": [
           {
             "internalType": "int256",
@@ -51,6 +56,11 @@
     "name": "getLiquidityPoolStorage",
     "outputs": [
       {
+        "internalType": "bool",
+        "name": "isSynced",
+        "type": "bool"
+      },
+      {
         "components": [
           {
             "internalType": "bool",
@@ -80,11 +90,6 @@
           {
             "internalType": "uint256",
             "name": "collateralDecimals",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "perpetualCount",
             "type": "uint256"
           },
           {

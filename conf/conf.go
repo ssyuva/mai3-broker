@@ -28,9 +28,9 @@ type Config struct {
 	GasLimit uint64 `envconfig:"gas_limit"`
 
 	ChainType    string            `envconfig:"chain_type"`
-	Interval     time.Duration     `envconfig:"interval"`
+	RetryTimes   int               `envconfig:"retry_times"`
 	ChainTimeout time.Duration     `envconfig:"chain_timeout"`
-	ProviderURL  string            `envconfig:"provider_url"`
+	ProvidersURL []string          `envconfig:"providers_url"`
 	Headers      map[string]string `envconfig:"headers"`
 	Password     string            `envconfig:"password"`
 

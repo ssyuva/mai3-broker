@@ -42,7 +42,7 @@ func (c *Client) FilterTradeSuccess(ctx context.Context, brokerAddress string, s
 		return rsp, fmt.Errorf("invalid broker address:%w", err)
 	}
 
-	contract, err := broker.NewBroker(address, c.ethCli)
+	contract, err := broker.NewBroker(address, c.GetEthClient())
 	if err != nil {
 		return rsp, fmt.Errorf("init broker contract failed:%w", err)
 	}
@@ -84,7 +84,7 @@ func (c *Client) FilterTradeFailed(ctx context.Context, brokerAddress string, st
 		return rsp, fmt.Errorf("invalid broker address:%w", err)
 	}
 
-	contract, err := broker.NewBroker(address, c.ethCli)
+	contract, err := broker.NewBroker(address, c.GetEthClient())
 	if err != nil {
 		return rsp, fmt.Errorf("init broker contract failed:%w", err)
 	}
@@ -129,7 +129,7 @@ func (c *Client) GetGasBalance(ctx context.Context, brokerAddress string, addres
 		return rsp, fmt.Errorf("invalid broker address:%w", err)
 	}
 
-	contract, err := broker.NewBroker(brokerAddr, c.ethCli)
+	contract, err := broker.NewBroker(brokerAddr, c.GetEthClient())
 	if err != nil {
 		return rsp, fmt.Errorf("init broker contract failed:%w", err)
 	}

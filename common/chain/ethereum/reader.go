@@ -31,7 +31,7 @@ func (c *Client) GetAccountStorage(ctx context.Context, readerAddress string, pe
 		return nil, fmt.Errorf("invalid trader address:%w", err)
 	}
 
-	contract, err := reader.NewReader(address, c.ethCli)
+	contract, err := reader.NewReader(address, c.GetEthClient())
 	if err != nil {
 		return nil, fmt.Errorf("init reader contract failed:%w", err)
 	}
@@ -41,9 +41,13 @@ func (c *Client) GetAccountStorage(ctx context.Context, readerAddress string, pe
 		return nil, fmt.Errorf("get margin account failed:%w", err)
 	}
 
+	if res.IsSynced {
+		return nil, fmt.Errorf("perpetual is syncing")
+	}
+
 	rsp := &model.AccountStorage{}
-	rsp.CashBalance = decimal.NewFromBigInt(res.Cash, -mai3.DECIMALS)
-	rsp.PositionAmount = decimal.NewFromBigInt(res.Position, -mai3.DECIMALS)
+	rsp.CashBalance = decimal.NewFromBigInt(res.MarginAccount.Cash, -mai3.DECIMALS)
+	rsp.PositionAmount = decimal.NewFromBigInt(res.MarginAccount.Position, -mai3.DECIMALS)
 	return rsp, nil
 }
 
@@ -62,7 +66,7 @@ func (c *Client) GetLiquidityPoolStorage(ctx context.Context, readerAddress, poo
 		return nil, fmt.Errorf("invalid liquidity pool address:%w", err)
 	}
 
-	contract, err := reader.NewReader(address, c.ethCli)
+	contract, err := reader.NewReader(address, c.GetEthClient())
 	if err != nil {
 		return nil, fmt.Errorf("init reader contract failed:%w", err)
 	}
@@ -71,13 +75,17 @@ func (c *Client) GetLiquidityPoolStorage(ctx context.Context, readerAddress, poo
 	if err != nil {
 		return nil, fmt.Errorf("GetLiquidityPoolStorage failed:%w", err)
 	}
+
+	if res.IsSynced {
+		return nil, fmt.Errorf("perpetual is syncing")
+	}
 	rsp := &model.LiquidityPoolStorage{}
-	rsp.VaultFeeRate = decimal.NewFromBigInt(res.VaultFeeRate, -mai3.DECIMALS)
-	rsp.PoolCashBalance = decimal.NewFromBigInt(res.PoolCash, -mai3.DECIMALS)
-	rsp.FundingTime = res.FundingTime.Int64()
+	rsp.VaultFeeRate = decimal.NewFromBigInt(res.Pool.VaultFeeRate, -mai3.DECIMALS)
+	rsp.PoolCashBalance = decimal.NewFromBigInt(res.Pool.PoolCash, -mai3.DECIMALS)
+	rsp.FundingTime = res.Pool.FundingTime.Int64()
 	rsp.Perpetuals = make(map[int64]*model.PerpetualStorage)
 
-	for i, perpetual := range res.Perpetuals {
+	for i, perpetual := range res.Pool.Perpetuals {
 		storage := &model.PerpetualStorage{
 			MarkPrice:               decimal.NewFromBigInt(perpetual.Nums[1], -mai3.DECIMALS),
 			IndexPrice:              decimal.NewFromBigInt(perpetual.Nums[2], -mai3.DECIMALS),

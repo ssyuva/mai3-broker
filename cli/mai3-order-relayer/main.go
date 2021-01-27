@@ -45,7 +45,7 @@ func main() {
 
 	var chainCli chain.ChainClient
 	if conf.Conf.ChainType == "ethereum" {
-		chainCli, err = ethereum.NewClient(ctx, conf.Conf.ProviderURL, conf.Conf.Headers)
+		chainCli, err = ethereum.NewClient(ctx, conf.Conf.ProvidersURL, conf.Conf.ChainTimeout, conf.Conf.RetryTimes, conf.Conf.Headers)
 		if err != nil {
 			logger.Errorf("init ethereum client error:%s", err.Error())
 			os.Exit(-2)
