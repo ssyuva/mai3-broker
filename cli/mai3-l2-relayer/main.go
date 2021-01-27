@@ -34,8 +34,7 @@ func main() {
 		conf.L2RelayerConf.L2RelayerKey,
 		conf.L2RelayerConf.BrokerAddress,
 		conf.L2RelayerConf.GasPrice,
-		conf.L2RelayerConf.L2CallFunctionFeePercent,
-		conf.L2RelayerConf.L2TradeFee)
+		conf.L2RelayerConf.L2CallFeePercent)
 
 	if err != nil {
 		logger.Errorf("create l2 relayer fail:%s", err.Error())

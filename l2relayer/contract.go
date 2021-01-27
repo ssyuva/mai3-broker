@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"math/big"
 	"strings"
 
@@ -21,15 +20,15 @@ import (
 const PackedGasFeeLimitShift uint64 = 10 ^ 11
 
 type Mai3SignedCallMessage struct {
-	From              common.Address
-	To                common.Address
-	FunctionSignature string
-	CallData          []byte
-	Nonce             uint32
-	Expiration        uint32
-	GasLimit          uint64
-	Signaure          []byte
-	Fee               uint64
+	From       common.Address
+	To         common.Address
+	Method     string
+	CallData   []byte
+	Nonce      uint32
+	Expiration uint32
+	GasLimit   uint64
+	Signaure   []byte
+	Fee        uint64
 
 	UserData1 [32]byte // useraddress[20] nonce[4] expiration[4] gasfeelimit[4]
 	UserData2 [32]byte // to[20] fee[4]
@@ -65,9 +64,9 @@ func (m *Mai3SignedCallMessage) SetUserDataFee(fee uint64) {
 	_ = binary.Write(buf, binary.BigEndian, uint32(fee/PackedGasFeeLimitShift))
 }
 
-func NewMai3SignedCallMessage(from, to, functionSignature, callData string, nonce, expiration uint32, gasFeeLimit uint64, signature string, fee uint64) (*Mai3SignedCallMessage, error) {
+func NewMai3SignedCallMessage(from, to, method, callData string, nonce, expiration uint32, gasFeeLimit uint64, signature string, fee uint64) (*Mai3SignedCallMessage, error) {
 	if !common.IsHexAddress(from) {
-		return nil, errors.New("invalid user address")
+		return nil, errors.New("invalid from address")
 	}
 	fromAddress := common.HexToAddress(from)
 
@@ -79,22 +78,22 @@ func NewMai3SignedCallMessage(from, to, functionSignature, callData string, nonc
 	userData1, userData2 := PackUserData(fromAddress, toAddress, nonce, expiration, gasFeeLimit, fee)
 
 	return &Mai3SignedCallMessage{
-		From:              fromAddress,
-		To:                toAddress,
-		FunctionSignature: functionSignature,
-		CallData:          common.Hex2Bytes(callData),
-		Nonce:             nonce,
-		Expiration:        expiration,
-		GasLimit:          gasFeeLimit,
-		Signaure:          common.Hex2Bytes(signature),
-		UserData1:         userData1,
-		UserData2:         userData2,
+		From:       fromAddress,
+		To:         toAddress,
+		Method:     method,
+		CallData:   common.FromHex(callData),
+		Nonce:      nonce,
+		Expiration: expiration,
+		GasLimit:   gasFeeLimit,
+		Signaure:   common.FromHex(signature),
+		UserData1:  userData1,
+		UserData2:  userData2,
 	}, nil
 
 }
 
-func (tx *Mai3SignedCallMessage) FunctionCallParams() []interface{} {
-	return []interface{}{tx.FunctionSignature, tx.CallData, tx.UserData1, tx.UserData2, tx.Signaure}
+func (msg *Mai3SignedCallMessage) FunctionCallParams() []interface{} {
+	return []interface{}{msg.UserData1, msg.UserData2, msg.Method, msg.CallData, msg.Signaure}
 }
 
 type L2RelayerContract struct {
@@ -122,7 +121,7 @@ func NewRelayerContract(address common.Address, backend bind.ContractBackend) (*
 }
 
 func (c *L2RelayerContract) CallFunction(opts *bind.TransactOpts, msg *Mai3SignedCallMessage) (*types.Transaction, error) {
-	return c.broker.CallFunction(opts, msg.FunctionSignature, msg.CallData, msg.UserData1, msg.Signaure)
+	return c.broker.CallFunction(opts, msg.UserData1, msg.UserData2, msg.Method, msg.CallData, msg.Signaure)
 }
 
 func (c *L2RelayerContract) EstimateFunctionGas(opts *bind.TransactOpts, msg *Mai3SignedCallMessage) (uint64, error) {
@@ -137,26 +136,19 @@ func (c *L2RelayerContract) EstimateFunctionGas(opts *bind.TransactOpts, msg *Ma
 
 	gasPrice := opts.GasPrice
 	if gasPrice == nil {
-		return 0, errors.New("invalid gas price")
+		gasPrice = big.NewInt(0)
 	}
 
 	txMsg := ethereum.CallMsg{From: opts.From, To: &c.address, GasPrice: gasPrice, Value: value, Data: input}
 	gasLimit, err := c.backend.EstimateGas(ensureContext(opts.Context), txMsg)
 	if err != nil {
-		return 0, fmt.Errorf("failed to estimate gas needed: %w", err)
+		return 0, err
 	}
 	return gasLimit, nil
 }
 
 func (c *L2RelayerContract) BalanceOf(opts *bind.CallOpts, userAddress common.Address) (*big.Int, error) {
 	return c.broker.BalanceOf(opts, userAddress)
-}
-
-func (c *L2RelayerContract) Trade(opts *bind.TransactOpts, compressedOrder []byte, amount *big.Int, gasReward *big.Int) (*types.Transaction, error) {
-	orders := [][]byte{compressedOrder}
-	amounts := []*big.Int{amount}
-	gasRewards := []*big.Int{gasReward}
-	return c.broker.BatchTrade(opts, orders, amounts, gasRewards)
 }
 
 // ensureContext is a helper method to ensure a context is not nil, even if the

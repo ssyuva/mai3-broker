@@ -46,7 +46,7 @@ type Order struct {
 }
 
 // BrokerABI is the input ABI used to generate the binding from.
-const BrokerABI = "[{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"orderHash\",\"type\":\"bytes32\"}],\"name\":\"CancelOrder\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"trader\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Deposit\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"orderHash\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"int256\",\"name\":\"fillAmount\",\"type\":\"int256\"}],\"name\":\"FillOrder\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"orderHash\",\"type\":\"bytes32\"},{\"components\":[{\"internalType\":\"address\",\"name\":\"trader\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"broker\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"relayer\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"referrer\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"liquidityPool\",\"type\":\"address\"},{\"internalType\":\"int256\",\"name\":\"minTradeAmount\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"amount\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"limitPrice\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"triggerPrice\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"chainID\",\"type\":\"uint256\"},{\"internalType\":\"uint64\",\"name\":\"expiredAt\",\"type\":\"uint64\"},{\"internalType\":\"uint32\",\"name\":\"perpetualIndex\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"brokerFeeLimit\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"flags\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"salt\",\"type\":\"uint32\"}],\"indexed\":false,\"internalType\":\"structOrder\",\"name\":\"order\",\"type\":\"tuple\"},{\"indexed\":false,\"internalType\":\"int256\",\"name\":\"amount\",\"type\":\"int256\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"reason\",\"type\":\"string\"}],\"name\":\"TradeFailed\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"orderHash\",\"type\":\"bytes32\"},{\"components\":[{\"internalType\":\"address\",\"name\":\"trader\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"broker\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"relayer\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"referrer\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"liquidityPool\",\"type\":\"address\"},{\"internalType\":\"int256\",\"name\":\"minTradeAmount\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"amount\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"limitPrice\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"triggerPrice\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"chainID\",\"type\":\"uint256\"},{\"internalType\":\"uint64\",\"name\":\"expiredAt\",\"type\":\"uint64\"},{\"internalType\":\"uint32\",\"name\":\"perpetualIndex\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"brokerFeeLimit\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"flags\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"salt\",\"type\":\"uint32\"}],\"indexed\":false,\"internalType\":\"structOrder\",\"name\":\"order\",\"type\":\"tuple\"},{\"indexed\":false,\"internalType\":\"int256\",\"name\":\"amount\",\"type\":\"int256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"gasReward\",\"type\":\"uint256\"}],\"name\":\"TradeSuccess\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Transfer\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"trader\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Withdraw\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"trader\",\"type\":\"address\"}],\"name\":\"balanceOf\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes[]\",\"name\":\"compressedOrders\",\"type\":\"bytes[]\"},{\"internalType\":\"int256[]\",\"name\":\"amounts\",\"type\":\"int256[]\"},{\"internalType\":\"uint256[]\",\"name\":\"gasRewards\",\"type\":\"uint256[]\"}],\"name\":\"batchTrade\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"address\",\"name\":\"trader\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"broker\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"relayer\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"referrer\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"liquidityPool\",\"type\":\"address\"},{\"internalType\":\"int256\",\"name\":\"minTradeAmount\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"amount\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"limitPrice\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"triggerPrice\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"chainID\",\"type\":\"uint256\"},{\"internalType\":\"uint64\",\"name\":\"expiredAt\",\"type\":\"uint64\"},{\"internalType\":\"uint32\",\"name\":\"perpetualIndex\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"brokerFeeLimit\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"flags\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"salt\",\"type\":\"uint32\"}],\"internalType\":\"structOrder\",\"name\":\"order\",\"type\":\"tuple\"}],\"name\":\"cancelOrder\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"deposit\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"withdraw\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"functionSignature\",\"type\":\"string\"},{\"internalType\":\"bytes\",\"name\":\"callData\",\"type\":\"bytes\"},{\"internalType\":\"bytes32\",\"name\":\"userData\",\"type\":\"bytes32\"},{\"internalType\":\"bytes\",\"name\":\"signature\",\"type\":\"bytes\"}],\"name\":\"callFunction\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"stateMutability\":\"payable\",\"type\":\"receive\"}]"
+const BrokerABI = "[{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"userData1\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"userData2\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"functionSignature\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"callData\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"signature\",\"type\":\"bytes\"}],\"name\":\"CallFunction\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"orderHash\",\"type\":\"bytes32\"}],\"name\":\"CancelOrder\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"trader\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Deposit\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"orderHash\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"int256\",\"name\":\"fillAmount\",\"type\":\"int256\"}],\"name\":\"FillOrder\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"orderHash\",\"type\":\"bytes32\"},{\"components\":[{\"internalType\":\"address\",\"name\":\"trader\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"broker\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"relayer\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"referrer\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"liquidityPool\",\"type\":\"address\"},{\"internalType\":\"int256\",\"name\":\"minTradeAmount\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"amount\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"limitPrice\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"triggerPrice\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"chainID\",\"type\":\"uint256\"},{\"internalType\":\"uint64\",\"name\":\"expiredAt\",\"type\":\"uint64\"},{\"internalType\":\"uint32\",\"name\":\"perpetualIndex\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"brokerFeeLimit\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"flags\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"salt\",\"type\":\"uint32\"}],\"indexed\":false,\"internalType\":\"structOrder\",\"name\":\"order\",\"type\":\"tuple\"},{\"indexed\":false,\"internalType\":\"int256\",\"name\":\"amount\",\"type\":\"int256\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"reason\",\"type\":\"string\"}],\"name\":\"TradeFailed\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"orderHash\",\"type\":\"bytes32\"},{\"components\":[{\"internalType\":\"address\",\"name\":\"trader\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"broker\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"relayer\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"referrer\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"liquidityPool\",\"type\":\"address\"},{\"internalType\":\"int256\",\"name\":\"minTradeAmount\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"amount\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"limitPrice\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"triggerPrice\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"chainID\",\"type\":\"uint256\"},{\"internalType\":\"uint64\",\"name\":\"expiredAt\",\"type\":\"uint64\"},{\"internalType\":\"uint32\",\"name\":\"perpetualIndex\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"brokerFeeLimit\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"flags\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"salt\",\"type\":\"uint32\"}],\"indexed\":false,\"internalType\":\"structOrder\",\"name\":\"order\",\"type\":\"tuple\"},{\"indexed\":false,\"internalType\":\"int256\",\"name\":\"amount\",\"type\":\"int256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"gasReward\",\"type\":\"uint256\"}],\"name\":\"TradeSuccess\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Transfer\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"trader\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Withdraw\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"trader\",\"type\":\"address\"}],\"name\":\"balanceOf\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes[]\",\"name\":\"compressedOrders\",\"type\":\"bytes[]\"},{\"internalType\":\"int256[]\",\"name\":\"amounts\",\"type\":\"int256[]\"},{\"internalType\":\"uint256[]\",\"name\":\"gasRewards\",\"type\":\"uint256[]\"}],\"name\":\"batchTrade\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"userData1\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"userData2\",\"type\":\"bytes32\"},{\"internalType\":\"string\",\"name\":\"method\",\"type\":\"string\"},{\"internalType\":\"bytes\",\"name\":\"callData\",\"type\":\"bytes\"},{\"internalType\":\"bytes\",\"name\":\"signature\",\"type\":\"bytes\"}],\"name\":\"callFunction\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"address\",\"name\":\"trader\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"broker\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"relayer\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"referrer\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"liquidityPool\",\"type\":\"address\"},{\"internalType\":\"int256\",\"name\":\"minTradeAmount\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"amount\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"limitPrice\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"triggerPrice\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"chainID\",\"type\":\"uint256\"},{\"internalType\":\"uint64\",\"name\":\"expiredAt\",\"type\":\"uint64\"},{\"internalType\":\"uint32\",\"name\":\"perpetualIndex\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"brokerFeeLimit\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"flags\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"salt\",\"type\":\"uint32\"}],\"internalType\":\"structOrder\",\"name\":\"order\",\"type\":\"tuple\"}],\"name\":\"cancelOrder\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"deposit\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"getNonce\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"nonce\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"withdraw\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"stateMutability\":\"payable\",\"type\":\"receive\"}]"
 
 // Broker is an auto generated Go binding around an Ethereum contract.
 type Broker struct {
@@ -221,6 +221,37 @@ func (_Broker *BrokerCallerSession) BalanceOf(trader common.Address) (*big.Int, 
 	return _Broker.Contract.BalanceOf(&_Broker.CallOpts, trader)
 }
 
+// GetNonce is a free data retrieval call binding the contract method 0x2d0335ab.
+//
+// Solidity: function getNonce(address account) view returns(uint32 nonce)
+func (_Broker *BrokerCaller) GetNonce(opts *bind.CallOpts, account common.Address) (uint32, error) {
+	var out []interface{}
+	err := _Broker.contract.Call(opts, &out, "getNonce", account)
+
+	if err != nil {
+		return *new(uint32), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(uint32)).(*uint32)
+
+	return out0, err
+
+}
+
+// GetNonce is a free data retrieval call binding the contract method 0x2d0335ab.
+//
+// Solidity: function getNonce(address account) view returns(uint32 nonce)
+func (_Broker *BrokerSession) GetNonce(account common.Address) (uint32, error) {
+	return _Broker.Contract.GetNonce(&_Broker.CallOpts, account)
+}
+
+// GetNonce is a free data retrieval call binding the contract method 0x2d0335ab.
+//
+// Solidity: function getNonce(address account) view returns(uint32 nonce)
+func (_Broker *BrokerCallerSession) GetNonce(account common.Address) (uint32, error) {
+	return _Broker.Contract.GetNonce(&_Broker.CallOpts, account)
+}
+
 // BatchTrade is a paid mutator transaction binding the contract method 0xabee6e5c.
 //
 // Solidity: function batchTrade(bytes[] compressedOrders, int256[] amounts, uint256[] gasRewards) returns()
@@ -242,25 +273,25 @@ func (_Broker *BrokerTransactorSession) BatchTrade(compressedOrders [][]byte, am
 	return _Broker.Contract.BatchTrade(&_Broker.TransactOpts, compressedOrders, amounts, gasRewards)
 }
 
-// CallFunction is a paid mutator transaction binding the contract method 0x940f3445.
+// CallFunction is a paid mutator transaction binding the contract method 0x78e64892.
 //
-// Solidity: function callFunction(string functionSignature, bytes callData, bytes32 userData, bytes signature) returns()
-func (_Broker *BrokerTransactor) CallFunction(opts *bind.TransactOpts, functionSignature string, callData []byte, userData [32]byte, signature []byte) (*types.Transaction, error) {
-	return _Broker.contract.Transact(opts, "callFunction", functionSignature, callData, userData, signature)
+// Solidity: function callFunction(bytes32 userData1, bytes32 userData2, string method, bytes callData, bytes signature) returns()
+func (_Broker *BrokerTransactor) CallFunction(opts *bind.TransactOpts, userData1 [32]byte, userData2 [32]byte, method string, callData []byte, signature []byte) (*types.Transaction, error) {
+	return _Broker.contract.Transact(opts, "callFunction", userData1, userData2, method, callData, signature)
 }
 
-// CallFunction is a paid mutator transaction binding the contract method 0x940f3445.
+// CallFunction is a paid mutator transaction binding the contract method 0x78e64892.
 //
-// Solidity: function callFunction(string functionSignature, bytes callData, bytes32 userData, bytes signature) returns()
-func (_Broker *BrokerSession) CallFunction(functionSignature string, callData []byte, userData [32]byte, signature []byte) (*types.Transaction, error) {
-	return _Broker.Contract.CallFunction(&_Broker.TransactOpts, functionSignature, callData, userData, signature)
+// Solidity: function callFunction(bytes32 userData1, bytes32 userData2, string method, bytes callData, bytes signature) returns()
+func (_Broker *BrokerSession) CallFunction(userData1 [32]byte, userData2 [32]byte, method string, callData []byte, signature []byte) (*types.Transaction, error) {
+	return _Broker.Contract.CallFunction(&_Broker.TransactOpts, userData1, userData2, method, callData, signature)
 }
 
-// CallFunction is a paid mutator transaction binding the contract method 0x940f3445.
+// CallFunction is a paid mutator transaction binding the contract method 0x78e64892.
 //
-// Solidity: function callFunction(string functionSignature, bytes callData, bytes32 userData, bytes signature) returns()
-func (_Broker *BrokerTransactorSession) CallFunction(functionSignature string, callData []byte, userData [32]byte, signature []byte) (*types.Transaction, error) {
-	return _Broker.Contract.CallFunction(&_Broker.TransactOpts, functionSignature, callData, userData, signature)
+// Solidity: function callFunction(bytes32 userData1, bytes32 userData2, string method, bytes callData, bytes signature) returns()
+func (_Broker *BrokerTransactorSession) CallFunction(userData1 [32]byte, userData2 [32]byte, method string, callData []byte, signature []byte) (*types.Transaction, error) {
+	return _Broker.Contract.CallFunction(&_Broker.TransactOpts, userData1, userData2, method, callData, signature)
 }
 
 // CancelOrder is a paid mutator transaction binding the contract method 0xce4d643b.
@@ -345,6 +376,144 @@ func (_Broker *BrokerSession) Receive() (*types.Transaction, error) {
 // Solidity: receive() payable returns()
 func (_Broker *BrokerTransactorSession) Receive() (*types.Transaction, error) {
 	return _Broker.Contract.Receive(&_Broker.TransactOpts)
+}
+
+// BrokerCallFunctionIterator is returned from FilterCallFunction and is used to iterate over the raw logs and unpacked data for CallFunction events raised by the Broker contract.
+type BrokerCallFunctionIterator struct {
+	Event *BrokerCallFunction // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *BrokerCallFunctionIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(BrokerCallFunction)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(BrokerCallFunction)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *BrokerCallFunctionIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *BrokerCallFunctionIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// BrokerCallFunction represents a CallFunction event raised by the Broker contract.
+type BrokerCallFunction struct {
+	UserData1         [32]byte
+	UserData2         [32]byte
+	FunctionSignature string
+	CallData          []byte
+	Signature         []byte
+	Raw               types.Log // Blockchain specific contextual infos
+}
+
+// FilterCallFunction is a free log retrieval operation binding the contract event 0xf7a099b6e4317688ffa8d752134614f9ec1394f25cbfc1646032ddead07a1997.
+//
+// Solidity: event CallFunction(bytes32 userData1, bytes32 userData2, string functionSignature, bytes callData, bytes signature)
+func (_Broker *BrokerFilterer) FilterCallFunction(opts *bind.FilterOpts) (*BrokerCallFunctionIterator, error) {
+
+	logs, sub, err := _Broker.contract.FilterLogs(opts, "CallFunction")
+	if err != nil {
+		return nil, err
+	}
+	return &BrokerCallFunctionIterator{contract: _Broker.contract, event: "CallFunction", logs: logs, sub: sub}, nil
+}
+
+// WatchCallFunction is a free log subscription operation binding the contract event 0xf7a099b6e4317688ffa8d752134614f9ec1394f25cbfc1646032ddead07a1997.
+//
+// Solidity: event CallFunction(bytes32 userData1, bytes32 userData2, string functionSignature, bytes callData, bytes signature)
+func (_Broker *BrokerFilterer) WatchCallFunction(opts *bind.WatchOpts, sink chan<- *BrokerCallFunction) (event.Subscription, error) {
+
+	logs, sub, err := _Broker.contract.WatchLogs(opts, "CallFunction")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(BrokerCallFunction)
+				if err := _Broker.contract.UnpackLog(event, "CallFunction", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseCallFunction is a log parse operation binding the contract event 0xf7a099b6e4317688ffa8d752134614f9ec1394f25cbfc1646032ddead07a1997.
+//
+// Solidity: event CallFunction(bytes32 userData1, bytes32 userData2, string functionSignature, bytes callData, bytes signature)
+func (_Broker *BrokerFilterer) ParseCallFunction(log types.Log) (*BrokerCallFunction, error) {
+	event := new(BrokerCallFunction)
+	if err := _Broker.contract.UnpackLog(event, "CallFunction", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
 }
 
 // BrokerCancelOrderIterator is returned from FilterCancelOrder and is used to iterate over the raw logs and unpacked data for CancelOrder events raised by the Broker contract.
@@ -557,10 +726,15 @@ type BrokerDeposit struct {
 
 // FilterDeposit is a free log retrieval operation binding the contract event 0xe1fffcc4923d04b559f4d29a8bfc6cda04eb5b0d3c460751c2402c5c5cc9109c.
 //
-// Solidity: event Deposit(address trader, uint256 amount)
-func (_Broker *BrokerFilterer) FilterDeposit(opts *bind.FilterOpts) (*BrokerDepositIterator, error) {
+// Solidity: event Deposit(address indexed trader, uint256 amount)
+func (_Broker *BrokerFilterer) FilterDeposit(opts *bind.FilterOpts, trader []common.Address) (*BrokerDepositIterator, error) {
 
-	logs, sub, err := _Broker.contract.FilterLogs(opts, "Deposit")
+	var traderRule []interface{}
+	for _, traderItem := range trader {
+		traderRule = append(traderRule, traderItem)
+	}
+
+	logs, sub, err := _Broker.contract.FilterLogs(opts, "Deposit", traderRule)
 	if err != nil {
 		return nil, err
 	}
@@ -569,10 +743,15 @@ func (_Broker *BrokerFilterer) FilterDeposit(opts *bind.FilterOpts) (*BrokerDepo
 
 // WatchDeposit is a free log subscription operation binding the contract event 0xe1fffcc4923d04b559f4d29a8bfc6cda04eb5b0d3c460751c2402c5c5cc9109c.
 //
-// Solidity: event Deposit(address trader, uint256 amount)
-func (_Broker *BrokerFilterer) WatchDeposit(opts *bind.WatchOpts, sink chan<- *BrokerDeposit) (event.Subscription, error) {
+// Solidity: event Deposit(address indexed trader, uint256 amount)
+func (_Broker *BrokerFilterer) WatchDeposit(opts *bind.WatchOpts, sink chan<- *BrokerDeposit, trader []common.Address) (event.Subscription, error) {
 
-	logs, sub, err := _Broker.contract.WatchLogs(opts, "Deposit")
+	var traderRule []interface{}
+	for _, traderItem := range trader {
+		traderRule = append(traderRule, traderItem)
+	}
+
+	logs, sub, err := _Broker.contract.WatchLogs(opts, "Deposit", traderRule)
 	if err != nil {
 		return nil, err
 	}
@@ -606,7 +785,7 @@ func (_Broker *BrokerFilterer) WatchDeposit(opts *bind.WatchOpts, sink chan<- *B
 
 // ParseDeposit is a log parse operation binding the contract event 0xe1fffcc4923d04b559f4d29a8bfc6cda04eb5b0d3c460751c2402c5c5cc9109c.
 //
-// Solidity: event Deposit(address trader, uint256 amount)
+// Solidity: event Deposit(address indexed trader, uint256 amount)
 func (_Broker *BrokerFilterer) ParseDeposit(log types.Log) (*BrokerDeposit, error) {
 	event := new(BrokerDeposit)
 	if err := _Broker.contract.UnpackLog(event, "Deposit", log); err != nil {
@@ -1102,10 +1281,19 @@ type BrokerTransfer struct {
 
 // FilterTransfer is a free log retrieval operation binding the contract event 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef.
 //
-// Solidity: event Transfer(address sender, address recipient, uint256 amount)
-func (_Broker *BrokerFilterer) FilterTransfer(opts *bind.FilterOpts) (*BrokerTransferIterator, error) {
+// Solidity: event Transfer(address indexed sender, address indexed recipient, uint256 amount)
+func (_Broker *BrokerFilterer) FilterTransfer(opts *bind.FilterOpts, sender []common.Address, recipient []common.Address) (*BrokerTransferIterator, error) {
 
-	logs, sub, err := _Broker.contract.FilterLogs(opts, "Transfer")
+	var senderRule []interface{}
+	for _, senderItem := range sender {
+		senderRule = append(senderRule, senderItem)
+	}
+	var recipientRule []interface{}
+	for _, recipientItem := range recipient {
+		recipientRule = append(recipientRule, recipientItem)
+	}
+
+	logs, sub, err := _Broker.contract.FilterLogs(opts, "Transfer", senderRule, recipientRule)
 	if err != nil {
 		return nil, err
 	}
@@ -1114,10 +1302,19 @@ func (_Broker *BrokerFilterer) FilterTransfer(opts *bind.FilterOpts) (*BrokerTra
 
 // WatchTransfer is a free log subscription operation binding the contract event 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef.
 //
-// Solidity: event Transfer(address sender, address recipient, uint256 amount)
-func (_Broker *BrokerFilterer) WatchTransfer(opts *bind.WatchOpts, sink chan<- *BrokerTransfer) (event.Subscription, error) {
+// Solidity: event Transfer(address indexed sender, address indexed recipient, uint256 amount)
+func (_Broker *BrokerFilterer) WatchTransfer(opts *bind.WatchOpts, sink chan<- *BrokerTransfer, sender []common.Address, recipient []common.Address) (event.Subscription, error) {
 
-	logs, sub, err := _Broker.contract.WatchLogs(opts, "Transfer")
+	var senderRule []interface{}
+	for _, senderItem := range sender {
+		senderRule = append(senderRule, senderItem)
+	}
+	var recipientRule []interface{}
+	for _, recipientItem := range recipient {
+		recipientRule = append(recipientRule, recipientItem)
+	}
+
+	logs, sub, err := _Broker.contract.WatchLogs(opts, "Transfer", senderRule, recipientRule)
 	if err != nil {
 		return nil, err
 	}
@@ -1151,7 +1348,7 @@ func (_Broker *BrokerFilterer) WatchTransfer(opts *bind.WatchOpts, sink chan<- *
 
 // ParseTransfer is a log parse operation binding the contract event 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef.
 //
-// Solidity: event Transfer(address sender, address recipient, uint256 amount)
+// Solidity: event Transfer(address indexed sender, address indexed recipient, uint256 amount)
 func (_Broker *BrokerFilterer) ParseTransfer(log types.Log) (*BrokerTransfer, error) {
 	event := new(BrokerTransfer)
 	if err := _Broker.contract.UnpackLog(event, "Transfer", log); err != nil {
@@ -1237,10 +1434,15 @@ type BrokerWithdraw struct {
 
 // FilterWithdraw is a free log retrieval operation binding the contract event 0x884edad9ce6fa2440d8a54cc123490eb96d2768479d49ff9c7366125a9424364.
 //
-// Solidity: event Withdraw(address trader, uint256 amount)
-func (_Broker *BrokerFilterer) FilterWithdraw(opts *bind.FilterOpts) (*BrokerWithdrawIterator, error) {
+// Solidity: event Withdraw(address indexed trader, uint256 amount)
+func (_Broker *BrokerFilterer) FilterWithdraw(opts *bind.FilterOpts, trader []common.Address) (*BrokerWithdrawIterator, error) {
 
-	logs, sub, err := _Broker.contract.FilterLogs(opts, "Withdraw")
+	var traderRule []interface{}
+	for _, traderItem := range trader {
+		traderRule = append(traderRule, traderItem)
+	}
+
+	logs, sub, err := _Broker.contract.FilterLogs(opts, "Withdraw", traderRule)
 	if err != nil {
 		return nil, err
 	}
@@ -1249,10 +1451,15 @@ func (_Broker *BrokerFilterer) FilterWithdraw(opts *bind.FilterOpts) (*BrokerWit
 
 // WatchWithdraw is a free log subscription operation binding the contract event 0x884edad9ce6fa2440d8a54cc123490eb96d2768479d49ff9c7366125a9424364.
 //
-// Solidity: event Withdraw(address trader, uint256 amount)
-func (_Broker *BrokerFilterer) WatchWithdraw(opts *bind.WatchOpts, sink chan<- *BrokerWithdraw) (event.Subscription, error) {
+// Solidity: event Withdraw(address indexed trader, uint256 amount)
+func (_Broker *BrokerFilterer) WatchWithdraw(opts *bind.WatchOpts, sink chan<- *BrokerWithdraw, trader []common.Address) (event.Subscription, error) {
 
-	logs, sub, err := _Broker.contract.WatchLogs(opts, "Withdraw")
+	var traderRule []interface{}
+	for _, traderItem := range trader {
+		traderRule = append(traderRule, traderItem)
+	}
+
+	logs, sub, err := _Broker.contract.WatchLogs(opts, "Withdraw", traderRule)
 	if err != nil {
 		return nil, err
 	}
@@ -1286,7 +1493,7 @@ func (_Broker *BrokerFilterer) WatchWithdraw(opts *bind.WatchOpts, sink chan<- *
 
 // ParseWithdraw is a log parse operation binding the contract event 0x884edad9ce6fa2440d8a54cc123490eb96d2768479d49ff9c7366125a9424364.
 //
-// Solidity: event Withdraw(address trader, uint256 amount)
+// Solidity: event Withdraw(address indexed trader, uint256 amount)
 func (_Broker *BrokerFilterer) ParseWithdraw(log types.Log) (*BrokerWithdraw, error) {
 	event := new(BrokerWithdraw)
 	if err := _Broker.contract.UnpackLog(event, "Withdraw", log); err != nil {

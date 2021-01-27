@@ -10,6 +10,43 @@
       {
         "indexed": false,
         "internalType": "bytes32",
+        "name": "userData1",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "userData2",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "functionSignature",
+        "type": "string"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes",
+        "name": "callData",
+        "type": "bytes"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes",
+        "name": "signature",
+        "type": "bytes"
+      }
+    ],
+    "name": "CallFunction",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "bytes32",
         "name": "orderHash",
         "type": "bytes32"
       }
@@ -21,7 +58,7 @@
     "anonymous": false,
     "inputs": [
       {
-        "indexed": false,
+        "indexed": true,
         "internalType": "address",
         "name": "trader",
         "type": "address"
@@ -275,13 +312,13 @@
     "anonymous": false,
     "inputs": [
       {
-        "indexed": false,
+        "indexed": true,
         "internalType": "address",
         "name": "sender",
         "type": "address"
       },
       {
-        "indexed": false,
+        "indexed": true,
         "internalType": "address",
         "name": "recipient",
         "type": "address"
@@ -300,7 +337,7 @@
     "anonymous": false,
     "inputs": [
       {
-        "indexed": false,
+        "indexed": true,
         "internalType": "address",
         "name": "trader",
         "type": "address"
@@ -353,6 +390,39 @@
       }
     ],
     "name": "batchTrade",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "userData1",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "userData2",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "string",
+        "name": "method",
+        "type": "string"
+      },
+      {
+        "internalType": "bytes",
+        "name": "callData",
+        "type": "bytes"
+      },
+      {
+        "internalType": "bytes",
+        "name": "signature",
+        "type": "bytes"
+      }
+    ],
+    "name": "callFunction",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -457,6 +527,25 @@
   {
     "inputs": [
       {
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "getNonce",
+    "outputs": [
+      {
+        "internalType": "uint32",
+        "name": "nonce",
+        "type": "uint32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "uint256",
         "name": "amount",
         "type": "uint256"
@@ -467,34 +556,6 @@
     "stateMutability": "nonpayable",
     "type": "function"
   },
-  {
-    "inputs": [
-      {
-        "internalType": "string",
-        "name": "functionSignature",
-        "type": "string"
-      },
-      {
-        "internalType": "bytes",
-        "name": "callData",
-        "type": "bytes"
-      },
-      {
-        "internalType": "bytes32",
-        "name": "userData",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "bytes",
-        "name": "signature",
-        "type": "bytes"
-      }
-    ],
-    "name": "callFunction",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },  
   {
     "stateMutability": "payable",
     "type": "receive"

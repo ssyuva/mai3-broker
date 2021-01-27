@@ -38,16 +38,14 @@ type Config struct {
 }
 
 type L2RelayerConfig struct {
-	BrokerAddress            string        `envconfig:"broker_address"`
-	ProviderURL              string        `envconfig:"provider_url"`
-	ChainID                  int64         `envconfig:"chain_id"`
-	GasPrice                 uint64        `envconfig:"gas_price"`
-	L2RelayerHost            string        `envconfig:"l2_relayer_host"`
-	L2Timeout                time.Duration `envconfig:"l2_timeout"`
-	L2MaxTradeExpiration     time.Duration `envconfig:"l2_max_trade_expiration"`
-	L2CallFunctionFeePercent uint32        `envconfig:"l2_call_function_fee_percent"`
-	L2TradeFee               int64         `envconfig:"l2_trade_fee"`
-	L2RelayerKey             string        `envconfig:"l2_relayer_key"`
+	BrokerAddress    string        `envconfig:"broker_address"`
+	ProviderURL      string        `envconfig:"provider_url"`
+	ChainID          int64         `envconfig:"chain_id"`
+	GasPrice         uint64        `envconfig:"gas_price"`
+	L2RelayerHost    string        `envconfig:"l2_relayer_host"`
+	L2Timeout        time.Duration `envconfig:"l2_timeout"`
+	L2CallFeePercent uint32        `envconfig:"l2_call_fee_percent"`
+	L2RelayerKey     string        `envconfig:"l2_relayer_key"`
 }
 
 var (

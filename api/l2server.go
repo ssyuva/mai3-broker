@@ -2,14 +2,12 @@ package api
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
-	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/mcarloai/mai-v3-broker/conf"
 	"github.com/mcarloai/mai-v3-broker/l2relayer"
 	logger "github.com/sirupsen/logrus"
@@ -85,25 +83,25 @@ func (s *L2RelayerServer) Start() error {
 
 func (s *L2RelayerServer) initRouter() {
 	eg := s.e.Group("/l2relayer")
-	addGroupRoute(eg, "GET", "/address", &GetL2RelayerAddressReq{}, s.GetL2RelayerAddress)
 	addGroupRoute(eg, "POST", "/call", &CallL2FunctionReq{}, s.CallL2Function)
-	addGroupRoute(eg, "POST", "/trade", &PlaceOrderReq{}, s.Trade)
-}
-
-func (s *L2RelayerServer) GetL2RelayerAddress(p Param) (interface{}, error) {
-	res := &GetL2RelayerAddressResp{
-		L2RelayerAddress: s.r.Address(),
-	}
-
-	return res, nil
 }
 
 func (s *L2RelayerServer) CallL2Function(p Param) (interface{}, error) {
 	params := p.(*CallL2FunctionReq)
 
+	gasLimit, err := strconv.ParseUint(params.GasLimit, 10, 64)
+	if err != nil {
+		return nil, BindError(err)
+	}
+
 	ctx, cancel := context.WithTimeout(s.ctx, conf.L2RelayerConf.L2Timeout)
 	defer cancel()
+<<<<<<< HEAD
 	tx, err := s.r.CallFunction(ctx, params.From, params.To, params.FunctionSignature, params.CallData, params.Nonce, params.Expiration, params.GasLimit, params.Signature)
+=======
+
+	tx, err := s.r.CallFunction(ctx, params.From, params.To, params.Method, params.CallData, params.Nonce, params.Expiration, gasLimit, params.Signature)
+>>>>>>> update relayer
 	if err != nil {
 		// TODO
 		return nil, InternalError(err)
@@ -113,36 +111,5 @@ func (s *L2RelayerServer) CallL2Function(p Param) (interface{}, error) {
 		TransactionHash: tx,
 	}
 
-	return res, nil
-}
-
-func (s *L2RelayerServer) Trade(p Param) (interface{}, error) {
-	params := p.(*PlaceOrderReq)
-
-	order, err := GetOrderFromPalceOrderReq(params)
-	if err != nil {
-		return nil, err
-	}
-
-	// Limit Order Only
-	if order.Type != model.LimitOrder {
-		return nil, InternalError(errors.New("order type must be limit"))
-	}
-
-	// OnlyAllow 60s ExpiresAt
-	if order.CreatedAt.Add(conf.L2RelayerConf.L2MaxTradeExpiration).After(order.ExpiresAt) {
-		return nil, InternalError(fmt.Errorf("too large expiration, max=%s", conf.L2RelayerConf.L2MaxTradeExpiration.String()))
-	}
-
-	ctx, cancel := context.WithTimeout(s.ctx, conf.L2RelayerConf.L2Timeout)
-	defer cancel()
-	tx, err := s.r.Trade(ctx, order)
-	if err != nil {
-		//TODO
-		return nil, InternalError(err)
-	}
-	res := &L2TradeResp{
-		TransactionHash: tx,
-	}
 	return res, nil
 }

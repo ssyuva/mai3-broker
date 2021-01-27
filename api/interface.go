@@ -106,32 +106,19 @@ type (
 		Version        int    `json:"version"`
 		RelayerAddress string `json:"relayerAddress"`
 	}
-
-	GetL2RelayerAddressReq struct {
-		BaseReq
-	}
-
-	GetL2RelayerAddressResp struct {
-		L2RelayerAddress string `json:"l2RelayerAddress"`
-	}
-
 	CallL2FunctionReq struct {
 		BaseReq
-		From              string `json:"from"`
-		To                string `json:"to"`
-		FunctionSignature string `json:"functionSignature"`
-		CallData          string `json:"callData"`
-		Nonce             uint32 `json:"nonce"`
-		Expiration        uint32 `json:"expiration"`
-		GasLimit          uint64 `json:"gasLimit"`
-		Signature         string `json:"signature"`
+		From       string `json:"from"`
+		To         string `json:"to"`
+		Method     string `json:"method"`
+		CallData   string `json:"callData"`
+		Nonce      uint32 `json:"nonce"`
+		Expiration uint32 `json:"expiration"`
+		GasLimit   string `json:"gasLimit"`
+		Signature  string `json:"signature"`
 	}
 
 	CallL2FunctionResp struct {
-		TransactionHash string `json:"transactionHash"`
-	}
-
-	L2TradeResp struct {
 		TransactionHash string `json:"transactionHash"`
 	}
 )
