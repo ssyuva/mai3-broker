@@ -234,7 +234,7 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 	case model.MatchOK:
 		return nil, nil
 	case model.MatchInternalErrorID:
-		return nil, InternalError(err)
+		return nil, InternalError(errors.New("match new order error"))
 	case model.MatchMaxOrderNumReachID:
 		return nil, MaxOrderNumReachError()
 	case model.MatchInsufficientBalanceErrorID:

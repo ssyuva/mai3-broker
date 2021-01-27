@@ -217,7 +217,8 @@ func (_Reader *ReaderCaller) GetAccountStorage(opts *bind.CallOpts, liquidityPoo
 	})
 
 	outstruct.IsSynced = out[0].(bool)
-	outstruct.MarginAccount = out[1].(MarginAccount)
+	// outstruct.MarginAccount = out[1].(MarginAccount)
+	outstruct.MarginAccount = *abi.ConvertType(out[1], new(MarginAccount)).(*MarginAccount)
 
 	return *outstruct, err
 
@@ -259,7 +260,8 @@ func (_Reader *ReaderCaller) GetLiquidityPoolStorage(opts *bind.CallOpts, liquid
 	})
 
 	outstruct.IsSynced = out[0].(bool)
-	outstruct.Pool = out[1].(ReaderLiquidityPoolReaderResult)
+	// outstruct.Pool = out[1].(ReaderLiquidityPoolReaderResult)
+	outstruct.Pool = *abi.ConvertType(out[1], new(ReaderLiquidityPoolReaderResult)).(*ReaderLiquidityPoolReaderResult)
 
 	return *outstruct, err
 

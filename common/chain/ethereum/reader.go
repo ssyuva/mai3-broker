@@ -41,8 +41,8 @@ func (c *Client) GetAccountStorage(ctx context.Context, readerAddress string, pe
 		return nil, fmt.Errorf("get margin account failed:%w", err)
 	}
 
-	if res.IsSynced {
-		return nil, fmt.Errorf("perpetual is syncing")
+	if !res.IsSynced {
+		return nil, fmt.Errorf("perpetual sync error")
 	}
 
 	rsp := &model.AccountStorage{}
@@ -76,8 +76,8 @@ func (c *Client) GetLiquidityPoolStorage(ctx context.Context, readerAddress, poo
 		return nil, fmt.Errorf("GetLiquidityPoolStorage failed:%w", err)
 	}
 
-	if res.IsSynced {
-		return nil, fmt.Errorf("perpetual is syncing")
+	if !res.IsSynced {
+		return nil, fmt.Errorf("perpetual sync error")
 	}
 	rsp := &model.LiquidityPoolStorage{}
 	rsp.VaultFeeRate = decimal.NewFromBigInt(res.Pool.VaultFeeRate, -mai3.DECIMALS)
