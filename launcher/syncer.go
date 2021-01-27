@@ -72,10 +72,7 @@ func (s *Syncer) updateStatusByUser(user string) {
 			return
 		}
 
-		ctx, done := context.WithTimeout(s.ctx, conf.Conf.ChainTimeout)
-		defer done()
-
-		receipt, err := s.chainCli.WaitTransactionReceipt(ctx, *tx.TransactionHash)
+		receipt, err := s.chainCli.WaitTransactionReceipt(*tx.TransactionHash)
 		if err != nil {
 			logger.Errorf("syncer: WaitTransactionReceipt error: %s", err)
 			continue

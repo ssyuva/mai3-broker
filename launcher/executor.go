@@ -36,8 +36,6 @@ func (s *Executor) Run() error {
 }
 
 func (s *Executor) executeTransaction() {
-	ctx, done := context.WithTimeout(s.ctx, conf.Conf.ChainTimeout)
-	defer done()
 	users, err := s.dao.GetUsersWithStatus(model.TxInitial)
 	if err != nil {
 		logger.Warnf("find user with status failed: %s", err)
@@ -50,7 +48,7 @@ func (s *Executor) executeTransaction() {
 			continue
 		}
 		logger.Infof("found initial transaction %s from user %s", tx.TxID, user)
-		err = s.sendTransaction(ctx, tx)
+		err = s.sendTransaction(tx)
 		if err != nil {
 			logger.Warningf("commit new transaction failed for %v: %v", user, err)
 		}
@@ -58,16 +56,16 @@ func (s *Executor) executeTransaction() {
 	return
 }
 
-func (s *Executor) sendTransaction(ctx context.Context, tx *model.LaunchTransaction) error {
+func (s *Executor) sendTransaction(tx *model.LaunchTransaction) error {
 	logger.Infof("send transaction for user %v", tx.FromAddress)
-	expNonce, err := s.chainCli.PendingNonceAt(ctx, tx.FromAddress)
+	expNonce, err := s.chainCli.PendingNonceAt(tx.FromAddress)
 	if err != nil {
 		return errors.Wrap(err, "access node rpc failed")
 	}
 	// has nonce, but external transaction
 	if tx.Nonce != nil && expNonce > *tx.Nonce {
 		logger.Warnf("found external transactions, try reset current transaction (CANCEL)")
-		if err := s.reset(ctx, tx); err != nil {
+		if err := s.reset(tx); err != nil {
 			return errors.Wrap(err, "reset transaction failed")
 		}
 		return nil
@@ -81,7 +79,7 @@ func (s *Executor) sendTransaction(ctx context.Context, tx *model.LaunchTransact
 			targetNonce = minNonce
 		}
 		logger.Warnf("found expect nonce lower than assigned, try fast-forward [%v, %v]", expNonce, targetNonce)
-		if err = s.fastForward(ctx, tx.FromAddress, expNonce, targetNonce); err != nil {
+		if err = s.fastForward(tx.FromAddress, expNonce, targetNonce); err != nil {
 			logger.Warnf("fast-forward failed, will try to send transation: %s", err)
 		}
 		logger.Infof("try fast-forward done")
@@ -102,17 +100,17 @@ func (s *Executor) sendTransaction(ctx context.Context, tx *model.LaunchTransact
 	}
 	logger.Infof("using nonce %v", *tx.Nonce)
 	// send
-	if err := s.send(ctx, tx); err != nil {
+	if err := s.send(tx); err != nil {
 		return errors.Wrap(err, "send transaction failed")
 	}
 	return nil
 }
 
-func (s *Executor) reset(ctx context.Context, tx *model.LaunchTransaction) error {
+func (s *Executor) reset(tx *model.LaunchTransaction) error {
 	if tx.TransactionHash == nil {
 		tx.Status = model.TxCanceled
 	} else {
-		_, err := s.chainCli.TransactionByHash(ctx, *tx.TransactionHash)
+		_, err := s.chainCli.TransactionByHash(*tx.TransactionHash)
 		if err != nil {
 			tx.Status = model.TxCanceled
 		} else {
@@ -125,7 +123,7 @@ func (s *Executor) reset(ctx context.Context, tx *model.LaunchTransaction) error
 	return nil
 }
 
-func (s *Executor) fastForward(ctx context.Context, addr string, start uint64, end uint64) error {
+func (s *Executor) fastForward(addr string, start uint64, end uint64) error {
 	for i := start; i < end; i++ {
 		logger.Infof("resend transaction by nonce %v", i)
 		prevs, err := s.dao.GetTxsByNonce(addr, model.Uint64(i))
@@ -136,7 +134,7 @@ func (s *Executor) fastForward(ctx context.Context, addr string, start uint64, e
 			continue
 		}
 		for _, tx := range prevs {
-			if err := s.send(ctx, tx); err != nil {
+			if err := s.send(tx); err != nil {
 				logger.Warnf("(may no be a issue) try resending previous transaction %v failed, err %v", tx.TxID, err)
 			}
 		}
@@ -145,7 +143,7 @@ func (s *Executor) fastForward(ctx context.Context, addr string, start uint64, e
 }
 
 // prepare transaction price and gas limit
-func (s *Executor) prepare(ctx context.Context, tx *model.LaunchTransaction) error {
+func (s *Executor) prepare(tx *model.LaunchTransaction) error {
 	if tx.Nonce == nil {
 		return errors.New("missing nonce")
 	}
@@ -157,14 +155,14 @@ func (s *Executor) prepare(ctx context.Context, tx *model.LaunchTransaction) err
 	return nil
 }
 
-func (s *Executor) send(ctx context.Context, tx *model.LaunchTransaction) error {
+func (s *Executor) send(tx *model.LaunchTransaction) error {
 	return s.dao.Transaction(context.Background(), false /* readonly */, func(dao dao.DAO) error {
 		prevHash := tx.TransactionHash
-		err := s.prepare(ctx, tx)
+		err := s.prepare(tx)
 		if err != nil {
 			return errors.Wrap(err, "prepare transaction failed")
 		}
-		currHash, err := s.chainCli.SendTransaction(ctx, tx)
+		currHash, err := s.chainCli.SendTransaction(tx)
 		if err != nil {
 			return errors.Wrap(err, "send transaction failed")
 		}

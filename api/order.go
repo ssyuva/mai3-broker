@@ -218,9 +218,7 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 	}
 
 	// check ChainID
-	ctx, cancel := context.WithTimeout(s.ctx, conf.Conf.ChainTimeout)
-	defer cancel()
-	chainID, err := s.chainCli.GetChainID(ctx)
+	chainID, err := s.chainCli.GetChainID()
 	if err != nil || chainID.Int64() != params.ChainID {
 		return nil, ChainIDError(params.ChainID)
 	}

@@ -39,9 +39,7 @@ func (s *Monitor) Run() error {
 }
 
 func (s *Monitor) syncUnmatureTransaction() {
-	ctx, done := context.WithTimeout(s.ctx, conf.Conf.ChainTimeout)
-	defer done()
-	blockNumber, err := s.chainCli.GetLatestBlockNumber(ctx)
+	blockNumber, err := s.chainCli.GetLatestBlockNumber()
 	if err != nil {
 		logger.Infof("GetLatestBlockNumber error:%s", err)
 		return
@@ -69,10 +67,7 @@ func (s *Monitor) updateUnmatureTransactionStatus(blockNumber *uint64) {
 			return
 		}
 
-		ctx, done := context.WithTimeout(s.ctx, conf.Conf.ChainTimeout)
-		defer done()
-
-		receipt, err := s.chainCli.WaitTransactionReceipt(ctx, *tx.TransactionHash)
+		receipt, err := s.chainCli.WaitTransactionReceipt(*tx.TransactionHash)
 		if err != nil {
 			logger.Errorf("WaitTransactionReceipt error: %s", err)
 			continue
