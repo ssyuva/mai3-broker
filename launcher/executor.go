@@ -178,6 +178,7 @@ func (s *Executor) send(tx *model.LaunchTransaction) error {
 			logger.Infof("111111111111111111 gasLimit after create:%d", *tx.GasLimit)
 		} else {
 			logger.Infof("update tx, tx: %s", currHash)
+			logger.Infof("111111111111111111 gasLimit after create:%d", *tx.GasLimit)
 			if err := dao.UpdateTx(tx); err != nil {
 				return errors.Wrap(err, "update transaction failed")
 			}
