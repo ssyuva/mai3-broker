@@ -155,6 +155,8 @@ func (m *match) matchOrders() {
 			}
 			m.wsChan <- wsMsg
 		}
+	} else {
+		logger.Errorf("match orders fail. error:%s", err)
 	}
 
 	return

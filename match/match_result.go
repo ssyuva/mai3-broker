@@ -15,6 +15,9 @@ import (
 	logger "github.com/sirupsen/logrus"
 )
 
+const TriggerPriceNotReach = "trigger price is not reached"
+const PriceExceedsLimit = "price exceeds limit"
+
 func (m *match) UpdateOrdersStatus(txID string, status model.TransactionStatus, transactionHash, blockHash string, blockNumber, blockTime uint64) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -98,6 +101,10 @@ func (m *match) updateOrdersByTradeEvent(dao dao.DAO, matchTx *model.MatchTransa
 	for _, event := range TradeFailed {
 		logger.Infof("Trade Failed: %+v", event)
 		if event.TransactionHash != matchTx.TransactionHash.String {
+			continue
+		}
+		// trigger price or price not match in contract, will rollback to orderbook
+		if event.Reason == TriggerPriceNotReach || event.Reason == PriceExceedsLimit {
 			continue
 		}
 		matchInfo := &model.MatchItem{
