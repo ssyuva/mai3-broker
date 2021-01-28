@@ -106,21 +106,6 @@ type (
 		Version        int    `json:"version"`
 		RelayerAddress string `json:"relayerAddress"`
 	}
-	CallL2FunctionReq struct {
-		BaseReq
-		From       string `json:"from"`
-		To         string `json:"to"`
-		Method     string `json:"method"`
-		CallData   string `json:"callData"`
-		Nonce      uint32 `json:"nonce"`
-		Expiration uint32 `json:"expiration"`
-		GasLimit   string `json:"gasLimit"`
-		Signature  string `json:"signature"`
-	}
-
-	CallL2FunctionResp struct {
-		TransactionHash string `json:"transactionHash"`
-	}
 )
 
 func (b *BaseReq) GetAddress() string {

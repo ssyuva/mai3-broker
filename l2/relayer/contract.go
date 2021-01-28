@@ -1,10 +1,9 @@
-package l2relayer
+package relayer
 
 import (
 	"bytes"
 	"context"
 	"encoding/binary"
-	"errors"
 	"math/big"
 	"strings"
 
@@ -19,7 +18,7 @@ import (
 
 const PackedGasFeeLimitShift uint64 = 10 ^ 11
 
-type Mai3SignedCallMessage struct {
+type mai3SignedCallMessage struct {
 	From       common.Address
 	To         common.Address
 	Method     string
@@ -34,7 +33,7 @@ type Mai3SignedCallMessage struct {
 	UserData2 [32]byte // to[20] fee[4]
 }
 
-func PackUserData(from, to common.Address, Nonce, Expiration uint32, GasFeeLimit, fee uint64) ([32]byte, [32]byte) {
+func packUserData(from, to common.Address, Nonce, Expiration uint32, GasFeeLimit, fee uint64) ([32]byte, [32]byte) {
 	buf := new(bytes.Buffer)
 	buf.Write(from.Bytes())
 	_ = binary.Write(buf, binary.BigEndian, Nonce)
@@ -59,25 +58,25 @@ func PackUserData(from, to common.Address, Nonce, Expiration uint32, GasFeeLimit
 	return user1, user2
 }
 
-func (m *Mai3SignedCallMessage) SetUserDataFee(fee uint64) {
+func (m *mai3SignedCallMessage) setUserDataFee(fee uint64) {
 	buf := bytes.NewBuffer(m.UserData2[20:24])
 	_ = binary.Write(buf, binary.BigEndian, uint32(fee/PackedGasFeeLimitShift))
 }
 
-func NewMai3SignedCallMessage(from, to, method, callData string, nonce, expiration uint32, gasFeeLimit uint64, signature string, fee uint64) (*Mai3SignedCallMessage, error) {
+func newMai3SignedCallMessage(from, to, method, callData string, nonce, expiration uint32, gasFeeLimit uint64, signature string, fee uint64) (*mai3SignedCallMessage, error) {
 	if !common.IsHexAddress(from) {
-		return nil, errors.New("invalid from address")
+		return nil, NewInvalidRequestError("bad from address")
 	}
 	fromAddress := common.HexToAddress(from)
 
 	if !common.IsHexAddress(to) {
-		return nil, errors.New("invalid to address")
+		return nil, NewInvalidRequestError("bad to address")
 	}
 	toAddress := common.HexToAddress(to)
 
-	userData1, userData2 := PackUserData(fromAddress, toAddress, nonce, expiration, gasFeeLimit, fee)
+	userData1, userData2 := packUserData(fromAddress, toAddress, nonce, expiration, gasFeeLimit, fee)
 
-	return &Mai3SignedCallMessage{
+	return &mai3SignedCallMessage{
 		From:       fromAddress,
 		To:         toAddress,
 		Method:     method,
@@ -92,18 +91,18 @@ func NewMai3SignedCallMessage(from, to, method, callData string, nonce, expirati
 
 }
 
-func (msg *Mai3SignedCallMessage) FunctionCallParams() []interface{} {
+func (msg *mai3SignedCallMessage) FunctionCallParams() []interface{} {
 	return []interface{}{msg.UserData1, msg.UserData2, msg.Method, msg.CallData, msg.Signaure}
 }
 
-type L2RelayerContract struct {
+type brokerContract struct {
 	address common.Address
 	abi     abi.ABI
 	backend bind.ContractBackend
 	broker  *broker.Broker
 }
 
-func NewRelayerContract(address common.Address, backend bind.ContractBackend) (*L2RelayerContract, error) {
+func newBrokerContract(address common.Address, backend bind.ContractBackend) (*brokerContract, error) {
 	parsed, err := abi.JSON(strings.NewReader(broker.BrokerABI))
 	if err != nil {
 		return nil, err
@@ -112,7 +111,7 @@ func NewRelayerContract(address common.Address, backend bind.ContractBackend) (*
 	if err != nil {
 		return nil, err
 	}
-	return &L2RelayerContract{
+	return &brokerContract{
 		address: address,
 		abi:     parsed,
 		backend: backend,
@@ -120,11 +119,11 @@ func NewRelayerContract(address common.Address, backend bind.ContractBackend) (*
 	}, nil
 }
 
-func (c *L2RelayerContract) CallFunction(opts *bind.TransactOpts, msg *Mai3SignedCallMessage) (*types.Transaction, error) {
+func (c *brokerContract) callFunction(opts *bind.TransactOpts, msg *mai3SignedCallMessage) (*types.Transaction, error) {
 	return c.broker.CallFunction(opts, msg.UserData1, msg.UserData2, msg.Method, msg.CallData, msg.Signaure)
 }
 
-func (c *L2RelayerContract) EstimateFunctionGas(opts *bind.TransactOpts, msg *Mai3SignedCallMessage) (uint64, error) {
+func (c *brokerContract) estimateFunctionGas(opts *bind.TransactOpts, msg *mai3SignedCallMessage) (uint64, error) {
 	input, err := c.abi.Pack("callFunction", msg.FunctionCallParams()...)
 	if err != nil {
 		return 0, err
@@ -147,7 +146,7 @@ func (c *L2RelayerContract) EstimateFunctionGas(opts *bind.TransactOpts, msg *Ma
 	return gasLimit, nil
 }
 
-func (c *L2RelayerContract) BalanceOf(opts *bind.CallOpts, userAddress common.Address) (*big.Int, error) {
+func (c *brokerContract) balanceOf(opts *bind.CallOpts, userAddress common.Address) (*big.Int, error) {
 	return c.broker.BalanceOf(opts, userAddress)
 }
 

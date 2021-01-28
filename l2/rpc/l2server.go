@@ -1,35 +1,33 @@
-package api
+package rpc
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
+	"github.com/mcarloai/mai-v3-broker/api"
 	"github.com/mcarloai/mai-v3-broker/conf"
-	"github.com/mcarloai/mai-v3-broker/l2relayer"
+	"github.com/mcarloai/mai-v3-broker/l2/relayer"
+
 	logger "github.com/sirupsen/logrus"
 )
 
 type L2RelayerServer struct {
 	ctx context.Context
 	e   *echo.Echo
-	r   *l2relayer.L2Relayer
+	r   *relayer.Relayer
 }
 
-func NewL2RelayerServer(ctx context.Context, r *l2relayer.L2Relayer) (*L2RelayerServer, error) {
+func NewL2RelayerServer(ctx context.Context, r *relayer.Relayer) (*L2RelayerServer, error) {
 	e := echo.New()
 	e.HideBanner = true
 
-	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
-		Format: `{"time":"${time_rfc3339}","remote_ip":"${remote_ip}","method":"${method}","uri":"${uri}","status":${status},"error":"${error}"}` + "\n",
-	}))
-
-	e.Use(RecoverHandler)
-	e.HTTPErrorHandler = ErrorHandler
-	e.Use(InitMaiApiContext)
+	e.Use(api.RecoverHandler)
+	e.HTTPErrorHandler = errorHandler
 
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{"*"},
@@ -37,8 +35,6 @@ func NewL2RelayerServer(ctx context.Context, r *l2relayer.L2Relayer) (*L2Relayer
 			echo.HeaderOrigin,
 			echo.HeaderContentType,
 			echo.HeaderAccept,
-			"Authentication",
-			"Mai-Authentication",
 		},
 	}))
 
@@ -83,15 +79,19 @@ func (s *L2RelayerServer) Start() error {
 
 func (s *L2RelayerServer) initRouter() {
 	eg := s.e.Group("/l2relayer")
+
 	addGroupRoute(eg, "POST", "/call", &CallL2FunctionReq{}, s.CallL2Function)
 }
 
 func (s *L2RelayerServer) CallL2Function(p Param) (interface{}, error) {
-	params := p.(*CallL2FunctionReq)
+	params, ok := p.(*CallL2FunctionReq)
+	if !ok {
+		return nil, errors.New("Unknown error, bad params types")
+	}
 
 	gasLimit, err := strconv.ParseUint(params.GasLimit, 10, 64)
 	if err != nil {
-		return nil, BindError(err)
+		return nil, relayer.NewInvalidRequestError("invalid gas limit")
 	}
 
 	ctx, cancel := context.WithTimeout(s.ctx, conf.L2RelayerConf.L2Timeout)
@@ -103,8 +103,7 @@ func (s *L2RelayerServer) CallL2Function(p Param) (interface{}, error) {
 	tx, err := s.r.CallFunction(ctx, params.From, params.To, params.Method, params.CallData, params.Nonce, params.Expiration, gasLimit, params.Signature)
 >>>>>>> update relayer
 	if err != nil {
-		// TODO
-		return nil, InternalError(err)
+		return nil, err
 	}
 
 	res := &CallL2FunctionResp{

@@ -8,9 +8,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/mcarloai/mai-v3-broker/api"
 	"github.com/mcarloai/mai-v3-broker/conf"
-	"github.com/mcarloai/mai-v3-broker/l2relayer"
+	"github.com/mcarloai/mai-v3-broker/l2/relayer"
+	"github.com/mcarloai/mai-v3-broker/l2/rpc"
 	"golang.org/x/sync/errgroup"
 
 	logger "github.com/sirupsen/logrus"
@@ -28,7 +28,7 @@ func main() {
 		panic(err)
 	}
 
-	relayer, err := l2relayer.NewL2Relayer(
+	r, err := relayer.NewRelayer(
 		conf.L2RelayerConf.ProviderURL,
 		big.NewInt(conf.L2RelayerConf.ChainID),
 		conf.L2RelayerConf.L2RelayerKey,
@@ -42,7 +42,7 @@ func main() {
 	}
 
 	// start api server
-	server, err := api.NewL2RelayerServer(ctx, relayer)
+	server, err := rpc.NewL2RelayerServer(ctx, r)
 	if err != nil {
 		logger.Errorf("create l2 relayer server fail:%s", err.Error())
 		os.Exit(-5)
