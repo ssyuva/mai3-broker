@@ -239,7 +239,7 @@ func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice
 			result = append(result, matchItem)
 			maxTradeAmount = maxTradeAmount.Sub(order.Amount)
 		} else {
-			matchedAmount := maxTradeAmount.Mul(TradeAmountRelaxFactor)
+			matchedAmount := maxTradeAmount.Mul(TradeAmountRelaxFactor).Round(18)
 			matchItem := &MatchItem{
 				Order:              order,
 				OrderCancelAmounts: make([]decimal.Decimal, 0),
@@ -253,13 +253,13 @@ func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice
 				logger.Errorf("matchOneSide: ComputeAMMTrade fail. err:%s", err)
 				return result, false
 			}
-			result = append(result, matchItem)
 			if order.Amount.Sub(matchedAmount).Abs().LessThan(order.MinTradeAmount.Abs()) {
 				logger.Infof("OrderCancelAmount: %s", order.Amount.Sub(matchedAmount))
 				matchItem.OrderCancelAmounts = append(matchItem.OrderCancelAmounts, order.Amount.Sub(matchedAmount))
 				matchItem.OrderCancelReasons = append(matchItem.OrderCancelReasons, model.CancelReasonRemainTooSmall)
 				matchItem.OrderTotalCancel = order.Amount.Sub(matchedAmount)
 			}
+			result = append(result, matchItem)
 			break
 		}
 	}
