@@ -35,6 +35,8 @@ func main() {
 		panic(err)
 	}
 
+	logger.Infof("Config: %+v", conf.Conf)
+
 	// init database
 	if err = dao.ConnectPostgres(conf.Conf.DataBaseURL); err != nil {
 		logger.Errorf("create database fail:%s", err.Error())
