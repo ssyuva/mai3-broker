@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/mcarloai/mai-v3-broker/common/chain"
+	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
 	"github.com/mcarloai/mai-v3-broker/common/message"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/mcarloai/mai-v3-broker/common/orderbook"
@@ -109,7 +110,7 @@ func (m *match) matchOrders() {
 				return fmt.Errorf("Match: Get Order[%s] failed, error:%w", item.Order.ID, err)
 			}
 			newAmount := order.AvailableAmount.Sub(item.MatchedAmount)
-			if newAmount.IsNegative() {
+			if !utils.HasTheSameSign(newAmount, order.AvailableAmount) {
 				return fmt.Errorf("Match: order[%s] avaliable is negative after match", order.OrderHash)
 			}
 			order.AvailableAmount = newAmount
