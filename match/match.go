@@ -132,7 +132,7 @@ func (m *match) matchOrders() {
 			if err := dao.UpdateOrder(order); err != nil {
 				return fmt.Errorf("Match: order[%s] update failed error:%w", order.OrderHash, err)
 			}
-			if err := m.orderbook.ChangeOrder(item.Order, item.MatchedAmount.Neg()); err != nil {
+			if err := m.orderbook.ChangeOrder(item.Order, item.MatchedAmount.Add(item.OrderTotalCancel).Neg()); err != nil {
 				return fmt.Errorf("Match: order[%s] orderbook ChangeOrder failed error:%w", order.OrderHash, err)
 			}
 			orders = append(orders, order)

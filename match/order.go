@@ -170,6 +170,7 @@ func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice
 	}
 
 	maxTradeAmount := mai3.ComputeAMMAmountWithPrice(poolStorage, m.perpetual.PerpetualIndex, isBuy, tradePrice)
+	logger.Infof("maxAmount:%s, isBuy:%v, tradePrice:%s perpetual:%s-%d ", maxTradeAmount, isBuy, tradePrice, m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex)
 	if maxTradeAmount.IsZero() || !utils.HasTheSameSign(maxTradeAmount, orders[0].Amount) {
 		return result, false
 	}
@@ -179,6 +180,8 @@ func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice
 		if len(result) == mai3.MaiV3MaxMatchGroup {
 			return result, false
 		}
+
+		logger.Infof("memoryOrder:%+v", order)
 
 		if maxTradeAmount.Abs().LessThan(order.MinTradeAmount.Abs()) {
 			continue
@@ -225,6 +228,7 @@ func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice
 				OrderTotalCancel:   decimal.Zero,
 				MatchedAmount:      order.Amount,
 			}
+			logger.Infof("matchedAmount: %s orderAmount:%s", order.Amount, order.Amount)
 			_, err = mai3.ComputeAMMTrade(poolStorage, m.perpetual.PerpetualIndex, account, order.Amount)
 			if err != nil {
 				logger.Errorf("matchOneSide: ComputeAMMTrade fail. err:%s", err)
@@ -240,6 +244,7 @@ func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice
 				OrderTotalCancel:   decimal.Zero,
 				MatchedAmount:      maxTradeAmount,
 			}
+			logger.Infof("matchedAmount: %s orderAmount:%s", order.Amount, order.Amount)
 			_, err = mai3.ComputeAMMTrade(poolStorage, m.perpetual.PerpetualIndex, account, maxTradeAmount)
 			if err != nil {
 				logger.Errorf("matchOneSide: ComputeAMMTrade fail. err:%s", err)
@@ -247,6 +252,7 @@ func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice
 			}
 			result = append(result, matchItem)
 			if order.Amount.Sub(maxTradeAmount).Abs().LessThan(order.MinTradeAmount.Abs()) {
+				logger.Infof("OrderCancelAmount: %s", order.Amount.Sub(maxTradeAmount))
 				matchItem.OrderCancelAmounts = append(matchItem.OrderCancelAmounts, order.Amount.Sub(maxTradeAmount))
 				matchItem.OrderCancelReasons = append(matchItem.OrderCancelReasons, model.CancelReasonRemainTooSmall)
 				matchItem.OrderTotalCancel = order.Amount.Sub(maxTradeAmount)
