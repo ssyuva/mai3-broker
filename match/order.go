@@ -17,6 +17,8 @@ type OrderCancel struct {
 	ToCancel  decimal.Decimal
 }
 
+var TradeAmountRelaxFactor = decimal.NewFromFloat(0.99)
+
 func (m *match) CheckOrderMargin(poolStorage *model.LiquidityPoolStorage, account *model.AccountStorage, order *model.Order) bool {
 	perpetualStorage, ok := poolStorage.Perpetuals[m.perpetual.PerpetualIndex]
 	if !ok {
@@ -237,25 +239,26 @@ func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice
 			result = append(result, matchItem)
 			maxTradeAmount = maxTradeAmount.Sub(order.Amount)
 		} else {
+			matchedAmount := maxTradeAmount.Mul(TradeAmountRelaxFactor)
 			matchItem := &MatchItem{
 				Order:              order,
 				OrderCancelAmounts: make([]decimal.Decimal, 0),
 				OrderCancelReasons: make([]model.CancelReasonType, 0),
 				OrderTotalCancel:   decimal.Zero,
-				MatchedAmount:      maxTradeAmount,
+				MatchedAmount:      matchedAmount,
 			}
-			logger.Infof("matchedAmount: %s orderAmount:%s", order.Amount, order.Amount)
-			_, err = mai3.ComputeAMMTrade(poolStorage, m.perpetual.PerpetualIndex, account, maxTradeAmount)
+			logger.Infof("matchedAmount: %s orderAmount:%s", matchedAmount, order.Amount)
+			_, err = mai3.ComputeAMMTrade(poolStorage, m.perpetual.PerpetualIndex, account, matchedAmount)
 			if err != nil {
 				logger.Errorf("matchOneSide: ComputeAMMTrade fail. err:%s", err)
 				return result, false
 			}
 			result = append(result, matchItem)
-			if order.Amount.Sub(maxTradeAmount).Abs().LessThan(order.MinTradeAmount.Abs()) {
-				logger.Infof("OrderCancelAmount: %s", order.Amount.Sub(maxTradeAmount))
-				matchItem.OrderCancelAmounts = append(matchItem.OrderCancelAmounts, order.Amount.Sub(maxTradeAmount))
+			if order.Amount.Sub(matchedAmount).Abs().LessThan(order.MinTradeAmount.Abs()) {
+				logger.Infof("OrderCancelAmount: %s", order.Amount.Sub(matchedAmount))
+				matchItem.OrderCancelAmounts = append(matchItem.OrderCancelAmounts, order.Amount.Sub(matchedAmount))
 				matchItem.OrderCancelReasons = append(matchItem.OrderCancelReasons, model.CancelReasonRemainTooSmall)
-				matchItem.OrderTotalCancel = order.Amount.Sub(maxTradeAmount)
+				matchItem.OrderTotalCancel = order.Amount.Sub(matchedAmount)
 			}
 			break
 		}
