@@ -13,7 +13,6 @@ import (
 	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/pkg/errors"
-	logger "github.com/sirupsen/logrus"
 	"math/big"
 	"math/rand"
 	"sync"
@@ -210,7 +209,6 @@ func (c *Client) TransactionByHash(txHash string) (bool, error) {
 }
 
 func (c *Client) SendTransaction(tx *model.LaunchTransaction) (string, error) {
-	logger.Infof("2222222222 SendTransaction 1 gasLimit:%d", *tx.GasLimit)
 	rawTx := ethtypes.NewTransaction(
 		*tx.Nonce,
 		ethCommon.HexToAddress(tx.ToAddress),
@@ -218,7 +216,6 @@ func (c *Client) SendTransaction(tx *model.LaunchTransaction) (string, error) {
 		*tx.GasLimit,
 		big.NewInt(int64(*tx.GasPrice)),
 		tx.Inputs)
-	logger.Infof("2222222222 SendTransaction 2 gasLimit:%d", *tx.GasLimit)
 
 	acc, err := c.GetAccount(tx.FromAddress)
 	if err != nil {
@@ -232,7 +229,6 @@ func (c *Client) SendTransaction(tx *model.LaunchTransaction) (string, error) {
 	if err != nil {
 		return "", errors.Wrap(err, "send transaction failed")
 	}
-	logger.Infof("2222222222 SendTransaction 3 gasLimit:%d", *tx.GasLimit)
 
 	return signedTx.Hash().Hex(), nil
 }

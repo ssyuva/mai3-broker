@@ -150,7 +150,6 @@ func (s *Executor) prepare(tx *model.LaunchTransaction) error {
 
 	limit := conf.Conf.GasLimit
 	tx.GasLimit = &limit
-	logger.Infof("111111111111111111 gasLimit:%d", *tx.GasLimit)
 	price := s.gasMonitor.GetGasPrice() * 1e9
 	tx.GasPrice = &price
 	return nil
@@ -175,10 +174,8 @@ func (s *Executor) send(tx *model.LaunchTransaction) error {
 			if err := dao.CreateTx(tx); err != nil {
 				return errors.Wrap(err, "create resend transaction failed")
 			}
-			logger.Infof("111111111111111111 gasLimit after create:%d", *tx.GasLimit)
 		} else {
 			logger.Infof("update tx, tx: %s", currHash)
-			logger.Infof("111111111111111111 gasLimit after create:%d", *tx.GasLimit)
 			if err := dao.UpdateTx(tx); err != nil {
 				return errors.Wrap(err, "update transaction failed")
 			}

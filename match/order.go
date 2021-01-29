@@ -192,6 +192,7 @@ func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice
 		// check stop order
 		if order.Type == model.StopLimitOrder || order.Type == model.TakeProfitOrder {
 			bestPrice = mai3.ComputeBestAskBidPrice(poolStorage, m.perpetual.PerpetualIndex, order.Amount.IsNegative())
+			logger.Infof("bestPrice:%s", bestPrice)
 			// 0 after compute
 			if bestPrice.IsZero() {
 				continue
