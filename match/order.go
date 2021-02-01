@@ -199,16 +199,16 @@ func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice
 			}
 
 			if order.Type == model.StopLimitOrder {
-				// When amount > 0, if stop loss order: index price must >= trigger price,
-				// When amount < 0, if stop loss order: index price must <= trigger price,
+				// When amount > 0, if stop loss order: best price must >= trigger price,
+				// When amount < 0, if stop loss order: best price must <= trigger price,
 				if order.Amount.IsPositive() && bestPrice.LessThan(order.TriggerPrice) {
 					continue
 				} else if order.Amount.IsNegative() && bestPrice.GreaterThan(order.TriggerPrice) {
 					continue
 				}
 			} else {
-				// When amount > 0, if take profit order: index price must <= trigger price,
-				// When amount < 0, if take profit order: index price must >= trigger price,
+				// When amount > 0, if take profit order: best price must <= trigger price,
+				// When amount < 0, if take profit order: best price must >= trigger price,
 				if order.Amount.IsPositive() && bestPrice.GreaterThan(order.TriggerPrice) {
 					continue
 				} else if order.Amount.IsNegative() && bestPrice.LessThan(order.TriggerPrice) {

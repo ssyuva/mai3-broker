@@ -28,7 +28,7 @@ func New(ctx context.Context, cli chain.ChainClient, dao dao.DAO, match *match.S
 	e.HideBanner = true
 
 	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
-		Format: `{"time":"${time_rfc3339}","remote_ip":"${remote_ip}","method":"${method}","uri":"${uri}","status":${status},"error":"${error}"}` + "\n",
+		Format: `{"time":"${time_rfc3339}","remote_ip":"${remote_ip}","method":"${method}","uri":"${uri}","status":${status},"error":"${error}","request_time":"${latency_human}"}` + "\n",
 	}))
 
 	e.Use(RecoverHandler)
