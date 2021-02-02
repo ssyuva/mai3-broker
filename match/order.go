@@ -140,14 +140,18 @@ func (m *match) MatchOrderSideBySide() []*MatchItem {
 		if len(bidPrices) > bidIdx {
 			result, bidContinue = m.matchOneSide(poolStorage, bidPrices[bidIdx], true, result)
 			bidIdx++
+		} else {
+			bidContinue = false
 		}
 
 		if len(askPrices) > askIdx {
 			result, askContinue = m.matchOneSide(poolStorage, askPrices[askIdx], false, result)
 			askIdx++
+		} else {
+			askContinue = false
 		}
 
-		if (!bidContinue && !askContinue) || ((len(bidPrices) <= bidIdx) && len(askPrices) <= askIdx) {
+		if !bidContinue && !askContinue {
 			break
 		}
 	}
