@@ -202,6 +202,7 @@ func GetOrderFromPalceOrderReq(params *PlaceOrderReq) (*model.Order, error) {
 
 func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 	params := p.(*PlaceOrderReq)
+	logger.Infof("New order : %s", params.OrderHash)
 
 	order, err := GetOrderFromPalceOrderReq(params)
 	if err != nil {

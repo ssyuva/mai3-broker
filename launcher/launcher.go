@@ -232,6 +232,7 @@ func GetCompressOrderData(order *model.Order) ([]byte, error) {
 		orderSig.S,
 	)
 
+	logger.Infof("order_hash:%s, compress order data:%s", order.OrderHash, orderData)
 	bytes, err := mai3Utils.Hex2Bytes(orderData)
 	if err != nil {
 		return nil, fmt.Errorf("GetCompressOrderData:%w", err)
