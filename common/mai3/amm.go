@@ -104,9 +104,9 @@ func computeBestAskBidPriceIfUnsafe(context *model.AMMTradingContext) decimal.De
 
 func appendSpread(context *model.AMMTradingContext, midPrice decimal.Decimal, isAMMBuy bool) decimal.Decimal {
 	if isAMMBuy {
-		return midPrice.Mul(_1.Sub(context.HalfSpread))
+		return midPrice.Mul(_1.Sub(context.HalfSpread)).RoundBank(DECIMALS)
 	}
-	return midPrice.Mul(_1.Add(context.HalfSpread))
+	return midPrice.Mul(_1.Add(context.HalfSpread)).Round(DECIMALS)
 }
 
 func computeAMMOpenAmountWithPrice(context *model.AMMTradingContext, limitPrice decimal.Decimal, isAMMBuy bool) decimal.Decimal {
