@@ -244,7 +244,7 @@ func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice
 			result = append(result, matchItem)
 			maxTradeAmount = maxTradeAmount.Sub(order.Amount)
 		} else {
-			matchedAmount := maxTradeAmount.Mul(TradeAmountRelaxFactor).Round(18)
+			matchedAmount := maxTradeAmount.Mul(TradeAmountRelaxFactor).Round(mai3.DECIMALS)
 			matchItem := &MatchItem{
 				Order:              order,
 				OrderCancelAmounts: make([]decimal.Decimal, 0),

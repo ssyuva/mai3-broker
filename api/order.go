@@ -138,8 +138,10 @@ func GetOrderFromPalceOrderReq(params *PlaceOrderReq) (*model.Order, error) {
 	order.Status = model.OrderPending
 	order.OrderParam.Amount, _ = decimal.NewFromString(params.Amount)
 	order.OrderParam.ChainID = params.ChainID
-	order.OrderParam.Price, _ = decimal.NewFromString(params.Price)
-	order.OrderParam.TriggerPrice, _ = decimal.NewFromString(params.TriggerPrice)
+	price, _ := decimal.NewFromString(params.Price)
+	order.OrderParam.Price = price.Round(mai3.DECIMALS)
+	triggerPrice, _ := decimal.NewFromString(params.TriggerPrice)
+	order.OrderParam.TriggerPrice = triggerPrice.Round(mai3.DECIMALS)
 	order.OrderParam.IsCloseOnly = params.IsCloseOnly
 	order.OrderParam.ExpiresAt = time.Unix(params.ExpiresAt, 0).UTC()
 	order.OrderParam.Salt = params.Salt
