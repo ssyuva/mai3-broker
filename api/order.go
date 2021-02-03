@@ -136,7 +136,8 @@ func GetOrderFromPalceOrderReq(params *PlaceOrderReq) (*model.Order, error) {
 	order.OrderParam.TraderAddress = strings.ToLower(params.Address)
 	order.OrderParam.Type = model.OrderType(params.OrderType)
 	order.Status = model.OrderPending
-	order.OrderParam.Amount, _ = decimal.NewFromString(params.Amount)
+	amount, _ := decimal.NewFromString(params.Amount)
+	order.OrderParam.Amount = amount.Round(mai3.DECIMALS)
 	order.OrderParam.ChainID = params.ChainID
 	price, _ := decimal.NewFromString(params.Price)
 	order.OrderParam.Price = price.Round(mai3.DECIMALS)
@@ -156,7 +157,8 @@ func GetOrderFromPalceOrderReq(params *PlaceOrderReq) (*model.Order, error) {
 		return nil, InternalError(fmt.Errorf("marshalSignature:%w", err))
 	}
 	order.OrderParam.Signature = string(sigJSON)
-	order.OrderParam.MinTradeAmount, _ = decimal.NewFromString(params.MinTradeAmount)
+	minTradeAmount, _ := decimal.NewFromString(params.MinTradeAmount)
+	order.OrderParam.MinTradeAmount = minTradeAmount.Round(mai3.DECIMALS)
 	order.OrderParam.BrokerFeeLimit = params.BrokerFeeLimit
 	order.OrderParam.LiquidityPoolAddress = strings.ToLower(params.LiquidityPoolAddress)
 	order.OrderParam.PerpetualIndex = params.PerpetualIndex
