@@ -95,10 +95,6 @@ func computeBestAskBidPriceIfSafe(context *model.AMMTradingContext, beta decimal
 }
 
 func computeBestAskBidPriceIfUnsafe(context *model.AMMTradingContext) decimal.Decimal {
-	if context.Position1.GreaterThan(_0) && context.CloseSlippageFactor.GreaterThan(_0_5) {
-		// special case: long position, β2 > 0.5
-		return _1.Sub(context.MaxClosePriceDiscount).Mul(context.Index)
-	}
 	return context.Index
 }
 

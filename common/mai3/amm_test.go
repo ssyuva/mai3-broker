@@ -55,12 +55,73 @@ var perpetual1 = &model.PerpetualStorage{
 	AmmPositionAmount: _0, // assign me later
 }
 
+var perpetual0 = &model.PerpetualStorage{
+	IsNormal: true,
+
+	MarkPrice:               decimal.NewFromFloat(95),
+	IndexPrice:              decimal.NewFromFloat(100),
+	UnitAccumulativeFunding: decimal.NewFromFloat(1.9),
+
+	InitialMarginRate:      decimal.NewFromFloat(0.1),
+	MaintenanceMarginRate:  decimal.NewFromFloat(0.05),
+	OperatorFeeRate:        decimal.NewFromFloat(0.0001),
+	LpFeeRate:              decimal.NewFromFloat(0.0008),
+	ReferrerRebateRate:     decimal.NewFromFloat(0.0000),
+	LiquidationPenaltyRate: decimal.NewFromFloat(0.005),
+	KeeperGasReward:        decimal.NewFromFloat(2),
+	InsuranceFundRate:      decimal.NewFromFloat(0.0001),
+	InsuranceFundCap:       decimal.NewFromFloat(10000),
+	InsuranceFund:          _0,
+	DonatedInsuranceFund:   _0,
+
+	HalfSpread:            decimal.NewFromFloat(0.001),
+	OpenSlippageFactor:    decimal.NewFromFloat(1),
+	CloseSlippageFactor:   decimal.NewFromFloat(0.9),
+	FundingRateLimit:      decimal.NewFromFloat(0.005),
+	MaxLeverage:           decimal.NewFromFloat(3),
+	MaxClosePriceDiscount: decimal.NewFromFloat(0.2),
+
+	AmmCashBalance:    _0, // assign me later
+	AmmPositionAmount: _0, // assign me later
+}
+
+var perpetual2 = &model.PerpetualStorage{
+	IsNormal: true,
+
+	MarkPrice:               decimal.NewFromFloat(95),
+	IndexPrice:              decimal.NewFromFloat(100),
+	UnitAccumulativeFunding: decimal.NewFromFloat(1.9),
+
+	InitialMarginRate:      decimal.NewFromFloat(0.1),
+	MaintenanceMarginRate:  decimal.NewFromFloat(0.05),
+	OperatorFeeRate:        decimal.NewFromFloat(0.0001),
+	LpFeeRate:              decimal.NewFromFloat(0.0008),
+	ReferrerRebateRate:     decimal.NewFromFloat(0.0000),
+	LiquidationPenaltyRate: decimal.NewFromFloat(0.005),
+	KeeperGasReward:        decimal.NewFromFloat(2),
+	InsuranceFundRate:      decimal.NewFromFloat(0.0001),
+	InsuranceFundCap:       decimal.NewFromFloat(10000),
+	InsuranceFund:          _0,
+	DonatedInsuranceFund:   _0,
+
+	HalfSpread:            decimal.NewFromFloat(0.001),
+	OpenSlippageFactor:    decimal.NewFromFloat(1),
+	CloseSlippageFactor:   decimal.NewFromFloat(0.9),
+	FundingRateLimit:      decimal.NewFromFloat(0.005),
+	MaxLeverage:           decimal.NewFromFloat(3),
+	MaxClosePriceDiscount: decimal.NewFromFloat(0.2),
+
+	AmmCashBalance:    _0, // assign me later
+	AmmPositionAmount: _0, // assign me later
+}
+
 var accountStorage1 = &model.AccountStorage{
 	CashBalance:    decimal.NewFromFloat(7698.86),
 	PositionAmount: decimal.NewFromFloat(2.3),
 }
 
 const TEST_PERPETUAL_INDEX0 = 0
+const TEST_PERPETUAL_INDEX1 = 1
 
 var poolStorage0 = &model.LiquidityPoolStorage{
 	VaultFeeRate:    decimal.NewFromFloat(0.0002),
@@ -416,4 +477,106 @@ func TestComputeAMMAmountWithPrice26(t *testing.T) {
 	Approximate(t, decimal.NewFromFloat(-52.542857142857142857), amount)
 	tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
 	Approximate(t, tradingPrice, limitPrice)
+}
+
+// open 0 -> -x
+func TestComputeBestAskBidPrice0(t *testing.T) {
+	poolStorage := defaultPool
+	poolStorage.PoolCashBalance = decimal.NewFromFloat(10000)
+	perpetual0.AmmPositionAmount = decimal.NewFromFloat(0)
+	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX0] = perpetual0
+	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX1] = perpetual0
+
+	bestPrice := ComputeBestAskBidPrice(poolStorage, TEST_PERPETUAL_INDEX0, false)
+	Approximate(t, bestPrice, decimal.NewFromFloat(100.1))
+}
+
+// open -10
+func TestComputeBestAskBidPrice1(t *testing.T) {
+	poolStorage := defaultPool
+	poolStorage.PoolCashBalance = decimal.NewFromFloat(10100)
+	perpetual0.AmmPositionAmount = decimal.NewFromFloat(-10)
+	perpetual2.AmmPositionAmount = decimal.NewFromFloat(10)
+	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX0] = perpetual0
+	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX1] = perpetual2
+
+	bestPrice := ComputeBestAskBidPrice(poolStorage, TEST_PERPETUAL_INDEX0, false)
+	Approximate(t, bestPrice, decimal.NewFromFloat(110.11))
+}
+
+// open 0 -> +x
+func TestComputeBestAskBidPrice2(t *testing.T) {
+	poolStorage := defaultPool
+	poolStorage.PoolCashBalance = decimal.NewFromFloat(10000)
+	perpetual0.AmmPositionAmount = decimal.NewFromFloat(0)
+	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX0] = perpetual0
+	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX1] = perpetual0
+
+	bestPrice := ComputeBestAskBidPrice(poolStorage, TEST_PERPETUAL_INDEX0, true)
+	Approximate(t, bestPrice, decimal.NewFromFloat(99.9))
+}
+
+// open 10
+func TestComputeBestAskBidPrice3(t *testing.T) {
+	poolStorage := defaultPool
+	poolStorage.PoolCashBalance = decimal.NewFromFloat(8138)
+	perpetual0.AmmPositionAmount = decimal.NewFromFloat(10)
+	perpetual2.AmmPositionAmount = decimal.NewFromFloat(10)
+	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX0] = perpetual0
+	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX1] = perpetual2
+
+	bestPrice := ComputeBestAskBidPrice(poolStorage, TEST_PERPETUAL_INDEX0, true)
+	Approximate(t, bestPrice, decimal.NewFromFloat(89.91))
+}
+
+// close -10
+func TestComputeBestAskBidPrice4(t *testing.T) {
+	poolStorage := defaultPool
+	poolStorage.PoolCashBalance = decimal.NewFromFloat(10100)
+	perpetual0.AmmPositionAmount = decimal.NewFromFloat(-10)
+	perpetual2.AmmPositionAmount = decimal.NewFromFloat(10)
+	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX0] = perpetual0
+	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX1] = perpetual2
+
+	bestPrice := ComputeBestAskBidPrice(poolStorage, TEST_PERPETUAL_INDEX0, true)
+	Approximate(t, bestPrice, decimal.NewFromFloat(108.88646369499801395463383186703))
+}
+
+// close 10
+func TestComputeBestAskBidPrice5(t *testing.T) {
+	poolStorage := defaultPool
+	poolStorage.PoolCashBalance = decimal.NewFromFloat(8138)
+	perpetual0.AmmPositionAmount = decimal.NewFromFloat(10)
+	perpetual2.AmmPositionAmount = decimal.NewFromFloat(10)
+	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX0] = perpetual0
+	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX1] = perpetual2
+
+	bestPrice := ComputeBestAskBidPrice(poolStorage, TEST_PERPETUAL_INDEX0, false)
+	Approximate(t, bestPrice, decimal.NewFromFloat(91.09554538669368171312465896007))
+}
+
+// close unsafe -10
+func TestComputeBestAskBidPrice6(t *testing.T) {
+	poolStorage := defaultPool
+	poolStorage.PoolCashBalance = decimal.NewFromFloat(17692)
+	perpetual0.AmmPositionAmount = decimal.NewFromFloat(-80)
+	perpetual2.AmmPositionAmount = decimal.NewFromFloat(10)
+	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX0] = perpetual0
+	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX1] = perpetual2
+
+	bestPrice := ComputeBestAskBidPrice(poolStorage, TEST_PERPETUAL_INDEX0, true)
+	Approximate(t, bestPrice, decimal.NewFromFloat(100))
+}
+
+// close unsafe 10
+func TestComputeBestAskBidPrice7(t *testing.T) {
+	poolStorage := defaultPool
+	poolStorage.PoolCashBalance = decimal.NewFromFloat(1996)
+	perpetual0.AmmPositionAmount = decimal.NewFromFloat(80)
+	perpetual2.AmmPositionAmount = decimal.NewFromFloat(10)
+	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX0] = perpetual0
+	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX1] = perpetual2
+
+	bestPrice := ComputeBestAskBidPrice(poolStorage, TEST_PERPETUAL_INDEX0, false)
+	Approximate(t, bestPrice, decimal.NewFromFloat(100))
 }
