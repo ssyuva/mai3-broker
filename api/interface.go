@@ -43,7 +43,7 @@ type (
 	}
 
 	PlaceOrderResp struct {
-		OrderHash string `json:"orderHash"`
+		Jwt string `json:"jwt"`
 	}
 
 	CancelOrderReq struct {
