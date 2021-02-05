@@ -11,17 +11,15 @@ const QueryParamSeperator = ","
 type CancelReasonType string
 
 const (
-	CancelReasonExpired                      CancelReasonType = "EXPIRED"
-	CancelReasonAdminCancel                  CancelReasonType = "CANCELED_BY_ADMIN"
-	CancelReasonUserCancel                   CancelReasonType = "CANCELED_BY_USER"
-	CancelReasonTransactionFail              CancelReasonType = "TRANSACTION_FAIL"
-	CancelReasonRemainTooSmall               CancelReasonType = "REMAIN_TOO_SMALL"
-	CancelReasonMatchTooSmall                CancelReasonType = "MATCH_TOO_SMALL"
-	CancelReasonInternalError                CancelReasonType = "INTERNAL_ERROR"
-	CancelReasonInsufficientFunds            CancelReasonType = "INSUFFICIENT_FUNDS"
-	CancelReasonLongPriceTooHighAfterExpired CancelReasonType = "LONG_PRICE_TOO_HIGH_AFTER_EXPIRED"
-	CancelReasonShortPriceTooLowAfetrExpired CancelReasonType = "SHORT_PRICE_TOO_LOW_AFTER_EXPIRED"
-	CancelReasonContractSettled              CancelReasonType = "CONTRACT_SETTLED"
+	CancelReasonExpired           CancelReasonType = "EXPIRED"
+	CancelReasonAdminCancel       CancelReasonType = "CANCELED_BY_ADMIN"
+	CancelReasonUserCancel        CancelReasonType = "CANCELED_BY_USER"
+	CancelReasonTransactionFail   CancelReasonType = "TRANSACTION_FAIL"
+	CancelReasonRemainTooSmall    CancelReasonType = "REMAIN_TOO_SMALL"
+	CancelReasonInternalError     CancelReasonType = "INTERNAL_ERROR"
+	CancelReasonInsufficientFunds CancelReasonType = "INSUFFICIENT_FUNDS"
+	CancelReasonGasNotEnough      CancelReasonType = "GAS_NOT_ENOUGH"
+	CancelReasonContractSettled   CancelReasonType = "CONTRACT_SETTLED"
 )
 
 const (

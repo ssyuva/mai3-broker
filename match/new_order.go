@@ -33,6 +33,12 @@ func (m *match) NewOrder(order *model.Order) string {
 		return model.MatchInternalErrorID
 	}
 
+	perpetual, ok := poolStorage.Perpetuals[m.perpetual.PerpetualIndex]
+	if !ok || !perpetual.IsNormal {
+		logger.Errorf("new order: perpetual status is not normal!")
+		return model.MatchInternalErrorID
+	}
+
 	if !m.CheckOrderMargin(poolStorage, account, order) {
 		return model.MatchInsufficientBalanceErrorID
 	}

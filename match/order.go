@@ -8,14 +8,7 @@ import (
 	"github.com/mcarloai/mai-v3-broker/conf"
 	"github.com/shopspring/decimal"
 	logger "github.com/sirupsen/logrus"
-	"sort"
 )
-
-type OrderCancel struct {
-	OrderHash string
-	Status    model.OrderStatus
-	ToCancel  decimal.Decimal
-}
 
 var TradeAmountRelaxFactor = decimal.NewFromFloat(0.99)
 
@@ -47,66 +40,6 @@ func (m *match) CheckCloseOnly(account *model.AccountStorage, order *model.Order
 		}
 	}
 	return true
-}
-
-func (m *match) CheckAndModifyCloseOnly(account *model.AccountStorage, activeOrders []*model.Order) []*OrderCancel {
-	cancels := make([]*OrderCancel, 0)
-	closeOnlyOrders := make([]*model.Order, 0)
-	closeOnlyTotalAmount := decimal.Zero
-	for _, order := range activeOrders {
-		if order.IsCloseOnly {
-			if utils.HasTheSameSign(account.PositionAmount, order.AvailableAmount) {
-				cancel := &OrderCancel{
-					OrderHash: order.OrderHash,
-					Status:    order.Status,
-					ToCancel:  order.AvailableAmount,
-				}
-				cancels = append(cancels, cancel)
-				continue
-			}
-			closeOnlyOrders = append(closeOnlyOrders, order)
-			closeOnlyTotalAmount = closeOnlyTotalAmount.Add(order.AvailableAmount)
-		}
-	}
-
-	if closeOnlyTotalAmount.Abs().GreaterThan(account.PositionAmount.Abs()) {
-		if account.PositionAmount.IsNegative() {
-			// order long
-			sort.Slice(closeOnlyOrders, func(i, j int) bool {
-				return closeOnlyOrders[i].Price.LessThan(closeOnlyOrders[j].Price)
-			})
-		} else {
-			// order short
-			sort.Slice(closeOnlyOrders, func(i, j int) bool {
-				return closeOnlyOrders[i].Price.GreaterThan(closeOnlyOrders[j].Price)
-			})
-		}
-		amountToBeCanceled := closeOnlyTotalAmount.Abs().Sub(account.PositionAmount.Abs())
-		if closeOnlyTotalAmount.IsPositive() {
-			amountToBeCanceled = amountToBeCanceled.Neg()
-		}
-		for _, order := range closeOnlyOrders {
-			if !amountToBeCanceled.IsZero() && amountToBeCanceled.Abs().GreaterThanOrEqual(order.AvailableAmount.Abs()) {
-				cancel := &OrderCancel{
-					OrderHash: order.OrderHash,
-					Status:    order.Status,
-					ToCancel:  order.AvailableAmount,
-				}
-				cancels = append(cancels, cancel)
-				amountToBeCanceled = amountToBeCanceled.Sub(order.AvailableAmount)
-			} else if !amountToBeCanceled.IsZero() && amountToBeCanceled.Abs().LessThan(order.AvailableAmount.Abs()) {
-				cancel := &OrderCancel{
-					OrderHash: order.OrderHash,
-					Status:    order.Status,
-					ToCancel:  amountToBeCanceled,
-				}
-				cancels = append(cancels, cancel)
-				amountToBeCanceled = amountToBeCanceled.Sub(amountToBeCanceled)
-				break
-			}
-		}
-	}
-	return cancels
 }
 
 type MatchItem struct {
@@ -171,7 +104,7 @@ func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice
 	}
 
 	perpetual, ok := poolStorage.Perpetuals[m.perpetual.PerpetualIndex]
-	if !ok {
+	if !ok || !perpetual.IsNormal {
 		return result, false
 	}
 

@@ -35,10 +35,40 @@
             "internalType": "int256",
             "name": "position",
             "type": "int256"
+          },
+          {
+            "internalType": "int256",
+            "name": "availableCash",
+            "type": "int256"
+          },
+          {
+            "internalType": "int256",
+            "name": "margin",
+            "type": "int256"
+          },
+          {
+            "internalType": "int256",
+            "name": "settleableMargin",
+            "type": "int256"
+          },
+          {
+            "internalType": "bool",
+            "name": "isInitialMarginSafe",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "isMaintenanceMarginSafe",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "isMarginSafe",
+            "type": "bool"
           }
         ],
-        "internalType": "struct MarginAccount",
-        "name": "marginAccount",
+        "internalType": "struct Reader.AccountReaderResult",
+        "name": "accountStorage",
         "type": "tuple"
       }
     ],
@@ -148,6 +178,30 @@
         "internalType": "struct Reader.LiquidityPoolReaderResult",
         "name": "pool",
         "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "liquidityPool",
+        "type": "address"
+      }
+    ],
+    "name": "getPoolMargin",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "isSynced",
+        "type": "bool"
+      },
+      {
+        "internalType": "int256",
+        "name": "poolMargin",
+        "type": "int256"
       }
     ],
     "stateMutability": "view",
