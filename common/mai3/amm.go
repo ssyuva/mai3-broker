@@ -448,6 +448,9 @@ func computeAMMPoolMargin(context *model.AMMTradingContext, beta decimal.Decimal
 		return fmt.Errorf("AMM available margin sqrt < 0")
 	}
 	poolMargin := marginBalanceWithCurrent.Add(Sqrt(beforeSqrt)).Div(_2)
+	if poolMargin.LessThan(_0) {
+		return fmt.Errorf("pool margin is negative")
+	}
 	context.PoolMargin = poolMargin
 	return nil
 }
@@ -502,6 +505,7 @@ func computeAMMSafeCondition2(context *model.AMMTradingContext, beta decimal.Dec
 		return _0, true
 	}
 	position2 := context.PoolMargin.Sub(Sqrt(beforeSqrt))
+	position2 = decimal.Max(position2, _0) // might be negative, clip to zero
 	position2 = position2.Div(beta).Div(context.MaxLeverage).Div(context.Index)
 	return position2, false
 }
@@ -544,6 +548,9 @@ func initAMMTradingContext(p *model.LiquidityPoolStorage, perpetualIndex int64) 
 		if !perpetual.IsNormal {
 			return nil
 		}
+		if perpetual.IndexPrice.LessThanOrEqual(_0) {
+			return nil
+		}
 		cash = cash.Add(perpetual.AmmCashBalance)
 		cash = cash.Sub(perpetual.UnitAccumulativeFunding.Mul(perpetual.AmmPositionAmount))
 		if id == perpetualIndex {
@@ -584,11 +591,15 @@ func initAMMTradingContext(p *model.LiquidityPoolStorage, perpetualIndex int64) 
 		SquareValueWithoutCurrent:    _0,
 		PositionMarginWithoutCurrent: _0,
 	}
-	initAMMTradingContextEagerEvaluation(ret)
+	err := initAMMTradingContextEagerEvaluation(ret)
+	if err != nil {
+		logger.Errorf("initAMMTradingContext error:%s", err)
+		return nil
+	}
 	return ret
 }
 
-func initAMMTradingContextEagerEvaluation(context *model.AMMTradingContext) {
+func initAMMTradingContextEagerEvaluation(context *model.AMMTradingContext) error {
 	valueWithoutCurrent := _0
 	squareValueWithoutCurrent := _0
 	positionMarginWithoutCurrent := _0
@@ -605,7 +616,14 @@ func initAMMTradingContextEagerEvaluation(context *model.AMMTradingContext) {
 			context.OtherIndex[j].Mul(context.OtherPosition[j].Abs()).Div(context.OtherMaxLeverage[j]))
 	}
 
+	// prevent margin balance < 0
+	marginBalanceWithCurrent := context.Cash.Add(valueWithoutCurrent).Add(context.Index.Mul(context.Position1))
+	if marginBalanceWithCurrent.LessThan(_0) {
+		return fmt.Errorf("AMM is emergency")
+	}
+
 	context.ValueWithoutCurrent = valueWithoutCurrent
 	context.SquareValueWithoutCurrent = squareValueWithoutCurrent
 	context.PositionMarginWithoutCurrent = positionMarginWithoutCurrent
+	return nil
 }
