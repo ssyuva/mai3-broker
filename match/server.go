@@ -70,6 +70,7 @@ func (s *Server) NewOrder(order *model.Order) string {
 			logger.Errorf("new order: new match error:%s", err)
 			return model.MatchInternalErrorID
 		}
+		handler = s.getMatchHandler(order.LiquidityPoolAddress, order.PerpetualIndex)
 	}
 	return handler.NewOrder(order)
 }
