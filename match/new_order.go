@@ -97,5 +97,6 @@ func (m *match) NewOrder(order *model.Order) string {
 		m.wsChan <- wsMsg
 		return model.MatchOK
 	}
+	logger.Errorf("new order: %s", err)
 	return model.MatchInternalErrorID
 }

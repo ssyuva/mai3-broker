@@ -62,10 +62,14 @@ func (s *Server) NewOrder(order *model.Order) string {
 	if handler == nil {
 		perpetual, err := s.dao.GetPerpetualByPoolAddressAndIndex(order.LiquidityPoolAddress, order.PerpetualIndex, true)
 		if err != nil {
+			logger.Errorf("new order: get perpetual error:%s", err)
 			return model.MatchInternalErrorID
 		}
 		err = s.newMatch(perpetual)
-		return model.MatchInternalErrorID
+		if err != nil {
+			logger.Errorf("new order: new match error:%s", err)
+			return model.MatchInternalErrorID
+		}
 	}
 	return handler.NewOrder(order)
 }
