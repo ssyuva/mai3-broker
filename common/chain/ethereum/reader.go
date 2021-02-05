@@ -82,7 +82,6 @@ func (c *Client) GetLiquidityPoolStorage(ctx context.Context, readerAddress, poo
 	rsp := &model.LiquidityPoolStorage{}
 	rsp.VaultFeeRate = decimal.NewFromBigInt(res.Pool.VaultFeeRate, -mai3.DECIMALS)
 	rsp.PoolCashBalance = decimal.NewFromBigInt(res.Pool.PoolCash, -mai3.DECIMALS)
-	rsp.FundingTime = res.Pool.FundingTime.Int64()
 	rsp.Perpetuals = make(map[int64]*model.PerpetualStorage)
 
 	for i, perpetual := range res.Pool.Perpetuals {

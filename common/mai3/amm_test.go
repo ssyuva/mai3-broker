@@ -17,7 +17,6 @@ func Approximate(t *testing.T, expect, actual decimal.Decimal, msgAndArgs ...int
 var defaultPool = &model.LiquidityPoolStorage{
 	VaultFeeRate:    decimal.NewFromFloat(0.0002),
 	PoolCashBalance: _0, // set me later
-	FundingTime:     1579601290,
 
 	Perpetuals: make(map[int64]*model.PerpetualStorage), // set me later
 }
@@ -126,7 +125,6 @@ const TEST_PERPETUAL_INDEX1 = 1
 var poolStorage0 = &model.LiquidityPoolStorage{
 	VaultFeeRate:    decimal.NewFromFloat(0.0002),
 	PoolCashBalance: decimal.NewFromFloat(100000),
-	FundingTime:     1579601290,
 
 	Perpetuals: make(map[int64]*model.PerpetualStorage), // set me later
 }

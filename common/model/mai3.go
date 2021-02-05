@@ -7,7 +7,6 @@ import (
 type LiquidityPoolStorage struct {
 	VaultFeeRate    decimal.Decimal
 	PoolCashBalance decimal.Decimal
-	FundingTime     int64
 
 	Perpetuals map[int64]*PerpetualStorage
 }
