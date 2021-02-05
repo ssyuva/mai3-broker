@@ -46,8 +46,8 @@ func (c *Client) GetAccountStorage(ctx context.Context, readerAddress string, pe
 	}
 
 	rsp := &model.AccountStorage{}
-	rsp.CashBalance = decimal.NewFromBigInt(res.MarginAccount.Cash, -mai3.DECIMALS)
-	rsp.PositionAmount = decimal.NewFromBigInt(res.MarginAccount.Position, -mai3.DECIMALS)
+	rsp.CashBalance = decimal.NewFromBigInt(res.AccountStorage.Cash, -mai3.DECIMALS)
+	rsp.PositionAmount = decimal.NewFromBigInt(res.AccountStorage.Position, -mai3.DECIMALS)
 	return rsp, nil
 }
 
