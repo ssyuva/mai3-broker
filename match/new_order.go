@@ -56,19 +56,21 @@ func (m *match) NewOrder(order *model.Order) string {
 
 	// check gas
 	order.GasFeeLimit = mai3.GetGasFeeLimit(len(poolStorage.Perpetuals))
-	gasBalance, err := m.chainCli.GetGasBalance(m.ctx, conf.Conf.BrokerAddress, order.TraderAddress)
-	if err != nil {
-		logger.Errorf("new order: checkUserPendingOrders:%w", err)
-		return model.MatchInternalErrorID
-	}
-	gasReward := m.gasMonitor.GetGasPriceDecimal().Mul(decimal.NewFromInt(order.GasFeeLimit))
-	ordersGasReword := gasReward.Mul(decimal.NewFromInt(int64(len(activeOrders) + 1)))
-	if gasBalance.LessThan(ordersGasReword) {
-		return model.MatchGasNotEnoughErrorID
-	}
+	if conf.Conf.GasEnable {
+		gasBalance, err := m.chainCli.GetGasBalance(m.ctx, conf.Conf.BrokerAddress, order.TraderAddress)
+		if err != nil {
+			logger.Errorf("new order: checkUserPendingOrders:%w", err)
+			return model.MatchInternalErrorID
+		}
+		gasReward := m.gasMonitor.GetGasPriceDecimal().Mul(decimal.NewFromInt(order.GasFeeLimit))
+		ordersGasReword := gasReward.Mul(decimal.NewFromInt(int64(len(activeOrders) + 1)))
+		if gasBalance.LessThan(ordersGasReword) {
+			return model.MatchGasNotEnoughErrorID
+		}
 
-	if decimal.NewFromInt(order.BrokerFeeLimit).LessThan(utils.ToGwei(gasReward)) {
-		return model.MatchGasNotEnoughErrorID
+		if decimal.NewFromInt(order.BrokerFeeLimit).LessThan(utils.ToGwei(gasReward)) {
+			return model.MatchGasNotEnoughErrorID
+		}
 	}
 
 	// create order and insert to db and orderbook

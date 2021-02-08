@@ -24,8 +24,9 @@ type Config struct {
 	SyncerInterval          time.Duration `envconfig:"syncer_interval"`
 	LauncherMonitorInterval time.Duration `envconfig:"launcher_monitor_interval"`
 
-	GasPrice uint64 `envconfig:"gas_price"`
-	GasLimit uint64 `envconfig:"gas_limit"`
+	GasPrice  uint64 `envconfig:"gas_price"`
+	GasLimit  uint64 `envconfig:"gas_limit"`
+	GasEnable bool   `envconfig:"gas_enable"`
 
 	ChainType    string            `envconfig:"chain_type"`
 	RetryTimes   int               `envconfig:"retry_times"`

@@ -98,28 +98,30 @@ func (m *match) checkUserPendingOrders(poolStorage *model.LiquidityPoolStorage, 
 	gasPrice := m.gasMonitor.GetGasPriceDecimal()
 	gasReward := decimal.Zero
 	for _, order := range orders {
-		// gas check
-		orderGasReward := gasPrice.Mul(decimal.NewFromInt(order.GasFeeLimit))
-		if decimal.NewFromInt(order.BrokerFeeLimit).LessThan(utils.ToGwei(gasReward)) {
-			cancel := &OrderCancel{
-				OrderHash: order.OrderHash,
-				Status:    order.Status,
-				ToCancel:  order.AvailableAmount,
-				Reason:    model.CancelReasonGasNotEnough,
+		if conf.Conf.GasEnable {
+			// gas check
+			orderGasReward := gasPrice.Mul(decimal.NewFromInt(order.GasFeeLimit))
+			if decimal.NewFromInt(order.BrokerFeeLimit).LessThan(utils.ToGwei(gasReward)) {
+				cancel := &OrderCancel{
+					OrderHash: order.OrderHash,
+					Status:    order.Status,
+					ToCancel:  order.AvailableAmount,
+					Reason:    model.CancelReasonGasNotEnough,
+				}
+				cancels = append(cancels, cancel)
 			}
-			cancels = append(cancels, cancel)
-		}
 
-		gasReward = gasReward.Add(orderGasReward)
-		if gasBalance.LessThan(gasReward) {
-			cancel := &OrderCancel{
-				OrderHash: order.OrderHash,
-				Status:    order.Status,
-				ToCancel:  order.AvailableAmount,
-				Reason:    model.CancelReasonGasNotEnough,
+			gasReward = gasReward.Add(orderGasReward)
+			if gasBalance.LessThan(gasReward) {
+				cancel := &OrderCancel{
+					OrderHash: order.OrderHash,
+					Status:    order.Status,
+					ToCancel:  order.AvailableAmount,
+					Reason:    model.CancelReasonGasNotEnough,
+				}
+				cancels = append(cancels, cancel)
+				continue
 			}
-			cancels = append(cancels, cancel)
-			continue
 		}
 
 		if order.OrderParam.BrokerAddress != strings.ToLower(conf.Conf.BrokerAddress) {
