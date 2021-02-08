@@ -44,5 +44,5 @@ jobs:
       run: |
         ls -l dist
         docker login --username=${{ secrets.ALI_REPO_USER }} --password=${{ secrets.ALI_REPO_PASSWORD }} registry.ap-northeast-1.aliyuncs.com
-        docker build -t registry.ap-northeast-1.aliyuncs.com/oak-cloud/mai-v3-broker:${{ steps.get_version.outputs.VERSION }} .
-        docker push registry.ap-northeast-1.aliyuncs.com/oak-cloud/mai-v3-broker:${{ steps.get_version.outputs.VERSION }}
+        docker build -t registry.ap-northeast-1.aliyuncs.com/mcdex/mai-v3-broker:${{ steps.get_version.outputs.VERSION }} .
+        docker push registry.ap-northeast-1.aliyuncs.com/mcdex/mai-v3-broker:${{ steps.get_version.outputs.VERSION }}
