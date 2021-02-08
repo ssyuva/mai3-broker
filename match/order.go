@@ -69,16 +69,20 @@ func (m *match) MatchOrderSideBySide() []*MatchItem {
 		logger.Errorf("MatchOrderSideBySide: GetLiquidityPoolStorage fail! err:%s", err.Error())
 		return result
 	}
+
+	orderGasLimit := mai3.GetGasFeeLimit(len(poolStorage.Perpetuals))
+	maiV3MaxMatchGroup := conf.Conf.GasLimit/uint64(orderGasLimit) - 2
+
 	for {
 		if len(bidPrices) > bidIdx {
-			result, bidContinue = m.matchOneSide(poolStorage, bidPrices[bidIdx], true, result)
+			result, bidContinue = m.matchOneSide(poolStorage, bidPrices[bidIdx], true, result, maiV3MaxMatchGroup)
 			bidIdx++
 		} else {
 			bidContinue = false
 		}
 
 		if len(askPrices) > askIdx {
-			result, askContinue = m.matchOneSide(poolStorage, askPrices[askIdx], false, result)
+			result, askContinue = m.matchOneSide(poolStorage, askPrices[askIdx], false, result, maiV3MaxMatchGroup)
 			askIdx++
 		} else {
 			askContinue = false
@@ -92,7 +96,7 @@ func (m *match) MatchOrderSideBySide() []*MatchItem {
 	return result
 }
 
-func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice decimal.Decimal, isBuy bool, result []*MatchItem) ([]*MatchItem, bool) {
+func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice decimal.Decimal, isBuy bool, result []*MatchItem, maiV3MaxMatchGroup uint64) ([]*MatchItem, bool) {
 	orders := make([]*orderbook.MemoryOrder, 0)
 	if isBuy {
 		orders = append(orders, m.orderbook.GetBidOrdersByPrice(tradePrice)...)
@@ -115,7 +119,7 @@ func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice
 	}
 
 	for _, order := range orders {
-		if len(result) == mai3.MaiV3MaxMatchGroup {
+		if uint64(len(result)) == maiV3MaxMatchGroup {
 			return result, false
 		}
 

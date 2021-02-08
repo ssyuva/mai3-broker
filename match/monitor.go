@@ -95,26 +95,33 @@ func (m *match) checkUserPendingOrders(poolStorage *model.LiquidityPoolStorage, 
 		}
 	}
 
-	// gas check
-	num := 0
-	gasReward := m.gasMonitor.GetGasPrice() * conf.Conf.GasLimit
-	if gasReward > 0 {
-		maxOrderNum := utils.ToGwei(gasBalance).IntPart() / int64(gasReward)
-		if len(orders) > int(maxOrderNum) {
-			num := len(orders) - int(maxOrderNum)
-			for _, order := range orders[0:num] {
-				cancel := &OrderCancel{
-					OrderHash: order.OrderHash,
-					Status:    order.Status,
-					ToCancel:  order.AvailableAmount,
-					Reason:    model.CancelReasonGasNotEnough,
-				}
-				cancels = append(cancels, cancel)
+	gasPrice := m.gasMonitor.GetGasPriceDecimal()
+	gasReward := decimal.Zero
+	for _, order := range orders {
+		// gas check
+		orderGasReward := gasPrice.Mul(decimal.NewFromInt(order.GasFeeLimit))
+		if decimal.NewFromInt(order.BrokerFeeLimit).LessThan(utils.ToGwei(gasReward)) {
+			cancel := &OrderCancel{
+				OrderHash: order.OrderHash,
+				Status:    order.Status,
+				ToCancel:  order.AvailableAmount,
+				Reason:    model.CancelReasonGasNotEnough,
 			}
+			cancels = append(cancels, cancel)
 		}
-	}
 
-	for _, order := range orders[num:] {
+		gasReward = gasReward.Add(orderGasReward)
+		if gasBalance.LessThan(gasReward) {
+			cancel := &OrderCancel{
+				OrderHash: order.OrderHash,
+				Status:    order.Status,
+				ToCancel:  order.AvailableAmount,
+				Reason:    model.CancelReasonGasNotEnough,
+			}
+			cancels = append(cancels, cancel)
+			continue
+		}
+
 		if order.OrderParam.BrokerAddress != strings.ToLower(conf.Conf.BrokerAddress) {
 			cancel := &OrderCancel{
 				OrderHash: order.OrderHash,
@@ -143,16 +150,6 @@ func (m *match) checkUserPendingOrders(poolStorage *model.LiquidityPoolStorage, 
 				Status:    order.Status,
 				ToCancel:  order.AvailableAmount,
 				Reason:    model.CancelReasonInsufficientFunds,
-			}
-			cancels = append(cancels, cancel)
-		}
-
-		if order.BrokerFeeLimit < int64(gasReward) {
-			cancel := &OrderCancel{
-				OrderHash: order.OrderHash,
-				Status:    order.Status,
-				ToCancel:  order.AvailableAmount,
-				Reason:    model.CancelReasonGasNotEnough,
 			}
 			cancels = append(cancels, cancel)
 		}

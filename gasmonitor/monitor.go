@@ -3,6 +3,7 @@ package gasmonitor
 import (
 	"context"
 	"github.com/mcarloai/mai-v3-broker/conf"
+	"github.com/shopspring/decimal"
 	logger "github.com/sirupsen/logrus"
 	"time"
 )
@@ -11,6 +12,8 @@ type GasMonitor struct {
 	ctx      context.Context
 	gasPrice uint64
 }
+
+var gwei, _ = decimal.NewFromString("1000000000")
 
 func NewGasMonitor(ctx context.Context) *GasMonitor {
 	gasMonitor := &GasMonitor{
@@ -21,8 +24,14 @@ func NewGasMonitor(ctx context.Context) *GasMonitor {
 	return gasMonitor
 }
 
+// GetGasPrice return gas in Gwei
 func (p *GasMonitor) GetGasPrice() uint64 {
 	return p.gasPrice
+}
+
+// GetGasPriceDecimal return gas in eth decimal
+func (p *GasMonitor) GetGasPriceDecimal() decimal.Decimal {
+	return decimal.NewFromInt(int64(p.gasPrice)).Div(gwei)
 }
 
 func (p *GasMonitor) run() {

@@ -9,7 +9,6 @@ const (
 )
 
 const (
-	MaiV3GasLimit      int64 = 5000000
-	MaiV3GasPerTrade   int64 = 635000 // launcher use this
-	MaiV3MaxMatchGroup       = int(MaiV3GasLimit/MaiV3GasPerTrade - 2)
+	MaiV3BaseGas         int64 = 170000
+	MaiV3BaseGasPerTrade int64 = 100000
 )

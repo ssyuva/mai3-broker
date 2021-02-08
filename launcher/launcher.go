@@ -160,8 +160,8 @@ func (l *Launcher) createLaunchTransaction(matchTx *model.MatchTransaction) erro
 		}
 		orders = append(orders, data)
 		matchAmounts = append(matchAmounts, item.Amount)
-		gasReward := l.gasMonitor.GetGasPrice() * 1e9 * conf.Conf.GasLimit
-		gasRewards = append(gasRewards, big.NewInt(int64(gasReward)))
+		gasReward := l.gasMonitor.GetGasPriceDecimal().Mul(decimal.NewFromInt(item.Order.GasFeeLimit))
+		gasRewards = append(gasRewards, mai3Utils.MustDecimalToBigInt(mai3Utils.ToWad(gasReward)))
 	}
 	inputs, err := l.chainCli.BatchTradeDataPack(orders, matchAmounts, gasRewards)
 	if err != nil {

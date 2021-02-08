@@ -89,6 +89,7 @@ type Order struct {
 	ConfirmedAmount decimal.Decimal      `json:"confirmedAmount" db:"confirmed_amount"`
 	CanceledAmount  decimal.Decimal      `json:"canceledAmount" db:"canceled_amount"`
 	PendingAmount   decimal.Decimal      `json:"pendingAmount" db:"pending_amount"`
+	GasFeeLimit     int64                `json:"gasFeeLimit" db:"gas_fee_limit"`
 	CreatedAt       time.Time            `json:"createdAt" db:"created_at"`
 	UpdatedAt       time.Time            `json:"updatedAt" db:"updated_at"`
 	CancelReasons   []*OrderCancelReason `json:"cancelReasons" sql:"-"`

@@ -2,6 +2,7 @@ package match
 
 import (
 	"context"
+	"github.com/mcarloai/mai-v3-broker/common/mai3"
 	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
 	"github.com/mcarloai/mai-v3-broker/common/message"
 	"github.com/mcarloai/mai-v3-broker/common/model"
@@ -54,18 +55,19 @@ func (m *match) NewOrder(order *model.Order) string {
 	}
 
 	// check gas
+	order.GasFeeLimit = mai3.GetGasFeeLimit(len(poolStorage.Perpetuals))
 	gasBalance, err := m.chainCli.GetGasBalance(m.ctx, conf.Conf.BrokerAddress, order.TraderAddress)
 	if err != nil {
 		logger.Errorf("new order: checkUserPendingOrders:%w", err)
 		return model.MatchInternalErrorID
 	}
-	gasReward := m.gasMonitor.GetGasPrice() * conf.Conf.GasLimit
-	ordersGasReword := gasReward * uint64(len(activeOrders)+1)
-	if utils.ToGwei(gasBalance).LessThan(decimal.NewFromInt(int64(ordersGasReword))) {
+	gasReward := m.gasMonitor.GetGasPriceDecimal().Mul(decimal.NewFromInt(order.GasFeeLimit))
+	ordersGasReword := gasReward.Mul(decimal.NewFromInt(int64(len(activeOrders) + 1)))
+	if gasBalance.LessThan(ordersGasReword) {
 		return model.MatchGasNotEnoughErrorID
 	}
 
-	if order.BrokerFeeLimit < int64(gasReward) {
+	if decimal.NewFromInt(order.BrokerFeeLimit).LessThan(utils.ToGwei(gasReward)) {
 		return model.MatchGasNotEnoughErrorID
 	}
 

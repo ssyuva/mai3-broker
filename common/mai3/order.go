@@ -178,6 +178,10 @@ func GetOrderHash(traderAddress, brokerAddress, relayerAddress, referrerAddress,
 	return hash, nil
 }
 
+func GetGasFeeLimit(perpetualCount int) int64 {
+	return MaiV3BaseGas + MaiV3BaseGasPerTrade*int64(perpetualCount)
+}
+
 func getDomainSeparator() []byte {
 	return crypto.Keccak256(
 		EIP712_DOMAIN_TYPEHASH,
