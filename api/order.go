@@ -238,7 +238,11 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 	errID := s.match.NewOrder(order)
 	switch errID {
 	case model.MatchOK:
-		jwt, _ := auth.SignJwt(order.TraderAddress)
+		jwt, err := auth.SignJwt(order.TraderAddress)
+		if err != nil {
+			logger.Warnf("fail to sign jwt for '%s' when place order:%s", order.TraderAddress, err.Error())
+			return &PlaceOrderResp{Jwt: ""}, nil
+		}
 		return &PlaceOrderResp{Jwt: jwt}, nil
 	case model.MatchInternalErrorID:
 		return nil, InternalError(errors.New("match new order error"))
