@@ -67,8 +67,11 @@ func (s *Server) Start() error {
 }
 
 func (s *Server) newMatch(perpetual *model.Perpetual) (*match, error) {
-	m := newMatch(s.ctx, s.chainCli, s.dao, perpetual, s.wsChan, s.gasMonitor)
-	err := s.setMatchHandler(perpetual.LiquidityPoolAddress, perpetual.PerpetualIndex, m)
+	m, err := newMatch(s.ctx, s.chainCli, s.dao, perpetual, s.wsChan, s.gasMonitor)
+	if err != nil {
+		return nil, err
+	}
+	err = s.setMatchHandler(perpetual.LiquidityPoolAddress, perpetual.PerpetualIndex, m)
 	if err != nil {
 		return nil, err
 	}

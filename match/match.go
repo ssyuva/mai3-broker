@@ -32,9 +32,9 @@ type match struct {
 	timers     map[string]*time.Timer
 }
 
-func newMatch(ctx context.Context, cli chain.ChainClient, dao dao.DAO, perpetual *model.Perpetual, wsChan chan interface{}, gm *gasmonitor.GasMonitor) *match {
+func newMatch(ctx context.Context, cli chain.ChainClient, dao dao.DAO, perpetual *model.Perpetual, wsChan chan interface{}, gm *gasmonitor.GasMonitor) (*match, error) {
 	ctx, cancel := context.WithCancel(ctx)
-	return &match{
+	m := &match{
 		ctx:        ctx,
 		cancel:     cancel,
 		wsChan:     wsChan,
@@ -45,13 +45,16 @@ func newMatch(ctx context.Context, cli chain.ChainClient, dao dao.DAO, perpetual
 		dao:        dao,
 		timers:     make(map[string]*time.Timer),
 	}
+
+	if err := m.reloadActiveOrders(); err != nil {
+		return nil, err
+	}
+
+	return m, nil
 }
 
 func (m *match) Run() error {
 	logger.Infof("Match Perpetual:%s-%d start", m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex)
-	if err := m.reloadActiveOrders(); err != nil {
-		return err
-	}
 
 	group, ctx := errgroup.WithContext(m.ctx)
 	// go monitor check user margin gas
