@@ -60,8 +60,9 @@ func (s *Server) Start() error {
 		})
 	}
 
+	<-s.ctx.Done()
 	err = s.group.Wait()
-	logger.Infof("Match Server End err:%s", err)
+	logger.Infof("Match Server End")
 	return err
 }
 

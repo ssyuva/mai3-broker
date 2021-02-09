@@ -65,7 +65,7 @@ func (m *match) Run() error {
 	})
 
 	err := group.Wait()
-	logger.Infof("Match Perpetual:%s-%d end. err:%s", m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex, err)
+	logger.Infof("Match Perpetual:%s-%d end", m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex)
 	return err
 }
 
