@@ -227,6 +227,8 @@ func (s *Server) startConsumer() {
 }
 
 func (s *Server) Start() error {
+	logger.Infof("websocket start. host: %s", conf.Conf.WebsocketHost)
+
 	defer func() {
 		if r := recover(); r != nil {
 			err, ok := r.(error)
@@ -252,6 +254,8 @@ func (s *Server) Start() error {
 
 	select {
 	case <-s.ctx.Done():
+		logger.Infof("websocket shutdown")
+
 		// now close the server gracefully ("shutdown")
 		graceTime := 10 * time.Second
 		timeoutCtx, cancel := context.WithTimeout(context.Background(), graceTime)

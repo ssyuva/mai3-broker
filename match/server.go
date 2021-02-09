@@ -9,6 +9,7 @@ import (
 	"github.com/mcarloai/mai-v3-broker/gasmonitor"
 	"github.com/shopspring/decimal"
 	logger "github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
 	"sync"
 )
 
@@ -21,6 +22,7 @@ type Server struct {
 	chainCli        chain.ChainClient
 	gasMonitor      *gasmonitor.GasMonitor
 	dao             dao.DAO
+	group           *errgroup.Group
 }
 
 func New(ctx context.Context, cli chain.ChainClient, dao dao.DAO, wsChan chan interface{}, gm *gasmonitor.GasMonitor) (*Server, error) {
@@ -33,28 +35,43 @@ func New(ctx context.Context, cli chain.ChainClient, dao dao.DAO, wsChan chan in
 		gasMonitor:      gm,
 		dao:             dao,
 	}
-	perpetuals, err := dao.QueryPerpetuals(true)
-	if err != nil {
-		logger.Errorf("New Match Server QueryPerpetuals:%w", err)
-		return nil, err
-	}
 
-	for _, perpetual := range perpetuals {
-		if err := server.newMatch(perpetual); err != nil {
-			logger.Errorf("New SubMatch Server newMatch:%w", err)
-			return nil, err
-		}
-	}
+	group, _ := errgroup.WithContext(ctx)
+	server.group = group
 	return server, nil
 }
 
-func (s *Server) newMatch(perpetual *model.Perpetual) error {
-	m, err := newMatch(s.ctx, s.chainCli, s.dao, perpetual, s.wsChan, s.gasMonitor)
+func (s *Server) Start() error {
+	logger.Infof("Match Server Start")
+	perpetuals, err := s.dao.QueryPerpetuals(true)
 	if err != nil {
+		logger.Errorf("New Match Server QueryPerpetuals:%w", err)
 		return err
 	}
-	s.setMatchHandler(perpetual.LiquidityPoolAddress, perpetual.PerpetualIndex, m)
-	return nil
+
+	for _, perpetual := range perpetuals {
+		match, err := s.newMatch(perpetual)
+		if err != nil {
+			logger.Errorf("New SubMatch Server newMatch:%w", err)
+			return err
+		}
+		s.group.Go(func() error {
+			return match.Run()
+		})
+	}
+
+	err = s.group.Wait()
+	logger.Infof("Match Server End err:%s", err)
+	return err
+}
+
+func (s *Server) newMatch(perpetual *model.Perpetual) (*match, error) {
+	m := newMatch(s.ctx, s.chainCli, s.dao, perpetual, s.wsChan, s.gasMonitor)
+	err := s.setMatchHandler(perpetual.LiquidityPoolAddress, perpetual.PerpetualIndex, m)
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 func (s *Server) NewOrder(order *model.Order) string {
@@ -65,12 +82,14 @@ func (s *Server) NewOrder(order *model.Order) string {
 			logger.Errorf("new order: get perpetual error:%s", err)
 			return model.MatchInternalErrorID
 		}
-		err = s.newMatch(perpetual)
+		handler, err = s.newMatch(perpetual)
 		if err != nil {
 			logger.Errorf("new order: new match error:%s", err)
 			return model.MatchInternalErrorID
 		}
-		handler = s.getMatchHandler(order.LiquidityPoolAddress, order.PerpetualIndex)
+		s.group.Go(func() error {
+			return handler.Run()
+		})
 	}
 	return handler.NewOrder(order)
 }

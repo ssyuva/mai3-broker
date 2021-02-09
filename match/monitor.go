@@ -1,6 +1,7 @@
 package match
 
 import (
+	"context"
 	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/mcarloai/mai-v3-broker/conf"
@@ -17,11 +18,12 @@ type OrderCancel struct {
 	Reason    model.CancelReasonType
 }
 
-func (m *match) checkOrdersMargin() {
+func (m *match) checkOrdersMargin(ctx context.Context) error {
 	for {
 		select {
-		case <-m.ctx.Done():
-			return
+		case <-ctx.Done():
+			logger.Infof("match perpetual:%s-%d monitor end", m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex)
+			return nil
 		case <-time.After(conf.Conf.MatchMonitorInterval):
 			m.checkPerpUserOrders()
 		}

@@ -71,7 +71,7 @@ func (m *match) MatchOrderSideBySide() []*MatchItem {
 	}
 
 	orderGasLimit := mai3.GetGasFeeLimit(len(poolStorage.Perpetuals))
-	maiV3MaxMatchGroup := conf.Conf.GasLimit/uint64(orderGasLimit) - 2
+	maiV3MaxMatchGroup := conf.Conf.GasLimit / uint64(orderGasLimit)
 
 	for {
 		if len(bidPrices) > bidIdx {

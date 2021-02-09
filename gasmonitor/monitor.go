@@ -35,9 +35,11 @@ func (p *GasMonitor) GetGasPriceDecimal() decimal.Decimal {
 }
 
 func (p *GasMonitor) run() {
+	logger.Infof("gas price monitor start")
 	for {
 		select {
 		case <-p.ctx.Done():
+			logger.Infof("gas price monitor end")
 			return
 		case <-time.After(10 * time.Second):
 			gasPrice, err := p.getPriceInfo()

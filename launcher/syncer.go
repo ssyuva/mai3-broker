@@ -33,8 +33,11 @@ func NewSyncer(ctx context.Context, dao dao.DAO, chainCli chain.ChainClient, mat
 }
 
 func (s *Syncer) Run() error {
+	logger.Infof("Launcher syncer start")
 	// sync pending transaction
-	return s.runner.Run(s.ctx, conf.Conf.SyncerInterval, s.syncTransaction)
+	err := s.runner.Run(s.ctx, conf.Conf.SyncerInterval, s.syncTransaction)
+	logger.Infof("Launcher syncer end")
+	return err
 }
 
 func (s *Syncer) syncTransaction() {

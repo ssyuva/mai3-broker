@@ -74,6 +74,9 @@ func main() {
 		logger.Errorf("new match server error:%s", err)
 		os.Exit(-4)
 	}
+	group.Go(func() error {
+		return matchServer.Start()
+	})
 
 	// start api server
 	apiServer, err := api.New(ctx, chainCli, dao, matchServer)

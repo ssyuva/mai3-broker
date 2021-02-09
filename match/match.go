@@ -13,6 +13,8 @@ import (
 	"github.com/mcarloai/mai-v3-broker/dao"
 	"github.com/mcarloai/mai-v3-broker/gasmonitor"
 	logger "github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
+
 	"sync"
 	"time"
 )
@@ -30,9 +32,9 @@ type match struct {
 	timers     map[string]*time.Timer
 }
 
-func newMatch(ctx context.Context, cli chain.ChainClient, dao dao.DAO, perpetual *model.Perpetual, wsChan chan interface{}, gm *gasmonitor.GasMonitor) (*match, error) {
+func newMatch(ctx context.Context, cli chain.ChainClient, dao dao.DAO, perpetual *model.Perpetual, wsChan chan interface{}, gm *gasmonitor.GasMonitor) *match {
 	ctx, cancel := context.WithCancel(ctx)
-	m := &match{
+	return &match{
 		ctx:        ctx,
 		cancel:     cancel,
 		wsChan:     wsChan,
@@ -43,27 +45,28 @@ func newMatch(ctx context.Context, cli chain.ChainClient, dao dao.DAO, perpetual
 		dao:        dao,
 		timers:     make(map[string]*time.Timer),
 	}
-
-	err := m.run()
-	if err != nil {
-		return nil, err
-	}
-
-	return m, nil
 }
 
-func (m *match) run() error {
+func (m *match) Run() error {
+	logger.Infof("Match Perpetual:%s-%d start", m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex)
 	if err := m.reloadActiveOrders(); err != nil {
 		return err
 	}
 
+	group, ctx := errgroup.WithContext(m.ctx)
 	// go monitor check user margin gas
-	go m.checkOrdersMargin()
+	group.Go(func() error {
+		return m.checkOrdersMargin(ctx)
+	})
 
 	// go match order
-	go m.runMatch()
+	group.Go(func() error {
+		return m.runMatch(ctx)
+	})
 
-	return nil
+	err := group.Wait()
+	logger.Infof("Match Perpetual:%s-%d end. err:%s", m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex, err)
+	return err
 }
 
 func (m *match) Close() {
@@ -163,11 +166,12 @@ func (m *match) matchOrders() {
 	return
 }
 
-func (m *match) runMatch() {
+func (m *match) runMatch(ctx context.Context) error {
 	for {
 		select {
-		case <-m.ctx.Done():
-			return
+		case <-ctx.Done():
+			logger.Infof("match perpetual:%s-%d matchOrders end", m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex)
+			return nil
 		case <-time.After(conf.Conf.MatchInterval):
 			m.matchOrders()
 		}

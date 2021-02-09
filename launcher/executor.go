@@ -32,7 +32,10 @@ func NewExecutor(ctx context.Context, dao dao.DAO, chainCli chain.ChainClient, g
 }
 
 func (s *Executor) Run() error {
-	return s.runner.Run(s.ctx, conf.Conf.ExecutorInterval, s.executeTransaction)
+	logger.Infof("Launcher Executor start")
+	err := s.runner.Run(s.ctx, conf.Conf.ExecutorInterval, s.executeTransaction)
+	logger.Infof("Launcher Executor end")
+	return err
 }
 
 func (s *Executor) executeTransaction() {

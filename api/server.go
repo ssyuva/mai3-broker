@@ -73,6 +73,7 @@ func (s *Server) Start() error {
 
 	select {
 	case <-s.ctx.Done():
+		logger.Infof("Api server shutdown")
 		s.e.Listener.Close()
 		// now close the server gracefully ("shutdown")
 		graceTime := 10 * time.Second

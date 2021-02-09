@@ -34,8 +34,11 @@ func NewMonitor(ctx context.Context, dao dao.DAO, chainCli chain.ChainClient, ma
 }
 
 func (s *Monitor) Run() error {
+	logger.Infof("Launcher monitor start")
 	// check unmature confirmed transaction for rollback
-	return s.runner.Run(s.ctx, conf.Conf.LauncherMonitorInterval, s.syncUnmatureTransaction)
+	err := s.runner.Run(s.ctx, conf.Conf.LauncherMonitorInterval, s.syncUnmatureTransaction)
+	logger.Infof("Launcher monitor end")
+	return err
 }
 
 func (s *Monitor) syncUnmatureTransaction() {
