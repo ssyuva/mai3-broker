@@ -241,9 +241,10 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 		jwt, err := auth.SignJwt(order.TraderAddress)
 		if err != nil {
 			logger.Warnf("fail to sign jwt for '%s' when place order:%s", order.TraderAddress, err.Error())
-			return &PlaceOrderResp{Jwt: ""}, nil
+			return &PlaceOrderResp{}, nil
 		}
-		return &PlaceOrderResp{Jwt: jwt}, nil
+		expires := auth.JwtExpiration / time.Second * 1000
+		return &PlaceOrderResp{Jwt: jwt, Expires: expires}, nil
 	case model.MatchInternalErrorID:
 		return nil, InternalError(errors.New("match new order error"))
 	case model.MatchMaxOrderNumReachID:

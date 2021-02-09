@@ -1,6 +1,8 @@
 package api
 
 import (
+	"time"
+
 	"github.com/mcarloai/mai-v3-broker/common/model"
 )
 
@@ -43,7 +45,8 @@ type (
 	}
 
 	PlaceOrderResp struct {
-		Jwt string `json:"jwt,omitempty"`
+		Jwt     string        `json:"jwt,omitempty"`
+		Expires time.Duration `json:"expires,omitempty"`
 	}
 
 	CancelOrderReq struct {
