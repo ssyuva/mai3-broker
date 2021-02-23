@@ -3,6 +3,7 @@ package match
 import (
 	"context"
 	"fmt"
+
 	"github.com/google/uuid"
 	"github.com/mcarloai/mai-v3-broker/common/chain"
 	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
@@ -82,15 +83,15 @@ func (m *match) Close() {
 func (m *match) matchOrders() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	transactions, err := m.dao.QueryUnconfirmedTransactionsByContract(m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex)
-	if err != nil {
-		logger.Errorf("Match: QueryUnconfirmedTransactionsByContract failed perpetual:%s-%d error:%s", m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex, err.Error())
-		return
-	}
-	if len(transactions) > 0 {
-		logger.Infof("Match: unconfirmed transaction exists. wait for it to be confirmed perpetual:%s-%d", m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex)
-		return
-	}
+	// transactions, err := m.dao.QueryUnconfirmedTransactionsByContract(m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex)
+	// if err != nil {
+	// 	logger.Errorf("Match: QueryUnconfirmedTransactionsByContract failed perpetual:%s-%d error:%s", m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex, err.Error())
+	// 	return
+	// }
+	// if len(transactions) > 0 {
+	// 	logger.Infof("Match: unconfirmed transaction exists. wait for it to be confirmed perpetual:%s-%d", m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex)
+	// 	return
+	// }
 
 	matchItems := m.MatchOrderSideBySide()
 	if len(matchItems) == 0 {
