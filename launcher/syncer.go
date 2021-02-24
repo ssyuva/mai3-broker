@@ -80,8 +80,8 @@ func (s *Syncer) updateStatusByUser(user string) {
 			err = s.resetTransaction(tx)
 			if err != nil {
 				logger.Errorf("syncer: resetTransaction error: %s", err)
-				continue
 			}
+			continue
 		}
 		if err != nil {
 			logger.Errorf("syncer: WaitTransactionReceipt error: %s", err)
