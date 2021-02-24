@@ -3,9 +3,10 @@ package chain
 import (
 	"context"
 	"crypto/ecdsa"
+	"math/big"
+
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/shopspring/decimal"
-	"math/big"
 )
 
 type ChainClient interface {
@@ -16,6 +17,7 @@ type ChainClient interface {
 	AddAccount(private *ecdsa.PrivateKey) error
 	GetSignAccount() (string, error)
 
+	IsNotFoundError(err error) bool
 	GetGasBalance(ctx context.Context, brokerAddress string, address string) (decimal.Decimal, error)
 	GetChainID() (*big.Int, error)
 	GetLatestBlockNumber() (uint64, error)

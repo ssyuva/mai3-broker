@@ -4,18 +4,21 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
+	"time"
+
+	"github.com/ethereum/go-ethereum"
 	ethCommon "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
-	"time"
+
+	"math/big"
+	"math/rand"
+	"sync"
 
 	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/pkg/errors"
-	"math/big"
-	"math/rand"
-	"sync"
 )
 
 type Client struct {
@@ -64,6 +67,13 @@ func (c *Client) GetEthClient() *ethclient.Client {
 	}
 	idx := rand.Intn(cliLen)
 	return c.ethClis[idx]
+}
+
+func (c *Client) IsNotFoundError(err error) bool {
+	if errors.Is(err, ethereum.NotFound) {
+		return true
+	}
+	return false
 }
 
 func (c *Client) call(method string, args ...interface{}) (interface{}, error) {
@@ -234,7 +244,16 @@ func (c *Client) SendTransaction(tx *model.LaunchTransaction) (string, error) {
 }
 
 func (c *Client) WaitTransactionReceipt(txHash string) (*model.Receipt, error) {
-	res, err := c.call("TransactionReceipt", ethCommon.HexToHash(txHash))
+	var res interface{}
+	var err error
+	for i := 0; i < 3; i++ {
+		res, err = c.call("TransactionReceipt", ethCommon.HexToHash(txHash))
+		if errors.Is(err, ethereum.NotFound) {
+			time.Sleep(time.Second * 2)
+			continue
+		}
+	}
+
 	if err != nil {
 		return nil, err
 	}

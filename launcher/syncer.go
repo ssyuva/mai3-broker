@@ -76,6 +76,13 @@ func (s *Syncer) updateStatusByUser(user string) {
 		}
 
 		receipt, err := s.chainCli.WaitTransactionReceipt(*tx.TransactionHash)
+		if s.chainCli.IsNotFoundError(err) {
+			err = s.resetTransaction(tx)
+			if err != nil {
+				logger.Errorf("syncer: resetTransaction error: %s", err)
+				continue
+			}
+		}
 		if err != nil {
 			logger.Errorf("syncer: WaitTransactionReceipt error: %s", err)
 			continue
@@ -113,4 +120,15 @@ func (s *Syncer) updateStatusByUser(user string) {
 			return
 		}
 	}
+}
+
+func (s *Syncer) resetTransaction(tx *model.LaunchTransaction) error {
+	err := s.dao.Transaction(context.Background(), false /* readonly */, func(dao dao.DAO) error {
+		tx.Nonce = nil
+		tx.TransactionHash = nil
+		tx.Status = model.TxInitial
+		err := dao.UpdateTx(tx)
+		return err
+	})
+	return err
 }
