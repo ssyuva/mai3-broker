@@ -53,7 +53,8 @@ type ReaderLiquidityPoolReaderResult struct {
 type ReaderPerpetualReaderResult struct {
 	State             uint8
 	Oracle            common.Address
-	Nums              [34]*big.Int
+	Nums              [41]*big.Int
+	SyncFundingTime   *big.Int
 	Symbol            *big.Int
 	UnderlyingAsset   string
 	IsMarketClosed    bool
@@ -62,7 +63,7 @@ type ReaderPerpetualReaderResult struct {
 }
 
 // ReaderABI is the input ABI used to generate the binding from.
-const ReaderABI = "[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"liquidityPool\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"perpetualIndex\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"getAccountStorage\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"isSynced\",\"type\":\"bool\"},{\"components\":[{\"internalType\":\"int256\",\"name\":\"cash\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"position\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"availableCash\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"margin\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"settleableMargin\",\"type\":\"int256\"},{\"internalType\":\"bool\",\"name\":\"isInitialMarginSafe\",\"type\":\"bool\"},{\"internalType\":\"bool\",\"name\":\"isMaintenanceMarginSafe\",\"type\":\"bool\"},{\"internalType\":\"bool\",\"name\":\"isMarginSafe\",\"type\":\"bool\"}],\"internalType\":\"structReader.AccountReaderResult\",\"name\":\"accountStorage\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"liquidityPool\",\"type\":\"address\"}],\"name\":\"getLiquidityPoolStorage\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"isSynced\",\"type\":\"bool\"},{\"components\":[{\"internalType\":\"bool\",\"name\":\"isRunning\",\"type\":\"bool\"},{\"internalType\":\"bool\",\"name\":\"isFastCreationEnabled\",\"type\":\"bool\"},{\"internalType\":\"address[7]\",\"name\":\"addresses\",\"type\":\"address[7]\"},{\"internalType\":\"int256\",\"name\":\"vaultFeeRate\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"poolCash\",\"type\":\"int256\"},{\"internalType\":\"uint256[4]\",\"name\":\"nums\",\"type\":\"uint256[4]\"},{\"components\":[{\"internalType\":\"enumPerpetualState\",\"name\":\"state\",\"type\":\"uint8\"},{\"internalType\":\"address\",\"name\":\"oracle\",\"type\":\"address\"},{\"internalType\":\"int256[34]\",\"name\":\"nums\",\"type\":\"int256[34]\"},{\"internalType\":\"uint256\",\"name\":\"symbol\",\"type\":\"uint256\"},{\"internalType\":\"string\",\"name\":\"underlyingAsset\",\"type\":\"string\"},{\"internalType\":\"bool\",\"name\":\"isMarketClosed\",\"type\":\"bool\"},{\"internalType\":\"int256\",\"name\":\"ammCashBalance\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"ammPositionAmount\",\"type\":\"int256\"}],\"internalType\":\"structReader.PerpetualReaderResult[]\",\"name\":\"perpetuals\",\"type\":\"tuple[]\"}],\"internalType\":\"structReader.LiquidityPoolReaderResult\",\"name\":\"pool\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"liquidityPool\",\"type\":\"address\"}],\"name\":\"getPoolMargin\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"isSynced\",\"type\":\"bool\"},{\"internalType\":\"int256\",\"name\":\"poolMargin\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]"
+const ReaderABI = "[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"liquidityPool\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"perpetualIndex\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"getAccountStorage\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"isSynced\",\"type\":\"bool\"},{\"components\":[{\"internalType\":\"int256\",\"name\":\"cash\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"position\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"availableCash\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"margin\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"settleableMargin\",\"type\":\"int256\"},{\"internalType\":\"bool\",\"name\":\"isInitialMarginSafe\",\"type\":\"bool\"},{\"internalType\":\"bool\",\"name\":\"isMaintenanceMarginSafe\",\"type\":\"bool\"},{\"internalType\":\"bool\",\"name\":\"isMarginSafe\",\"type\":\"bool\"}],\"internalType\":\"structReader.AccountReaderResult\",\"name\":\"accountStorage\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"liquidityPool\",\"type\":\"address\"}],\"name\":\"getLiquidityPoolStorage\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"isSynced\",\"type\":\"bool\"},{\"components\":[{\"internalType\":\"bool\",\"name\":\"isRunning\",\"type\":\"bool\"},{\"internalType\":\"bool\",\"name\":\"isFastCreationEnabled\",\"type\":\"bool\"},{\"internalType\":\"address[7]\",\"name\":\"addresses\",\"type\":\"address[7]\"},{\"internalType\":\"int256\",\"name\":\"vaultFeeRate\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"poolCash\",\"type\":\"int256\"},{\"internalType\":\"uint256[4]\",\"name\":\"nums\",\"type\":\"uint256[4]\"},{\"components\":[{\"internalType\":\"enumPerpetualState\",\"name\":\"state\",\"type\":\"uint8\"},{\"internalType\":\"address\",\"name\":\"oracle\",\"type\":\"address\"},{\"internalType\":\"int256[41]\",\"name\":\"nums\",\"type\":\"int256[41]\"},{\"internalType\":\"uint256\",\"name\":\"syncFundingTime\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"symbol\",\"type\":\"uint256\"},{\"internalType\":\"string\",\"name\":\"underlyingAsset\",\"type\":\"string\"},{\"internalType\":\"bool\",\"name\":\"isMarketClosed\",\"type\":\"bool\"},{\"internalType\":\"int256\",\"name\":\"ammCashBalance\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"ammPositionAmount\",\"type\":\"int256\"}],\"internalType\":\"structReader.PerpetualReaderResult[]\",\"name\":\"perpetuals\",\"type\":\"tuple[]\"}],\"internalType\":\"structReader.LiquidityPoolReaderResult\",\"name\":\"pool\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"liquidityPool\",\"type\":\"address\"}],\"name\":\"getPoolMargin\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"isSynced\",\"type\":\"bool\"},{\"internalType\":\"int256\",\"name\":\"poolMargin\",\"type\":\"int256\"},{\"internalType\":\"bool\",\"name\":\"isSafe\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]"
 
 // Reader is an auto generated Go binding around an Ethereum contract.
 type Reader struct {
@@ -250,7 +251,7 @@ func (_Reader *ReaderCallerSession) GetAccountStorage(liquidityPool common.Addre
 
 // GetLiquidityPoolStorage is a free data retrieval call binding the contract method 0x574408c1.
 //
-// Solidity: function getLiquidityPoolStorage(address liquidityPool) view returns(bool isSynced, (bool,bool,address[7],int256,int256,uint256[4],(uint8,address,int256[34],uint256,string,bool,int256,int256)[]) pool)
+// Solidity: function getLiquidityPoolStorage(address liquidityPool) view returns(bool isSynced, (bool,bool,address[7],int256,int256,uint256[4],(uint8,address,int256[41],uint256,uint256,string,bool,int256,int256)[]) pool)
 func (_Reader *ReaderCaller) GetLiquidityPoolStorage(opts *bind.CallOpts, liquidityPool common.Address) (struct {
 	IsSynced bool
 	Pool     ReaderLiquidityPoolReaderResult
@@ -273,7 +274,7 @@ func (_Reader *ReaderCaller) GetLiquidityPoolStorage(opts *bind.CallOpts, liquid
 
 // GetLiquidityPoolStorage is a free data retrieval call binding the contract method 0x574408c1.
 //
-// Solidity: function getLiquidityPoolStorage(address liquidityPool) view returns(bool isSynced, (bool,bool,address[7],int256,int256,uint256[4],(uint8,address,int256[34],uint256,string,bool,int256,int256)[]) pool)
+// Solidity: function getLiquidityPoolStorage(address liquidityPool) view returns(bool isSynced, (bool,bool,address[7],int256,int256,uint256[4],(uint8,address,int256[41],uint256,uint256,string,bool,int256,int256)[]) pool)
 func (_Reader *ReaderSession) GetLiquidityPoolStorage(liquidityPool common.Address) (struct {
 	IsSynced bool
 	Pool     ReaderLiquidityPoolReaderResult
@@ -283,7 +284,7 @@ func (_Reader *ReaderSession) GetLiquidityPoolStorage(liquidityPool common.Addre
 
 // GetLiquidityPoolStorage is a free data retrieval call binding the contract method 0x574408c1.
 //
-// Solidity: function getLiquidityPoolStorage(address liquidityPool) view returns(bool isSynced, (bool,bool,address[7],int256,int256,uint256[4],(uint8,address,int256[34],uint256,string,bool,int256,int256)[]) pool)
+// Solidity: function getLiquidityPoolStorage(address liquidityPool) view returns(bool isSynced, (bool,bool,address[7],int256,int256,uint256[4],(uint8,address,int256[41],uint256,uint256,string,bool,int256,int256)[]) pool)
 func (_Reader *ReaderCallerSession) GetLiquidityPoolStorage(liquidityPool common.Address) (struct {
 	IsSynced bool
 	Pool     ReaderLiquidityPoolReaderResult
@@ -293,10 +294,11 @@ func (_Reader *ReaderCallerSession) GetLiquidityPoolStorage(liquidityPool common
 
 // GetPoolMargin is a free data retrieval call binding the contract method 0x41de031a.
 //
-// Solidity: function getPoolMargin(address liquidityPool) view returns(bool isSynced, int256 poolMargin)
+// Solidity: function getPoolMargin(address liquidityPool) view returns(bool isSynced, int256 poolMargin, bool isSafe)
 func (_Reader *ReaderCaller) GetPoolMargin(opts *bind.CallOpts, liquidityPool common.Address) (struct {
 	IsSynced   bool
 	PoolMargin *big.Int
+	IsSafe     bool
 }, error) {
 	var out []interface{}
 	err := _Reader.contract.Call(opts, &out, "getPoolMargin", liquidityPool)
@@ -304,10 +306,12 @@ func (_Reader *ReaderCaller) GetPoolMargin(opts *bind.CallOpts, liquidityPool co
 	outstruct := new(struct {
 		IsSynced   bool
 		PoolMargin *big.Int
+		IsSafe     bool
 	})
 
 	outstruct.IsSynced = out[0].(bool)
 	outstruct.PoolMargin = out[1].(*big.Int)
+	outstruct.IsSafe = out[2].(bool)
 
 	return *outstruct, err
 
@@ -315,20 +319,22 @@ func (_Reader *ReaderCaller) GetPoolMargin(opts *bind.CallOpts, liquidityPool co
 
 // GetPoolMargin is a free data retrieval call binding the contract method 0x41de031a.
 //
-// Solidity: function getPoolMargin(address liquidityPool) view returns(bool isSynced, int256 poolMargin)
+// Solidity: function getPoolMargin(address liquidityPool) view returns(bool isSynced, int256 poolMargin, bool isSafe)
 func (_Reader *ReaderSession) GetPoolMargin(liquidityPool common.Address) (struct {
 	IsSynced   bool
 	PoolMargin *big.Int
+	IsSafe     bool
 }, error) {
 	return _Reader.Contract.GetPoolMargin(&_Reader.CallOpts, liquidityPool)
 }
 
 // GetPoolMargin is a free data retrieval call binding the contract method 0x41de031a.
 //
-// Solidity: function getPoolMargin(address liquidityPool) view returns(bool isSynced, int256 poolMargin)
+// Solidity: function getPoolMargin(address liquidityPool) view returns(bool isSynced, int256 poolMargin, bool isSafe)
 func (_Reader *ReaderCallerSession) GetPoolMargin(liquidityPool common.Address) (struct {
 	IsSynced   bool
 	PoolMargin *big.Int
+	IsSafe     bool
 }, error) {
 	return _Reader.Contract.GetPoolMargin(&_Reader.CallOpts, liquidityPool)
 }

@@ -3,9 +3,10 @@ package ethereum
 import (
 	"context"
 	"fmt"
+	"math/big"
+
 	ethBind "github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/shopspring/decimal"
-	"math/big"
 
 	"github.com/mcarloai/mai-v3-broker/common/chain/ethereum/reader"
 	"github.com/mcarloai/mai-v3-broker/common/mai3"
@@ -88,24 +89,24 @@ func (c *Client) GetLiquidityPoolStorage(ctx context.Context, readerAddress, poo
 		storage := &model.PerpetualStorage{
 			MarkPrice:               decimal.NewFromBigInt(perpetual.Nums[1], -mai3.DECIMALS),
 			IndexPrice:              decimal.NewFromBigInt(perpetual.Nums[2], -mai3.DECIMALS),
-			UnitAccumulativeFunding: decimal.NewFromBigInt(perpetual.Nums[4], -mai3.DECIMALS),
-			InitialMarginRate:       decimal.NewFromBigInt(perpetual.Nums[5], -mai3.DECIMALS),
-			MaintenanceMarginRate:   decimal.NewFromBigInt(perpetual.Nums[6], -mai3.DECIMALS),
-			OperatorFeeRate:         decimal.NewFromBigInt(perpetual.Nums[7], -mai3.DECIMALS),
-			LpFeeRate:               decimal.NewFromBigInt(perpetual.Nums[8], -mai3.DECIMALS),
-			ReferrerRebateRate:      decimal.NewFromBigInt(perpetual.Nums[9], -mai3.DECIMALS),
-			LiquidationPenaltyRate:  decimal.NewFromBigInt(perpetual.Nums[10], -mai3.DECIMALS),
-			KeeperGasReward:         decimal.NewFromBigInt(perpetual.Nums[11], -mai3.DECIMALS),
-			InsuranceFundRate:       decimal.NewFromBigInt(perpetual.Nums[12], -mai3.DECIMALS),
-			InsuranceFundCap:        decimal.NewFromBigInt(perpetual.Nums[13], -mai3.DECIMALS),
-			InsuranceFund:           decimal.NewFromBigInt(perpetual.Nums[14], -mai3.DECIMALS),
-			DonatedInsuranceFund:    decimal.NewFromBigInt(perpetual.Nums[15], -mai3.DECIMALS),
-			HalfSpread:              decimal.NewFromBigInt(perpetual.Nums[16], -mai3.DECIMALS),
-			OpenSlippageFactor:      decimal.NewFromBigInt(perpetual.Nums[19], -mai3.DECIMALS),
-			CloseSlippageFactor:     decimal.NewFromBigInt(perpetual.Nums[22], -mai3.DECIMALS),
-			FundingRateLimit:        decimal.NewFromBigInt(perpetual.Nums[25], -mai3.DECIMALS),
-			MaxLeverage:             decimal.NewFromBigInt(perpetual.Nums[28], -mai3.DECIMALS),
-			MaxClosePriceDiscount:   decimal.NewFromBigInt(perpetual.Nums[31], -mai3.DECIMALS),
+			UnitAccumulativeFunding: decimal.NewFromBigInt(perpetual.Nums[5], -mai3.DECIMALS),
+			InitialMarginRate:       decimal.NewFromBigInt(perpetual.Nums[6], -mai3.DECIMALS),
+			MaintenanceMarginRate:   decimal.NewFromBigInt(perpetual.Nums[7], -mai3.DECIMALS),
+			OperatorFeeRate:         decimal.NewFromBigInt(perpetual.Nums[8], -mai3.DECIMALS),
+			LpFeeRate:               decimal.NewFromBigInt(perpetual.Nums[9], -mai3.DECIMALS),
+			ReferrerRebateRate:      decimal.NewFromBigInt(perpetual.Nums[10], -mai3.DECIMALS),
+			LiquidationPenaltyRate:  decimal.NewFromBigInt(perpetual.Nums[11], -mai3.DECIMALS),
+			KeeperGasReward:         decimal.NewFromBigInt(perpetual.Nums[12], -mai3.DECIMALS),
+			InsuranceFundRate:       decimal.NewFromBigInt(perpetual.Nums[13], -mai3.DECIMALS),
+			InsuranceFundCap:        decimal.NewFromBigInt(perpetual.Nums[14], -mai3.DECIMALS),
+			InsuranceFund:           decimal.NewFromBigInt(perpetual.Nums[16], -mai3.DECIMALS),
+			DonatedInsuranceFund:    decimal.NewFromBigInt(perpetual.Nums[17], -mai3.DECIMALS),
+			HalfSpread:              decimal.NewFromBigInt(perpetual.Nums[18], -mai3.DECIMALS),
+			OpenSlippageFactor:      decimal.NewFromBigInt(perpetual.Nums[21], -mai3.DECIMALS),
+			CloseSlippageFactor:     decimal.NewFromBigInt(perpetual.Nums[24], -mai3.DECIMALS),
+			FundingRateLimit:        decimal.NewFromBigInt(perpetual.Nums[27], -mai3.DECIMALS),
+			MaxLeverage:             decimal.NewFromBigInt(perpetual.Nums[30], -mai3.DECIMALS),
+			MaxClosePriceDiscount:   decimal.NewFromBigInt(perpetual.Nums[33], -mai3.DECIMALS),
 			AmmCashBalance:          decimal.NewFromBigInt(perpetual.AmmCashBalance, -mai3.DECIMALS),
 			AmmPositionAmount:       decimal.NewFromBigInt(perpetual.AmmPositionAmount, -mai3.DECIMALS),
 		}
