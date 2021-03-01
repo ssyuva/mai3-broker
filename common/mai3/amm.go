@@ -2,6 +2,7 @@ package mai3
 
 import (
 	"fmt"
+
 	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/shopspring/decimal"
@@ -75,7 +76,7 @@ func ComputeBestAskBidPrice(p *model.LiquidityPoolStorage, perpetualIndex int64,
 		}
 		return computeBestAskBidPriceIfUnsafe(context)
 	}
-	if err := computeAMMPoolMargin(context, beta); err != nil {
+	if err := computeAMMPoolMargin(context, beta, false); err != nil {
 		logger.Errorf("ComputeBestAskBidPrice: computeAMMPoolMargin error:%s", err)
 		return _0
 	}
@@ -117,7 +118,7 @@ func computeAMMOpenAmountWithPrice(context *model.AMMTradingContext, limitPrice 
 		return _0
 	}
 
-	if err := computeAMMPoolMargin(context, context.OpenSlippageFactor); err != nil {
+	if err := computeAMMPoolMargin(context, context.OpenSlippageFactor, false); err != nil {
 		logger.Errorf("computeAMMOpenAmountWithPrice: computeAMMPoolMargin fail:%s", err)
 		return _0
 	}
@@ -193,7 +194,7 @@ func computeAMMCloseAndOpenAmountWithPrice(context *model.AMMTradingContext, lim
 	// case 1: limit by spread
 	ammSafe := isAMMSafe(context, context.CloseSlippageFactor)
 	if ammSafe {
-		if err := computeAMMPoolMargin(context, context.CloseSlippageFactor); err != nil {
+		if err := computeAMMPoolMargin(context, context.CloseSlippageFactor, false); err != nil {
 			logger.Errorf("computeAMMCloseAndOpenAmountWithPrice: computeAMMPoolMargin err:%s", err)
 			return _0
 		}
@@ -297,7 +298,7 @@ func computeAMMInternalClose(context *model.AMMTradingContext, amount decimal.De
 
 	// trade
 	if isAMMSafe(ret, beta) {
-		err = computeAMMPoolMargin(ret, beta)
+		err = computeAMMPoolMargin(ret, beta, false)
 		if err != nil {
 			return nil, err
 		}
@@ -340,7 +341,7 @@ func computeAMMInternalOpen(context *model.AMMTradingContext, amount decimal.Dec
 		return nil, fmt.Errorf("unsafe amm")
 	}
 
-	if err := computeAMMPoolMargin(ret, beta); err != nil {
+	if err := computeAMMPoolMargin(ret, beta, false); err != nil {
 		return nil, err
 	}
 	if amount.GreaterThan(_0) {
@@ -435,17 +436,24 @@ func isAMMSafe(context *model.AMMTradingContext, beta decimal.Decimal) bool {
 	return context.Cash.GreaterThanOrEqual(safeCash)
 }
 
-func computeAMMPoolMargin(context *model.AMMTradingContext, beta decimal.Decimal) error {
+func computeAMMPoolMargin(context *model.AMMTradingContext, beta decimal.Decimal, allowUnsafe bool) error {
 	marginBalanceWithCurrent := context.Cash.
 		Add(context.ValueWithoutCurrent).
 		Add(context.Index.Mul(context.Position1))
-	squareValueWithCurrent := context.SquareValueWithoutCurrent.
-		Add(beta.Mul(context.Index).Mul(context.Index).Mul(context.Position1).Mul(context.Position1))
+	squareValueWithCurrent := context.SquareValueWithoutCurrent.Add(
+		beta.Mul(context.Index).
+			Mul(context.Index).
+			Mul(context.Position1).
+			Mul(context.Position1))
 
 	// 1/2 (M_b + √(M_b^2 - 2(Σ β P_i_j^2 N_j^2)))
 	beforeSqrt := marginBalanceWithCurrent.Mul(marginBalanceWithCurrent).Sub(_2.Mul(squareValueWithCurrent))
 	if beforeSqrt.LessThan(_0) {
-		return fmt.Errorf("AMM available margin sqrt < 0")
+		if allowUnsafe {
+			beforeSqrt = _0
+		} else {
+			return fmt.Errorf("AMM available margin sqrt < 0")
+		}
 	}
 	poolMargin := marginBalanceWithCurrent.Add(Sqrt(beforeSqrt)).Div(_2)
 	if poolMargin.LessThan(_0) {

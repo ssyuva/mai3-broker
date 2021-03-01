@@ -107,6 +107,9 @@ func (c *Client) GetLiquidityPoolStorage(ctx context.Context, readerAddress, poo
 			FundingRateLimit:        decimal.NewFromBigInt(perpetual.Nums[27], -mai3.DECIMALS),
 			MaxLeverage:             decimal.NewFromBigInt(perpetual.Nums[30], -mai3.DECIMALS),
 			MaxClosePriceDiscount:   decimal.NewFromBigInt(perpetual.Nums[33], -mai3.DECIMALS),
+			OpenInterest:            decimal.NewFromBigInt(perpetual.Nums[36], -mai3.DECIMALS),
+			MaxOpenInterestRate:     decimal.NewFromBigInt(perpetual.Nums[37], -mai3.DECIMALS),
+			FundingRateFactor:       decimal.NewFromBigInt(perpetual.Nums[38], -mai3.DECIMALS),
 			AmmCashBalance:          decimal.NewFromBigInt(perpetual.AmmCashBalance, -mai3.DECIMALS),
 			AmmPositionAmount:       decimal.NewFromBigInt(perpetual.AmmPositionAmount, -mai3.DECIMALS),
 		}

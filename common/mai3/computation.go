@@ -2,6 +2,7 @@ package mai3
 
 import (
 	"fmt"
+
 	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/shopspring/decimal"
@@ -54,6 +55,9 @@ func ComputeAMMTrade(p *model.LiquidityPoolStorage, perpetualIndex int64, trader
 		return _0, fmt.Errorf("perpetual %d not found in the pool", perpetualIndex)
 	}
 
+	oldOpenInterest := perpetual.OpenInterest
+	newOpenInterest := oldOpenInterest
+
 	// AMM
 	_, deltaAMMAmount, tradingPrice, err := ComputeAMMPrice(p, perpetualIndex, amount)
 	if err != nil {
@@ -78,19 +82,52 @@ func ComputeAMMTrade(p *model.LiquidityPoolStorage, perpetualIndex int64, trader
 		return _0, err
 	}
 
+	newOpenInterest = computeOpenInterest(newOpenInterest, trader.PositionAmount, deltaAMMAmount.Neg())
+
 	// new AMM
 	fakeAMMAccount := &model.AccountStorage{
 		CashBalance:    p.PoolCashBalance,
 		PositionAmount: perpetual.AmmPositionAmount,
 	}
 	if err = ComputeTradeWithPrice(p, perpetualIndex, fakeAMMAccount, tradingPrice, deltaAMMAmount, _0); err != nil {
-		logger.Errorf("ComputeTradeWithPrice fakeAMMAccount err:%s", err)
+		logger.Errorf("ComputeAMMTrade fakeAMMAccount err:%s", err)
 		return _0, err
 	}
 	fakeAMMAccount.CashBalance = fakeAMMAccount.CashBalance.Add(lpFee)
+	newOpenInterest = computeOpenInterest(newOpenInterest, perpetual.AmmPositionAmount, deltaAMMAmount)
+
 	p.PoolCashBalance = fakeAMMAccount.CashBalance
 	perpetual.AmmPositionAmount = fakeAMMAccount.PositionAmount
+	perpetual.OpenInterest = newOpenInterest
+
+	// check open interest limit
+	if newOpenInterest.GreaterThan(oldOpenInterest) {
+		context := initAMMTradingContext(p, perpetualIndex)
+		err = computeAMMPoolMargin(context, context.OpenSlippageFactor, true)
+		if err != nil {
+			logger.Errorf("ComputeAMMTrade computeAMMPoolMargin err:%s", err)
+			return _0, err
+		}
+		limit := context.PoolMargin.Mul(perpetual.MaxOpenInterestRate).Div(perpetual.IndexPrice)
+		if newOpenInterest.GreaterThan(limit) {
+			return _0, fmt.Errorf("ComputeAMMTrade open interest exceeds limit: %s > %s", newOpenInterest, limit)
+		}
+	}
+
 	return tradingPrice, nil
+}
+
+// > 0 if more collateral required
+func computeOpenInterest(oldOpenInterest, oldPosition, tradeAmount decimal.Decimal) decimal.Decimal {
+	newOpenInterest := oldOpenInterest
+	newPosition := oldPosition.Add(tradeAmount)
+	if oldPosition.GreaterThan(_0) {
+		newOpenInterest = newOpenInterest.Sub(oldPosition)
+	}
+	if newPosition.GreaterThan(_0) {
+		newOpenInterest = newOpenInterest.Add(newPosition)
+	}
+	return newOpenInterest
 }
 
 func ComputeAMMPrice(p *model.LiquidityPoolStorage, perpetualIndex int64, amount decimal.Decimal) (deltaAMMMargin, deltaAMMAmount, tradingPrice decimal.Decimal, err error) {

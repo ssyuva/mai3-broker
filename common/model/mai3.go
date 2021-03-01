@@ -31,11 +31,14 @@ type PerpetualStorage struct {
 	InsuranceFundCap       decimal.Decimal
 	InsuranceFund          decimal.Decimal
 	DonatedInsuranceFund   decimal.Decimal
+	OpenInterest           decimal.Decimal
+	MaxOpenInterestRate    decimal.Decimal // openInterest <= poolMargin * maxOpenInterestRate / indexPrice
 
 	HalfSpread            decimal.Decimal // α
 	OpenSlippageFactor    decimal.Decimal // β1
 	CloseSlippageFactor   decimal.Decimal // β2
-	FundingRateLimit      decimal.Decimal // γ
+	FundingRateFactor     decimal.Decimal // γ
+	FundingRateLimit      decimal.Decimal // Γ
 	MaxLeverage           decimal.Decimal // λ
 	MaxClosePriceDiscount decimal.Decimal // δ
 
