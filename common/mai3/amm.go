@@ -554,7 +554,7 @@ func initAMMTradingContext(p *model.LiquidityPoolStorage, perpetualIndex int64) 
 	cash := p.PoolCashBalance
 	for id, perpetual := range p.Perpetuals {
 		if !perpetual.IsNormal {
-			return nil
+			continue
 		}
 		if perpetual.IndexPrice.LessThanOrEqual(_0) {
 			return nil

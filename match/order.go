@@ -173,7 +173,7 @@ func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice
 			_, err = mai3.ComputeAMMTrade(poolStorage, m.perpetual.PerpetualIndex, account, order.Amount)
 			if err != nil {
 				logger.Errorf("matchOneSide: ComputeAMMTrade fail. err:%s", err)
-				return result, false
+				return result, true
 			}
 			result = append(result, matchItem)
 			maxTradeAmount = maxTradeAmount.Sub(order.Amount)
@@ -190,7 +190,7 @@ func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice
 			_, err = mai3.ComputeAMMTrade(poolStorage, m.perpetual.PerpetualIndex, account, matchedAmount)
 			if err != nil {
 				logger.Errorf("matchOneSide: ComputeAMMTrade fail. err:%s", err)
-				return result, false
+				return result, true
 			}
 			if order.Amount.Sub(matchedAmount).Abs().LessThan(order.MinTradeAmount.Abs()) {
 				logger.Infof("OrderCancelAmount: %s", order.Amount.Sub(matchedAmount))
