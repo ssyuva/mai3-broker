@@ -246,10 +246,10 @@ func (c *Client) SendTransaction(tx *model.LaunchTransaction) (string, error) {
 func (c *Client) WaitTransactionReceipt(txHash string) (*model.Receipt, error) {
 	var res interface{}
 	var err error
-	for i := 0; i < 3; i++ {
+	for i := 0; i < 10; i++ {
 		res, err = c.call("TransactionReceipt", ethCommon.HexToHash(txHash))
 		if errors.Is(err, ethereum.NotFound) {
-			time.Sleep(time.Second * 2)
+			time.Sleep(time.Second * 5)
 			continue
 		}
 	}
