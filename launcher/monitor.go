@@ -72,11 +72,13 @@ func (s *Monitor) updateUnmatureTransactionStatus(blockNumber *uint64) {
 
 		receipt, err := s.chainCli.WaitTransactionReceipt(*tx.TransactionHash)
 		if s.chainCli.IsNotFoundError(err) {
-			tx.Status = model.TxFailed
-			err = s.match.RollbackOrdersStatus(tx.TxID, tx.Status.TransactionStatus(), *tx.TransactionHash, *tx.BlockHash, *tx.BlockNumber, *tx.BlockTime)
-			if err != nil {
-				logger.Warnf("transactionHash:%s not found, RollbackOrdersStatus fail txID: %s, err:%s", *tx.TransactionHash, tx.TxID, err)
-				return
+			if tx.Status == model.TxSuccess {
+				tx.Status = model.TxFailed
+				err = s.match.RollbackOrdersStatus(tx.TxID, tx.Status.TransactionStatus(), *tx.TransactionHash, *tx.BlockHash, *tx.BlockNumber, *tx.BlockTime)
+				if err != nil {
+					logger.Warnf("transactionHash:%s not found, RollbackOrdersStatus fail txID: %s, err:%s", *tx.TransactionHash, tx.TxID, err)
+					return
+				}
 			}
 		}
 		if err != nil {
