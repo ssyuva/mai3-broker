@@ -12,13 +12,13 @@ import (
 
 var TradeAmountRelaxFactor = decimal.NewFromFloat(0.99)
 
-func (m *match) CheckOrderMargin(poolStorage *model.LiquidityPoolStorage, account *model.AccountStorage, order *model.Order) bool {
+func (m *match) CheckOrderMargin(poolStorage *model.LiquidityPoolStorage, account *model.AccountStorage, order *model.Order, amount decimal.Decimal) bool {
 	perpetualStorage, ok := poolStorage.Perpetuals[m.perpetual.PerpetualIndex]
 	if !ok {
 		return false
 	}
 	err := mai3.ComputeTradeWithPrice(poolStorage, m.perpetual.PerpetualIndex, account,
-		order.Price, order.AvailableAmount,
+		order.Price, amount,
 		poolStorage.VaultFeeRate.Add(perpetualStorage.LpFeeRate).Add(perpetualStorage.OperatorFeeRate))
 	if err != nil {
 		return false

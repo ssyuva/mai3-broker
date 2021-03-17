@@ -41,7 +41,7 @@ func (m *match) NewOrder(order *model.Order) string {
 		return model.MatchInternalErrorID
 	}
 
-	if !m.CheckOrderMargin(poolStorage, account, order) {
+	if !m.CheckOrderMargin(poolStorage, account, order, order.AvailableAmount) {
 		return model.MatchInsufficientBalanceErrorID
 	}
 

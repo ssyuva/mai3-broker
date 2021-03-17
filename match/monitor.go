@@ -172,7 +172,7 @@ func (m *match) cancelPartialForOrderCheck(poolStorage *model.LiquidityPoolStora
 	relaxAmount := availableAmount.Mul(OrderAmountRelaxFactor)
 	canceled = decimal.Zero
 	for {
-		ok = m.CheckOrderMargin(poolStorage, account, order)
+		ok = m.CheckOrderMargin(poolStorage, account, order, availableAmount)
 		if ok {
 			break
 		} else {
