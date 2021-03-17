@@ -18,7 +18,7 @@ func (m *match) CheckOrderMargin(poolStorage *model.LiquidityPoolStorage, accoun
 		return false
 	}
 	err := mai3.ComputeTradeWithPrice(poolStorage, m.perpetual.PerpetualIndex, account,
-		order.Price, order.Amount,
+		order.Price, order.AvailableAmount,
 		poolStorage.VaultFeeRate.Add(perpetualStorage.LpFeeRate).Add(perpetualStorage.OperatorFeeRate))
 	if err != nil {
 		return false

@@ -2,14 +2,17 @@ package match
 
 import (
 	"context"
+	"strings"
+	"time"
+
 	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/mcarloai/mai-v3-broker/conf"
 	"github.com/shopspring/decimal"
 	logger "github.com/sirupsen/logrus"
-	"strings"
-	"time"
 )
+
+var OrderAmountRelaxFactor = decimal.NewFromFloat(0.1)
 
 type OrderCancel struct {
 	OrderHash string
@@ -95,6 +98,7 @@ func (m *match) checkUserPendingOrders(poolStorage *model.LiquidityPoolStorage, 
 			}
 			cancels = append(cancels, cancel)
 		}
+		return cancels
 	}
 
 	gasPrice := m.gasMonitor.GetGasPriceDecimal()
@@ -148,11 +152,12 @@ func (m *match) checkUserPendingOrders(poolStorage *model.LiquidityPoolStorage, 
 			continue
 		}
 
-		if !m.CheckOrderMargin(poolStorage, account, order) {
+		ok, canceled := m.cancelPartialForOrderCheck(poolStorage, account, order)
+		if !ok {
 			cancel := &OrderCancel{
 				OrderHash: order.OrderHash,
 				Status:    order.Status,
-				ToCancel:  order.AvailableAmount,
+				ToCancel:  canceled,
 				Reason:    model.CancelReasonInsufficientFunds,
 			}
 			cancels = append(cancels, cancel)
@@ -160,4 +165,25 @@ func (m *match) checkUserPendingOrders(poolStorage *model.LiquidityPoolStorage, 
 	}
 
 	return cancels
+}
+
+func (m *match) cancelPartialForOrderCheck(poolStorage *model.LiquidityPoolStorage, account *model.AccountStorage, order *model.Order) (ok bool, canceled decimal.Decimal) {
+	availableAmount := order.AvailableAmount
+	relaxAmount := availableAmount.Mul(OrderAmountRelaxFactor)
+	canceled = decimal.Zero
+	for {
+		ok = m.CheckOrderMargin(poolStorage, account, order)
+		if ok {
+			break
+		} else {
+			// relax 10% amount
+			availableAmount = availableAmount.Sub(relaxAmount)
+			canceled = canceled.Add(relaxAmount)
+			if availableAmount.Equal(decimal.Zero) || availableAmount.Abs().LessThan(order.MinTradeAmount.Abs()) {
+				canceled = canceled.Add(availableAmount)
+				break
+			}
+		}
+	}
+	return
 }
