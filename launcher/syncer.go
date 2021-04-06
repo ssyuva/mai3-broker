@@ -3,6 +3,7 @@ package launcher
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/mcarloai/mai-v3-broker/common/chain"
 	"github.com/mcarloai/mai-v3-broker/common/model"
@@ -41,6 +42,10 @@ func (s *Syncer) Run() error {
 }
 
 func (s *Syncer) syncTransaction() {
+	st := time.Now()
+	defer func() {
+		mSyncingDuration.Observe(float64(time.Since(st).Milliseconds()))
+	}()
 	users, err := s.dao.GetUsersWithStatus(model.TxPending)
 	if err != nil {
 		logger.Warnf("find user with pending status failed: %s", err)
@@ -55,7 +60,6 @@ func (s *Syncer) syncTransaction() {
 		}(user)
 	}
 	wg.Wait()
-	return
 }
 
 func (s *Syncer) updateStatusByUser(user string) {
@@ -109,6 +113,7 @@ func (s *Syncer) updateStatusByUser(user string) {
 			}
 
 			err = s.match.UpdateOrdersStatus(tx.TxID, tx.Status.TransactionStatus(), *tx.TransactionHash, *tx.BlockHash, *tx.BlockNumber, *tx.BlockTime)
+			mTxPendingDuration.WithLabelValues(tx.FromAddress).Set(float64(time.Since(tx.CommitTime).Milliseconds()))
 			return err
 		})
 		// this case is to handle accelarate

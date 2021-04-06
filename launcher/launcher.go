@@ -108,7 +108,7 @@ func (l *Launcher) ImportPrivateKey(pk string) (string, error) {
 
 	b, err := l.chainCli.EncryptKey(p, conf.Conf.Password)
 	if err != nil {
-		return address, fmt.Errorf("fail to encrypt key", err)
+		return address, fmt.Errorf("fail to encrypt key %s", err)
 	}
 	err = l.dao.Put(&model.KVStore{
 		Key:      address,
@@ -147,7 +147,7 @@ func (l *Launcher) checkMatchTransaction() {
 func (l *Launcher) createLaunchTransaction(matchTx *model.MatchTransaction) error {
 	_, err := l.dao.GetTxByID(matchTx.ID)
 	if !dao.IsRecordNotFound(err) {
-		return fmt.Errorf("Transaction already launched ID:%s", matchTx.ID)
+		return fmt.Errorf("Transaction already launched ID: %s", matchTx.ID)
 	}
 
 	orders := make([][]byte, 0)

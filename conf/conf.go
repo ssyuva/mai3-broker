@@ -16,6 +16,8 @@ type Config struct {
 	ReaderAddress string   `envconfig:"reader_address"`
 	BrokerAddress string   `envconfig:"broker_address"`
 	WhiteList     []string `envconfig:"white_list"`
+	EnableMetrics bool     `envconfig:"enable_metrics"`
+	MetricsAddr   string   `envconfig:"metrics_addr"`
 
 	MatchInterval           time.Duration `envconfig:"match_interval"`
 	MatchMonitorInterval    time.Duration `envconfig:"match_monitor_interval"`

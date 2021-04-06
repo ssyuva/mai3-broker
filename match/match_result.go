@@ -37,6 +37,8 @@ func (m *match) UpdateOrdersStatus(txID string, status model.TransactionStatus, 
 			matchTx.ExecutedAt = null.TimeFrom(time.Unix(int64(blockTime), 0).UTC())
 		}
 
+		mTxPendingDuration.WithLabelValues(fmt.Sprintf("%s-%d", matchTx.LiquidityPoolAddress, matchTx.PerpetualIndex)).Set(float64(time.Since(matchTx.CreatedAt).Milliseconds()))
+
 		// update orders
 		orders, err := m.updateOrdersByTradeEvent(dao, matchTx, blockNumber)
 		if err != nil {
@@ -184,7 +186,7 @@ func (m *match) rollbackOrderbook(oldAmount, delta decimal.Decimal, order *model
 	if oldAmount.IsZero() {
 		memoryOrder := m.getMemoryOrder(order)
 		if err := m.orderbook.InsertOrder(memoryOrder); err != nil {
-			logger.Errorf("UpdateOrdersStatus:%w", err)
+			logger.Errorf("insert order to orderbook:%w", err)
 			return err
 		}
 		return nil
@@ -193,7 +195,7 @@ func (m *match) rollbackOrderbook(oldAmount, delta decimal.Decimal, order *model
 	bookOrder, ok := m.orderbook.GetOrder(order.OrderHash, order.Amount.IsNegative(), order.Price)
 	if ok {
 		if err := m.orderbook.ChangeOrder(bookOrder, delta); err != nil {
-			logger.Errorf("UpdateOrdersStatus:%w", err)
+			logger.Errorf("change order in orderbook:%w", err)
 			return err
 		}
 		return nil
