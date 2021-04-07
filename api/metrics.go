@@ -13,7 +13,7 @@ import (
 // GenericHTTPCollector create a new metrics collector with given config
 func GenericHTTPCollector() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		if conf.Conf.EnableMetrics {
+		if !conf.Conf.EnableMetrics {
 			return func(c echo.Context) (err error) {
 				return next(c)
 			}

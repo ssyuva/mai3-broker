@@ -164,7 +164,7 @@ func GetOrderFromPalceOrderReq(params *PlaceOrderReq) (*model.Order, error) {
 	order.OrderParam.LiquidityPoolAddress = strings.ToLower(params.LiquidityPoolAddress)
 	order.OrderParam.PerpetualIndex = params.PerpetualIndex
 	order.OrderParam.BrokerAddress = strings.ToLower(params.BrokerAddress)
-	if order.OrderParam.BrokerAddress != strings.ToLower(conf.Conf.BrokerAddress) {
+	if !strings.EqualFold(conf.Conf.BrokerAddress, order.OrderParam.BrokerAddress) {
 		return nil, InternalError(fmt.Errorf("unSupport brokerAddress:%s", params.BrokerAddress))
 	}
 	order.OrderParam.RelayerAddress = strings.ToLower(params.RelayerAddress)
@@ -316,7 +316,7 @@ func validatePlaceOrder(req *PlaceOrderReq) error {
 	}
 
 	// broker contract address
-	if strings.ToLower(req.BrokerAddress) != strings.ToLower(conf.Conf.BrokerAddress) {
+	if !strings.EqualFold(req.BrokerAddress, conf.Conf.BrokerAddress) {
 		return BrokerAddressError(req.BrokerAddress)
 	}
 
@@ -333,7 +333,7 @@ func (s *Server) CancelOrder(p Param) (interface{}, error) {
 		return nil, InternalError(err)
 	}
 
-	if order.TraderAddress != strings.ToLower(params.Address) {
+	if !strings.EqualFold(params.Address, order.TraderAddress) {
 		return nil, OrderAuthError(params.OrderHash)
 	}
 

@@ -1,14 +1,15 @@
 package api
 
 import (
-	"github.com/labstack/echo"
-	"github.com/mcarloai/mai-v3-broker/common/auth"
-	"github.com/mcarloai/mai-v3-broker/conf"
-	logger "github.com/sirupsen/logrus"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/labstack/echo"
+	"github.com/mcarloai/mai-v3-broker/common/auth"
+	"github.com/mcarloai/mai-v3-broker/conf"
+	logger "github.com/sirupsen/logrus"
 )
 
 func GetJwtAuth(param Param) (interface{}, error) {
@@ -17,7 +18,7 @@ func GetJwtAuth(param Param) (interface{}, error) {
 	if len(conf.Conf.WhiteList) > 0 {
 		find := false
 		for _, item := range conf.Conf.WhiteList {
-			if strings.ToLower(address) == strings.ToLower(item) {
+			if strings.EqualFold(address, item) {
 				find = true
 				break
 			}

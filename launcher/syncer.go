@@ -42,10 +42,6 @@ func (s *Syncer) Run() error {
 }
 
 func (s *Syncer) syncTransaction() {
-	st := time.Now()
-	defer func() {
-		mSyncingDuration.Observe(float64(time.Since(st).Milliseconds()))
-	}()
 	users, err := s.dao.GetUsersWithStatus(model.TxPending)
 	if err != nil {
 		logger.Warnf("find user with pending status failed: %s", err)

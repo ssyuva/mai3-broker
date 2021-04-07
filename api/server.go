@@ -17,7 +17,6 @@ import (
 type Server struct {
 	ctx      context.Context
 	e        *echo.Echo
-	wsChan   chan interface{}
 	match    *match.Server
 	chainCli chain.ChainClient
 	dao      dao.DAO
@@ -34,6 +33,7 @@ func New(ctx context.Context, cli chain.ChainClient, dao dao.DAO, match *match.S
 	e.Use(RecoverHandler)
 	e.HTTPErrorHandler = ErrorHandler
 	e.Use(InitMaiApiContext)
+	e.Use(GenericHTTPCollector())
 
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{"*"},
