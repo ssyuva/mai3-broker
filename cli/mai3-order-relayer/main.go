@@ -55,6 +55,13 @@ func main() {
 	// gas monitor for fetch gas price
 	gasMonitor := gasmonitor.NewGasMonitor(ctx)
 
+	// start metrics server
+	if conf.Conf.EnableMetrics {
+		group.Go(func() error {
+			return api.StartMetricsServer()
+		})
+	}
+
 	// perpetual syncer for sync perpetuals from mcdex subgraph
 	perpetualSyncer, err := perpetualsyncer.NewPerpetualSyncer(ctx, dao)
 	if err != nil {
