@@ -75,6 +75,8 @@ func (s *Syncer) updateStatusByUser(user string) {
 			return
 		}
 
+		txPendingDuration.WithLabelValues(tx.FromAddress).Set(float64(time.Since(tx.CommitTime).Milliseconds()))
+
 		receipt, err := s.chainCli.WaitTransactionReceipt(*tx.TransactionHash)
 		if s.chainCli.IsNotFoundError(err) {
 			err = s.resetTransaction(tx)
@@ -109,7 +111,7 @@ func (s *Syncer) updateStatusByUser(user string) {
 			}
 
 			err = s.match.UpdateOrdersStatus(tx.TxID, tx.Status.TransactionStatus(), *tx.TransactionHash, *tx.BlockHash, *tx.BlockNumber, *tx.BlockTime)
-			mTxPendingDuration.WithLabelValues(tx.FromAddress).Set(float64(time.Since(tx.CommitTime).Milliseconds()))
+			txConfirmDuration.WithLabelValues(tx.FromAddress).Set(float64(time.Since(tx.CommitTime).Milliseconds()))
 			return err
 		})
 		// this case is to handle accelarate

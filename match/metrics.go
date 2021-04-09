@@ -9,8 +9,17 @@ var (
 			Help: "Pending duration of match.",
 		}, []string{"perpetual"},
 	)
+
+	activeOrderCount = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "total active orders",
+			Help: "count of active orders per perpetual",
+		},
+		[]string{"perpetual"},
+	)
 )
 
 func init() {
 	prometheus.MustRegister(mTxPendingDuration)
+	prometheus.MustRegister(activeOrderCount)
 }

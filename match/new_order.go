@@ -2,6 +2,7 @@ package match
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/mcarloai/mai-v3-broker/common/mai3"
 	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
@@ -91,6 +92,7 @@ func (m *match) NewOrder(order *model.Order) string {
 	})
 
 	if err == nil {
+		activeOrderCount.WithLabelValues(fmt.Sprintf("%s-%d", order.LiquidityPoolAddress, order.PerpetualIndex)).Inc()
 		// notice websocket for new order
 		wsMsg := message.WebSocketMessage{
 			ChannelID: message.GetAccountChannelID(order.TraderAddress),

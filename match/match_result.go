@@ -146,6 +146,11 @@ func (m *match) updateOrdersByTradeEvent(dao dao.DAO, matchTx *model.MatchTransa
 				logger.Errorf("UpdateOrdersStatus:%s", err)
 				return ordersToNotify, err
 			}
+
+			// order AvailableAmount is Zero, sub count of active orders
+			if order.AvailableAmount.IsZero() {
+				activeOrderCount.WithLabelValues(fmt.Sprintf("%s-%d", order.LiquidityPoolAddress, order.PerpetualIndex)).Sub(1)
+			}
 		} else if amount, ok := orderFailMap[order.OrderHash]; ok {
 			// order failed, cancel order
 			order.PendingAmount = order.PendingAmount.Sub(amount)
@@ -160,6 +165,11 @@ func (m *match) updateOrdersByTradeEvent(dao dao.DAO, matchTx *model.MatchTransa
 			if err := dao.UpdateOrder(order); err != nil {
 				logger.Errorf("UpdateOrdersStatus:%s", err)
 				return ordersToNotify, err
+			}
+
+			// order AvailableAmount is Zero, sub count of active orders
+			if order.AvailableAmount.IsZero() {
+				activeOrderCount.WithLabelValues(fmt.Sprintf("%s-%d", order.LiquidityPoolAddress, order.PerpetualIndex)).Sub(1)
 			}
 		} else {
 			// order not excute, reload order in orderbook
