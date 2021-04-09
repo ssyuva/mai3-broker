@@ -111,7 +111,6 @@ func (s *Syncer) updateStatusByUser(user string) {
 			}
 
 			err = s.match.UpdateOrdersStatus(tx.TxID, tx.Status.TransactionStatus(), *tx.TransactionHash, *tx.BlockHash, *tx.BlockNumber, *tx.BlockTime)
-			txConfirmDuration.WithLabelValues(tx.FromAddress).Set(float64(time.Since(tx.CommitTime).Milliseconds()))
 			return err
 		})
 		// this case is to handle accelarate
@@ -122,6 +121,8 @@ func (s *Syncer) updateStatusByUser(user string) {
 			logger.Warnf("fail to check status: %s", err)
 			return
 		}
+		txConfirmDuration.WithLabelValues(tx.FromAddress).Set(float64(time.Since(tx.CommitTime).Milliseconds()))
+		txPendingDuration.WithLabelValues(tx.FromAddress).Set(0)
 	}
 }
 

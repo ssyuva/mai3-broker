@@ -12,7 +12,7 @@ var (
 
 	activeOrderCount = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "total active orders",
+			Name: "total_active_orders",
 			Help: "count of active orders per perpetual",
 		},
 		[]string{"perpetual"},
