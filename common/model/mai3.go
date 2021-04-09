@@ -28,9 +28,6 @@ type PerpetualStorage struct {
 	LiquidationPenaltyRate decimal.Decimal
 	KeeperGasReward        decimal.Decimal
 	InsuranceFundRate      decimal.Decimal
-	InsuranceFundCap       decimal.Decimal
-	InsuranceFund          decimal.Decimal
-	DonatedInsuranceFund   decimal.Decimal
 	OpenInterest           decimal.Decimal
 	MaxOpenInterestRate    decimal.Decimal // openInterest <= poolMargin * maxOpenInterestRate / indexPrice
 

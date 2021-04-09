@@ -81,8 +81,8 @@ func (c *Client) GetLiquidityPoolStorage(ctx context.Context, readerAddress, poo
 		return nil, fmt.Errorf("perpetual sync error")
 	}
 	rsp := &model.LiquidityPoolStorage{}
-	rsp.VaultFeeRate = decimal.NewFromBigInt(res.Pool.VaultFeeRate, -mai3.DECIMALS)
-	rsp.PoolCashBalance = decimal.NewFromBigInt(res.Pool.PoolCash, -mai3.DECIMALS)
+	rsp.VaultFeeRate = decimal.NewFromBigInt(res.Pool.IntNums[0], -mai3.DECIMALS)
+	rsp.PoolCashBalance = decimal.NewFromBigInt(res.Pool.IntNums[1], -mai3.DECIMALS)
 	rsp.Perpetuals = make(map[int64]*model.PerpetualStorage)
 
 	for i, perpetual := range res.Pool.Perpetuals {
@@ -98,18 +98,15 @@ func (c *Client) GetLiquidityPoolStorage(ctx context.Context, readerAddress, poo
 			LiquidationPenaltyRate:  decimal.NewFromBigInt(perpetual.Nums[10], -mai3.DECIMALS),
 			KeeperGasReward:         decimal.NewFromBigInt(perpetual.Nums[11], -mai3.DECIMALS),
 			InsuranceFundRate:       decimal.NewFromBigInt(perpetual.Nums[12], -mai3.DECIMALS),
-			InsuranceFundCap:        decimal.NewFromBigInt(perpetual.Nums[13], -mai3.DECIMALS),
-			InsuranceFund:           decimal.NewFromBigInt(perpetual.Nums[14], -mai3.DECIMALS),
-			DonatedInsuranceFund:    decimal.NewFromBigInt(perpetual.Nums[15], -mai3.DECIMALS),
-			HalfSpread:              decimal.NewFromBigInt(perpetual.Nums[16], -mai3.DECIMALS),
-			OpenSlippageFactor:      decimal.NewFromBigInt(perpetual.Nums[19], -mai3.DECIMALS),
-			CloseSlippageFactor:     decimal.NewFromBigInt(perpetual.Nums[22], -mai3.DECIMALS),
-			FundingRateLimit:        decimal.NewFromBigInt(perpetual.Nums[25], -mai3.DECIMALS),
-			MaxLeverage:             decimal.NewFromBigInt(perpetual.Nums[28], -mai3.DECIMALS),
-			MaxClosePriceDiscount:   decimal.NewFromBigInt(perpetual.Nums[31], -mai3.DECIMALS),
-			OpenInterest:            decimal.NewFromBigInt(perpetual.Nums[34], -mai3.DECIMALS),
-			MaxOpenInterestRate:     decimal.NewFromBigInt(perpetual.Nums[35], -mai3.DECIMALS),
-			FundingRateFactor:       decimal.NewFromBigInt(perpetual.Nums[36], -mai3.DECIMALS),
+			HalfSpread:              decimal.NewFromBigInt(perpetual.Nums[13], -mai3.DECIMALS),
+			OpenSlippageFactor:      decimal.NewFromBigInt(perpetual.Nums[16], -mai3.DECIMALS),
+			CloseSlippageFactor:     decimal.NewFromBigInt(perpetual.Nums[19], -mai3.DECIMALS),
+			FundingRateLimit:        decimal.NewFromBigInt(perpetual.Nums[22], -mai3.DECIMALS),
+			MaxLeverage:             decimal.NewFromBigInt(perpetual.Nums[25], -mai3.DECIMALS),
+			MaxClosePriceDiscount:   decimal.NewFromBigInt(perpetual.Nums[28], -mai3.DECIMALS),
+			OpenInterest:            decimal.NewFromBigInt(perpetual.Nums[31], -mai3.DECIMALS),
+			MaxOpenInterestRate:     decimal.NewFromBigInt(perpetual.Nums[32], -mai3.DECIMALS),
+			FundingRateFactor:       decimal.NewFromBigInt(perpetual.Nums[33], -mai3.DECIMALS),
 			AmmCashBalance:          decimal.NewFromBigInt(perpetual.AmmCashBalance, -mai3.DECIMALS),
 			AmmPositionAmount:       decimal.NewFromBigInt(perpetual.AmmPositionAmount, -mai3.DECIMALS),
 		}

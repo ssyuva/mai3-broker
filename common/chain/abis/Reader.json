@@ -3,6 +3,17 @@
     "inputs": [
       {
         "internalType": "address",
+        "name": "_poolCreator",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
         "name": "liquidityPool",
         "type": "address"
       },
@@ -38,7 +49,7 @@
           },
           {
             "internalType": "int256",
-            "name": "availableCash",
+            "name": "availableMargin",
             "type": "int256"
           },
           {
@@ -81,6 +92,86 @@
         "internalType": "address",
         "name": "liquidityPool",
         "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "perpetualIndex",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "begin",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "end",
+        "type": "uint256"
+      }
+    ],
+    "name": "getAccountsInfo",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "isSynced",
+        "type": "bool"
+      },
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "account",
+            "type": "address"
+          },
+          {
+            "internalType": "int256",
+            "name": "position",
+            "type": "int256"
+          },
+          {
+            "internalType": "int256",
+            "name": "margin",
+            "type": "int256"
+          },
+          {
+            "internalType": "bool",
+            "name": "isSafe",
+            "type": "bool"
+          }
+        ],
+        "internalType": "struct Reader.AccountsResult[]",
+        "name": "result",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "proxy",
+        "type": "address"
+      }
+    ],
+    "name": "getImplementation",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "liquidityPool",
+        "type": "address"
       }
     ],
     "name": "getLiquidityPoolStorage",
@@ -108,18 +199,13 @@
             "type": "address[7]"
           },
           {
-            "internalType": "int256",
-            "name": "vaultFeeRate",
-            "type": "int256"
-          },
-          {
-            "internalType": "int256",
-            "name": "poolCash",
-            "type": "int256"
+            "internalType": "int256[5]",
+            "name": "intNums",
+            "type": "int256[5]"
           },
           {
             "internalType": "uint256[4]",
-            "name": "nums",
+            "name": "uintNums",
             "type": "uint256[4]"
           },
           {
@@ -135,9 +221,9 @@
                 "type": "address"
               },
               {
-                "internalType": "int256[39]",
+                "internalType": "int256[36]",
                 "name": "nums",
-                "type": "int256[39]"
+                "type": "int256[36]"
               },
               {
                 "internalType": "uint256",
@@ -202,6 +288,136 @@
         "internalType": "bool",
         "name": "isSafe",
         "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "poolCreator",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "liquidityPool",
+        "type": "address"
+      },
+      {
+        "internalType": "int256",
+        "name": "cashToAdd",
+        "type": "int256"
+      },
+      {
+        "internalType": "int256",
+        "name": "shareToMint",
+        "type": "int256"
+      }
+    ],
+    "name": "queryAddLiquidity",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "isSynced",
+        "type": "bool"
+      },
+      {
+        "internalType": "int256",
+        "name": "cashToAddResult",
+        "type": "int256"
+      },
+      {
+        "internalType": "int256",
+        "name": "shareToMintResult",
+        "type": "int256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "liquidityPool",
+        "type": "address"
+      },
+      {
+        "internalType": "int256",
+        "name": "shareToRemove",
+        "type": "int256"
+      },
+      {
+        "internalType": "int256",
+        "name": "cashToReturn",
+        "type": "int256"
+      }
+    ],
+    "name": "queryRemoveLiquidity",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "isSynced",
+        "type": "bool"
+      },
+      {
+        "internalType": "int256",
+        "name": "shareToRemoveResult",
+        "type": "int256"
+      },
+      {
+        "internalType": "int256",
+        "name": "cashToReturnResult",
+        "type": "int256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "liquidityPool",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "perpetualIndex",
+        "type": "uint256"
+      },
+      {
+        "internalType": "int256",
+        "name": "amount",
+        "type": "int256"
+      }
+    ],
+    "name": "queryTradeWithAMM",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "isSynced",
+        "type": "bool"
+      },
+      {
+        "internalType": "int256",
+        "name": "deltaCash",
+        "type": "int256"
+      },
+      {
+        "internalType": "int256",
+        "name": "deltaPosition",
+        "type": "int256"
       }
     ],
     "stateMutability": "view",

@@ -40,9 +40,6 @@ var perpetual1 = &model.PerpetualStorage{
 	LiquidationPenaltyRate: decimal.NewFromFloat(0.005),
 	KeeperGasReward:        decimal.NewFromFloat(1),
 	InsuranceFundRate:      decimal.NewFromFloat(0.0001),
-	InsuranceFundCap:       decimal.NewFromFloat(10000),
-	InsuranceFund:          _0,
-	DonatedInsuranceFund:   _0,
 	OpenInterest:           decimal.NewFromFloat(10),
 	MaxOpenInterestRate:    decimal.NewFromFloat(100),
 
@@ -72,9 +69,6 @@ var perpetual0 = &model.PerpetualStorage{
 	LiquidationPenaltyRate: decimal.NewFromFloat(0.005),
 	KeeperGasReward:        decimal.NewFromFloat(2),
 	InsuranceFundRate:      decimal.NewFromFloat(0.0001),
-	InsuranceFundCap:       decimal.NewFromFloat(10000),
-	InsuranceFund:          _0,
-	DonatedInsuranceFund:   _0,
 
 	HalfSpread:            decimal.NewFromFloat(0.001),
 	OpenSlippageFactor:    decimal.NewFromFloat(1),
@@ -102,9 +96,6 @@ var perpetual2 = &model.PerpetualStorage{
 	LiquidationPenaltyRate: decimal.NewFromFloat(0.005),
 	KeeperGasReward:        decimal.NewFromFloat(2),
 	InsuranceFundRate:      decimal.NewFromFloat(0.0001),
-	InsuranceFundCap:       decimal.NewFromFloat(10000),
-	InsuranceFund:          _0,
-	DonatedInsuranceFund:   _0,
 
 	HalfSpread:            decimal.NewFromFloat(0.001),
 	OpenSlippageFactor:    decimal.NewFromFloat(1),
