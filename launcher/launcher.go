@@ -54,6 +54,11 @@ func (l *Launcher) Start() error {
 		return err
 	}
 
+	// init transaction pending duration for each relayer account
+	for _, addr := range l.chainCli.GetRelayerAccounts() {
+		txPendingDuration.WithLabelValues(addr).Set(0)
+	}
+
 	group, ctx := errgroup.WithContext(l.ctx)
 
 	// start syncer for sync pending transactions

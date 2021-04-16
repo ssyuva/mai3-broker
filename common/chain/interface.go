@@ -16,6 +16,7 @@ type ChainClient interface {
 	HexToPrivate(pk string) (*ecdsa.PrivateKey, string, error)
 	AddAccount(private *ecdsa.PrivateKey) error
 	GetSignAccount() (string, error)
+	GetRelayerAccounts() []string
 
 	IsNotFoundError(err error) bool
 	GetGasBalance(ctx context.Context, brokerAddress string, address string) (decimal.Decimal, error)

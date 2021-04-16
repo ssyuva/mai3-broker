@@ -47,7 +47,6 @@ func newMatch(ctx context.Context, cli chain.ChainClient, dao dao.DAO, perpetual
 		timers:     make(map[string]*time.Timer),
 	}
 
-	mTxPendingDuration.WithLabelValues(fmt.Sprintf("%s-%d", m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex)).Set(float64(0))
 	if err := m.reloadActiveOrders(); err != nil {
 		return nil, err
 	}

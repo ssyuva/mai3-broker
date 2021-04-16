@@ -160,6 +160,10 @@ func (c *Client) GetSignAccount() (string, error) {
 	return c.aliases[idx], nil
 }
 
+func (c *Client) GetRelayerAccounts() []string {
+	return c.aliases
+}
+
 func (c *Client) AddAccount(private *ecdsa.PrivateKey) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
