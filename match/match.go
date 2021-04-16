@@ -47,6 +47,7 @@ func newMatch(ctx context.Context, cli chain.ChainClient, dao dao.DAO, perpetual
 		timers:     make(map[string]*time.Timer),
 	}
 
+	mTxPendingDuration.WithLabelValues(fmt.Sprintf("%s-%d", m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex)).Set(float64(0))
 	if err := m.reloadActiveOrders(); err != nil {
 		return nil, err
 	}
@@ -101,6 +102,7 @@ func (m *match) matchOrders() {
 	u, err := uuid.NewRandom()
 	if err != nil {
 		logger.Errorf("generate transaction uuid error:%s", err.Error())
+		return
 	}
 	matchTransaction := &model.MatchTransaction{
 		ID:                   u.String(),
@@ -114,11 +116,11 @@ func (m *match) matchOrders() {
 		for _, item := range matchItems {
 			order, err := dao.GetOrder(item.Order.ID)
 			if err != nil {
-				return fmt.Errorf("Match: Get Order[%s] failed, error:%w", item.Order.ID, err)
+				return fmt.Errorf("get Order[%s] failed, error:%w", item.Order.ID, err)
 			}
 			newAmount := order.AvailableAmount.Sub(item.MatchedAmount)
 			if !utils.HasTheSameSign(newAmount, order.AvailableAmount) {
-				return fmt.Errorf("Match: order[%s] avaliable is negative after match", order.OrderHash)
+				return fmt.Errorf("order[%s] avaliable is negative after match", order.OrderHash)
 			}
 			order.AvailableAmount = newAmount
 			order.PendingAmount = order.PendingAmount.Add(item.MatchedAmount)
@@ -138,15 +140,15 @@ func (m *match) matchOrders() {
 				Amount:    item.MatchedAmount,
 			})
 			if err := dao.UpdateOrder(order); err != nil {
-				return fmt.Errorf("Match: order[%s] update failed error:%w", order.OrderHash, err)
+				return fmt.Errorf("order[%s] update failed error:%w", order.OrderHash, err)
 			}
 			if err := m.orderbook.ChangeOrder(item.Order, item.MatchedAmount.Add(item.OrderTotalCancel).Neg()); err != nil {
-				return fmt.Errorf("Match: order[%s] orderbook ChangeOrder failed error:%w", order.OrderHash, err)
+				return fmt.Errorf("order[%s] orderbook ChangeOrder failed error:%w", order.OrderHash, err)
 			}
 			orders = append(orders, order)
 		}
 		if err := dao.CreateMatchTransaction(matchTransaction); err != nil {
-			return fmt.Errorf("Match: matchTransaction create failed error:%w", err)
+			return fmt.Errorf("matchTransaction create failed error:%w", err)
 		}
 		return nil
 	})
@@ -166,8 +168,6 @@ func (m *match) matchOrders() {
 	} else {
 		logger.Errorf("match orders fail. error:%s", err)
 	}
-
-	return
 }
 
 func (m *match) runMatch(ctx context.Context) error {
@@ -189,6 +189,8 @@ func (m *match) reloadActiveOrders() error {
 	if err != nil {
 		return err
 	}
+
+	activeOrderCount.WithLabelValues(fmt.Sprintf("%s-%d", m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex)).Set(float64(len(orders)))
 	for _, order := range orders {
 		if !order.AvailableAmount.IsZero() {
 			memoryOrder := m.getMemoryOrder(order)

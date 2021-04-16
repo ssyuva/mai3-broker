@@ -2,6 +2,7 @@ package match
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -34,6 +35,16 @@ func (m *match) checkOrdersMargin(ctx context.Context) error {
 }
 
 func (m *match) checkPerpUserOrders() {
+	orders, err := m.dao.QueryOrder("", m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex, []model.OrderStatus{model.OrderPending}, 0, 0, 0)
+	if err != nil {
+		return
+	}
+
+	// update active orders count
+	activeOrderCount.WithLabelValues(fmt.Sprintf("%s-%d", m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex)).Set(float64(len(orders)))
+	if len(orders) == 0 {
+		return
+	}
 	users, err := m.dao.GetPendingOrderUsers(m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex, []model.OrderStatus{model.OrderPending})
 	if err != nil {
 		logger.Errorf("monitor: GetPendingOrderUsers %s", err)

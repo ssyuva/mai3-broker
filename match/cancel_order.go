@@ -2,7 +2,6 @@ package match
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/mcarloai/mai-v3-broker/common/message"
 	"github.com/mcarloai/mai-v3-broker/common/model"
@@ -78,7 +77,6 @@ func (m *match) cancelOrderWithoutLock(orderHash string, reason model.CancelReas
 		return nil
 	})
 	if err == nil && order != nil && !cancelDBAmount.IsZero() {
-		activeOrderCount.WithLabelValues(fmt.Sprintf("%s-%d", order.LiquidityPoolAddress, order.PerpetualIndex)).Sub(1)
 		// notice websocket for cancel order
 		wsMsg := message.WebSocketMessage{
 			ChannelID: message.GetAccountChannelID(order.TraderAddress),
