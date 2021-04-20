@@ -25,14 +25,15 @@ func (m *match) CheckOrderMargin(poolStorage *model.LiquidityPoolStorage, accoun
 	// position after trade
 	position := account.PositionAmount.Add(amount)
 
-	// mark price * Abs(x) / (currentMarginBalance - mark price * Abs(amount) * fee)
+	// mark price * Abs(position + amount) / (currentMarginBalance - mark price * Abs(amount) * fee)
 	feeRate := perpetual.LpFeeRate.Add(poolStorage.VaultFeeRate).Add(perpetual.OperatorFeeRate)
 	tradeFee := perpetual.MarkPrice.Mul(amount.Abs()).Mul(feeRate)
 	if computedAccount.MarginBalance.Sub(tradeFee).LessThanOrEqual(decimal.Zero) {
 		return false
 	}
 	lev := position.Abs().Mul(perpetual.MarkPrice).Div(computedAccount.MarginBalance.Sub(tradeFee))
-	if lev.LessThan(decimal.Zero) || lev.GreaterThan(perpetual.InitialMarginRate) {
+	maxLev := decimal.NewFromInt(1).Div(perpetual.InitialMarginRate)
+	if lev.LessThan(decimal.Zero) || lev.GreaterThan(maxLev) {
 		logger.Warnf("trader: %s amount: %s lev: %s greater than InitialMarginRate: %s", order.TraderAddress, amount, lev, perpetual.InitialMarginRate)
 		return false
 	}
