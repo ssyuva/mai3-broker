@@ -34,7 +34,7 @@ func (m *match) CheckOrderMargin(poolStorage *model.LiquidityPoolStorage, accoun
 	lev := position.Abs().Mul(perpetual.MarkPrice).Div(computedAccount.MarginBalance.Sub(tradeFee))
 	maxLev := decimal.NewFromInt(1).Div(perpetual.InitialMarginRate)
 	if lev.LessThan(decimal.Zero) || lev.GreaterThan(maxLev) {
-		logger.Warnf("trader: %s amount: %s lev: %s greater than InitialMarginRate: %s", order.TraderAddress, amount, lev, perpetual.InitialMarginRate)
+		logger.Warnf("trader: %s amount: %s lev: %s greater than MaxLeverage: %s", order.TraderAddress, amount, lev, maxLev)
 		return false
 	}
 
