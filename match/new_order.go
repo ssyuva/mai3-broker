@@ -22,7 +22,7 @@ func (m *match) NewOrder(order *model.Order) string {
 
 	now := time.Now()
 	account, err := m.chainCli.GetAccountStorage(m.ctx, conf.Conf.ReaderAddress, m.perpetual.PerpetualIndex, m.perpetual.LiquidityPoolAddress, order.TraderAddress)
-	if err != nil {
+	if account == nil || err != nil {
 		logger.Errorf("new order:GetAccountStorage err:%s", err)
 		return model.MatchInternalErrorID
 	}
@@ -35,7 +35,7 @@ func (m *match) NewOrder(order *model.Order) string {
 
 	now = time.Now()
 	poolStorage, err := m.chainCli.GetLiquidityPoolStorage(m.ctx, conf.Conf.ReaderAddress, m.perpetual.LiquidityPoolAddress)
-	if err != nil {
+	if poolStorage == nil || err != nil {
 		logger.Errorf("new order: GetLiquidityPoolStorage fail! err:%s", err.Error())
 		return model.MatchInternalErrorID
 	}

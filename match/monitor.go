@@ -54,7 +54,7 @@ func (m *match) checkPerpUserOrders() {
 		return
 	}
 	poolStorage, err := m.chainCli.GetLiquidityPoolStorage(m.ctx, conf.Conf.ReaderAddress, m.perpetual.LiquidityPoolAddress)
-	if err != nil {
+	if poolStorage == nil || err != nil {
 		logger.Errorf("monitor: GetLiquidityPoolStorage fail! err:%s", err.Error())
 		return
 	}
@@ -82,7 +82,7 @@ func (m *match) checkPerpUserOrders() {
 func (m *match) checkUserPendingOrders(poolStorage *model.LiquidityPoolStorage, user string) []*OrderCancel {
 	cancels := make([]*OrderCancel, 0)
 	account, err := m.chainCli.GetAccountStorage(m.ctx, conf.Conf.ReaderAddress, m.perpetual.PerpetualIndex, m.perpetual.LiquidityPoolAddress, user)
-	if err != nil {
+	if account == nil || err != nil {
 		return cancels
 	}
 	gasBalance, err := m.chainCli.GetGasBalance(m.ctx, conf.Conf.BrokerAddress, user)

@@ -11,18 +11,19 @@ import (
 	"github.com/mcarloai/mai-v3-broker/common/chain/ethereum/reader"
 	"github.com/mcarloai/mai-v3-broker/common/mai3"
 	"github.com/mcarloai/mai-v3-broker/common/model"
+	logger "github.com/sirupsen/logrus"
 )
 
 func (c *Client) GetAccountStorage(ctx context.Context, readerAddress string, perpetualIndex int64, poolAddress, trader string) (*model.AccountStorage, error) {
-	var err error
-	defer func(err *error) {
+	defer func() {
 		if r := recover(); r != nil {
 			_, ok := r.(error)
 			if !ok {
-				*err = fmt.Errorf("%v", r)
+				err := fmt.Errorf("%v", r)
+				logger.Warningf("GetAccountStorage failed. err:%s", err)
 			}
 		}
-	}(&err)
+	}()
 
 	opts := &ethBind.CallOpts{
 		Context: ctx,
@@ -59,19 +60,19 @@ func (c *Client) GetAccountStorage(ctx context.Context, readerAddress string, pe
 	rsp := &model.AccountStorage{}
 	rsp.CashBalance = decimal.NewFromBigInt(res.AccountStorage.Cash, -mai3.DECIMALS)
 	rsp.PositionAmount = decimal.NewFromBigInt(res.AccountStorage.Position, -mai3.DECIMALS)
-	return rsp, err
+	return rsp, nil
 }
 
 func (c *Client) GetLiquidityPoolStorage(ctx context.Context, readerAddress, poolAddress string) (*model.LiquidityPoolStorage, error) {
-	var err error
-	defer func(err *error) {
+	defer func() {
 		if r := recover(); r != nil {
 			_, ok := r.(error)
 			if !ok {
-				*err = fmt.Errorf("%v", r)
+				err := fmt.Errorf("%v", r)
+				logger.Warningf("GetLiquidityPoolStorage failed. err:%s", err)
 			}
 		}
-	}(&err)
+	}()
 	opts := &ethBind.CallOpts{
 		Context: ctx,
 	}
@@ -135,5 +136,5 @@ func (c *Client) GetLiquidityPoolStorage(ctx context.Context, readerAddress, poo
 		rsp.Perpetuals[int64(i)] = storage
 	}
 
-	return rsp, err
+	return rsp, nil
 }
