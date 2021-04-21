@@ -12,6 +12,8 @@ import (
 
 var TradeAmountRelaxFactor = decimal.NewFromFloat(0.99)
 
+const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000"
+
 func (m *match) CheckOrderMargin(poolStorage *model.LiquidityPoolStorage, account *model.AccountStorage, order *model.Order, amount decimal.Decimal) bool {
 	perpetual, ok := poolStorage.Perpetuals[m.perpetual.PerpetualIndex]
 	if !ok {
@@ -27,6 +29,9 @@ func (m *match) CheckOrderMargin(poolStorage *model.LiquidityPoolStorage, accoun
 
 	// mark price * Abs(position + amount) / (currentMarginBalance - mark price * Abs(amount) * fee)
 	feeRate := perpetual.LpFeeRate.Add(poolStorage.VaultFeeRate).Add(perpetual.OperatorFeeRate)
+	if order.ReferrerAddress != "" && order.ReferrerAddress != ADDRESS_ZERO {
+		feeRate = feeRate.Add(perpetual.ReferrerRebateRate)
+	}
 	tradeFee := perpetual.MarkPrice.Mul(amount.Abs()).Mul(feeRate)
 	if computedAccount.MarginBalance.Sub(tradeFee).LessThanOrEqual(decimal.Zero) {
 		return false
