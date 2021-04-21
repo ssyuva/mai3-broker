@@ -55,7 +55,7 @@ func (m *match) checkPerpUserOrders() {
 	}
 	poolStorage, err := m.chainCli.GetLiquidityPoolStorage(m.ctx, conf.Conf.ReaderAddress, m.perpetual.LiquidityPoolAddress)
 	if poolStorage == nil || err != nil {
-		logger.Errorf("monitor: GetLiquidityPoolStorage fail! err:%s", err.Error())
+		logger.Errorf("monitor: GetLiquidityPoolStorage fail! err:%v", err)
 		return
 	}
 

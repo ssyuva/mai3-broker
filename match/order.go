@@ -81,7 +81,7 @@ func (m *match) MatchOrderSideBySide() []*MatchItem {
 	// compute match orders
 	poolStorage, err := m.chainCli.GetLiquidityPoolStorage(m.ctx, conf.Conf.ReaderAddress, m.perpetual.LiquidityPoolAddress)
 	if poolStorage == nil || err != nil {
-		logger.Errorf("MatchOrderSideBySide: GetLiquidityPoolStorage fail! err:%s", err.Error())
+		logger.Errorf("MatchOrderSideBySide: GetLiquidityPoolStorage fail! err:%v", err)
 		return result
 	}
 
@@ -172,7 +172,7 @@ func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice
 
 		account, err := m.chainCli.GetAccountStorage(m.ctx, conf.Conf.ReaderAddress, m.perpetual.PerpetualIndex, m.perpetual.LiquidityPoolAddress, order.Trader)
 		if account == nil || err != nil {
-			logger.Errorf("matchOneSide: GetAccountStorage fail! err:%s", err.Error())
+			logger.Errorf("matchOneSide: GetAccountStorage fail! err:%v", err)
 			return result, false
 		}
 

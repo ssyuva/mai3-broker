@@ -23,7 +23,7 @@ func (m *match) NewOrder(order *model.Order) string {
 	now := time.Now()
 	account, err := m.chainCli.GetAccountStorage(m.ctx, conf.Conf.ReaderAddress, m.perpetual.PerpetualIndex, m.perpetual.LiquidityPoolAddress, order.TraderAddress)
 	if account == nil || err != nil {
-		logger.Errorf("new order:GetAccountStorage err:%s", err)
+		logger.Errorf("new order:GetAccountStorage err:%v", err)
 		return model.MatchInternalErrorID
 	}
 
@@ -36,7 +36,7 @@ func (m *match) NewOrder(order *model.Order) string {
 	now = time.Now()
 	poolStorage, err := m.chainCli.GetLiquidityPoolStorage(m.ctx, conf.Conf.ReaderAddress, m.perpetual.LiquidityPoolAddress)
 	if poolStorage == nil || err != nil {
-		logger.Errorf("new order: GetLiquidityPoolStorage fail! err:%s", err.Error())
+		logger.Errorf("new order: GetLiquidityPoolStorage fail! err:%v", err)
 		return model.MatchInternalErrorID
 	}
 	logger.Infof("GetLiquidityPoolStorage 1111111: used:%d", time.Since(now).Milliseconds())
@@ -51,7 +51,6 @@ func (m *match) NewOrder(order *model.Order) string {
 	if !m.CheckOrderMargin(poolStorage, account, order, order.AvailableAmount) {
 		return model.MatchInsufficientBalanceErrorID
 	}
-	logger.Infof("CheckOrderMargin 1111111: used:%d", time.Since(now).Milliseconds())
 
 	activeOrders, err := m.dao.QueryOrder(order.TraderAddress, order.LiquidityPoolAddress, order.PerpetualIndex, []model.OrderStatus{model.OrderPending}, 0, 0, 0)
 	if err != nil {
