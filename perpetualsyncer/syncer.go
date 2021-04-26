@@ -4,15 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
+	"net/http"
+	"strconv"
+	"time"
+
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/mcarloai/mai-v3-broker/common/utils"
 	"github.com/mcarloai/mai-v3-broker/conf"
 	"github.com/mcarloai/mai-v3-broker/dao"
 	logger "github.com/sirupsen/logrus"
-	"net"
-	"net/http"
-	"strconv"
-	"time"
 )
 
 var transport = &http.Transport{
@@ -78,6 +79,7 @@ func (p *PerpetualSyncer) syncPerpetual() {
 			operatorAddress
 			liquidityPool {
 				id
+				collateralDecimals
 			}
 			createdAtBlockNumber
 		}
@@ -97,7 +99,8 @@ func (p *PerpetualSyncer) syncPerpetual() {
 				CollateralName  string `json:"collateralName"`
 				OperatorAddress string `json:"operatorAddress"`
 				LiquidityPool   struct {
-					ID string `json:"id"`
+					ID                 string `json:"id"`
+					CollateralDecimals string `json:"collateralDecimals"`
 				}
 				CreatedAtBlockNumber string `json:"createdAtBlockNumber"`
 			} `json:"perpetuals"`
@@ -121,11 +124,17 @@ func (p *PerpetualSyncer) syncPerpetual() {
 			logger.Errorf("parse perpetual createdAt blockNumber fail: %s", err)
 			continue
 		}
+		collateralDecimals, err := strconv.Atoi(perp.LiquidityPool.CollateralDecimals)
+		if err != nil {
+			logger.Errorf("parse pool collateral decimals fail: %s", err)
+			continue
+		}
 		newPerpetual := &model.Perpetual{
 			PerpetualIndex:       index,
 			LiquidityPoolAddress: perp.LiquidityPool.ID,
 			Symbol:               perp.Symbol,
 			CollateralSymbol:     perp.CollateralName,
+			CollateralDecimals:   int32(collateralDecimals),
 			OperatorAddress:      perp.OperatorAddress,
 			IsPublished:          true,
 			BlockNumber:          blockNumber,

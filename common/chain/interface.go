@@ -18,6 +18,10 @@ type ChainClient interface {
 	GetSignAccount() (string, error)
 	GetRelayerAccounts() []string
 
+	// erc20
+	BalanceOf(ctx context.Context, token, owner string, decimals int32) (decimal.Decimal, error)
+	Allowance(ctx context.Context, token, owner, spender string, decimals int32) (decimal.Decimal, error)
+
 	IsNotFoundError(err error) bool
 	GetGasBalance(ctx context.Context, brokerAddress string, address string) (decimal.Decimal, error)
 	GetChainID() (*big.Int, error)

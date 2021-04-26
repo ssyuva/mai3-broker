@@ -4,6 +4,7 @@ create table perpetuals
   perpetual_index bigint not null,
   symbol text not null,
   collateral_symbol text not null,
+  collateral_decimals integer not null,
   operator_address text not null,
   is_published boolean not null default true,
   block_number bigint not null,

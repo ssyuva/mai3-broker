@@ -6,6 +6,7 @@ type Perpetual struct {
 	Symbol               string `json:"symbol"  db:"symbol"`
 	OperatorAddress      string `json:"operatorAddress"  db:"operator_address"`
 	CollateralSymbol     string `json:"collateralSymbol" db:"collateral_symbol"`
+	CollateralDecimals   int32  `json:"collateralDecimals" db:"collateral_decimals"`
 	IsPublished          bool   `json:"isPublished"       db:"is_published"`
 	BlockNumber          int64  `json:"-" db:"block_number"`
 }
