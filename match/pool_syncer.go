@@ -22,8 +22,10 @@ type poolSyncer struct {
 
 func newPoolSyncer(ctx context.Context, cli chain.ChainClient) *poolSyncer {
 	return &poolSyncer{
-		ctx:      ctx,
-		chainCli: cli,
+		ctx:         ctx,
+		chainCli:    cli,
+		pools:       make([]string, 0),
+		poolStorage: make(map[string]*model.LiquidityPoolStorage),
 	}
 }
 
