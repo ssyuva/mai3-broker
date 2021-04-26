@@ -3,6 +3,8 @@ package match
 import (
 	"context"
 	"fmt"
+	"sync"
+
 	"github.com/mcarloai/mai-v3-broker/common/chain"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/mcarloai/mai-v3-broker/dao"
@@ -10,13 +12,13 @@ import (
 	"github.com/shopspring/decimal"
 	logger "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
-	"sync"
 )
 
 type Server struct {
 	ctx             context.Context
 	mu              sync.Mutex
 	matchHandlerMap map[string]*match
+	poolSyncer      *poolSyncer
 	wsChan          chan interface{}
 	matchErrChan    chan error
 	chainCli        chain.ChainClient
@@ -49,6 +51,11 @@ func (s *Server) Start() error {
 		return err
 	}
 
+	s.poolSyncer = newPoolSyncer(s.ctx, s.chainCli)
+	s.group.Go(func() error {
+		return s.poolSyncer.Run()
+	})
+
 	for _, perpetual := range perpetuals {
 		match, err := s.newMatch(perpetual)
 		if err != nil {
@@ -67,7 +74,8 @@ func (s *Server) Start() error {
 }
 
 func (s *Server) newMatch(perpetual *model.Perpetual) (*match, error) {
-	m, err := newMatch(s.ctx, s.chainCli, s.dao, perpetual, s.wsChan, s.gasMonitor)
+	s.poolSyncer.AddPool(perpetual.LiquidityPoolAddress)
+	m, err := newMatch(s.ctx, s.chainCli, s.dao, s.poolSyncer, perpetual, s.wsChan, s.gasMonitor)
 	if err != nil {
 		return nil, err
 	}

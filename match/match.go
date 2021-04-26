@@ -24,6 +24,7 @@ type match struct {
 	ctx        context.Context
 	cancel     context.CancelFunc
 	mu         sync.Mutex
+	poolSyncer *poolSyncer
 	wsChan     chan interface{}
 	orderbook  *orderbook.Orderbook
 	perpetual  *model.Perpetual
@@ -33,11 +34,12 @@ type match struct {
 	timers     map[string]*time.Timer
 }
 
-func newMatch(ctx context.Context, cli chain.ChainClient, dao dao.DAO, perpetual *model.Perpetual, wsChan chan interface{}, gm *gasmonitor.GasMonitor) (*match, error) {
+func newMatch(ctx context.Context, cli chain.ChainClient, dao dao.DAO, poolSyncer *poolSyncer, perpetual *model.Perpetual, wsChan chan interface{}, gm *gasmonitor.GasMonitor) (*match, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	m := &match{
 		ctx:        ctx,
 		cancel:     cancel,
+		poolSyncer: poolSyncer,
 		wsChan:     wsChan,
 		perpetual:  perpetual,
 		orderbook:  orderbook.NewOrderbook(),

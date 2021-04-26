@@ -79,9 +79,9 @@ func (m *match) MatchOrderSideBySide() []*MatchItem {
 		return result
 	}
 	// compute match orders
-	poolStorage, err := m.chainCli.GetLiquidityPoolStorage(m.ctx, conf.Conf.ReaderAddress, m.perpetual.LiquidityPoolAddress)
-	if poolStorage == nil || err != nil {
-		logger.Errorf("MatchOrderSideBySide: GetLiquidityPoolStorage fail! err:%v", err)
+	poolStorage := m.poolSyncer.GetPoolStorage(m.perpetual.LiquidityPoolAddress)
+	if poolStorage == nil {
+		logger.Errorf("MatchOrderSideBySide: GetLiquidityPoolStorage fail!")
 		return result
 	}
 

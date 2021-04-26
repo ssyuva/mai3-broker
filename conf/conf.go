@@ -19,6 +19,7 @@ type Config struct {
 	EnableMetrics bool     `envconfig:"enable_metrics"`
 	MetricsAddr   string   `envconfig:"metrics_addr"`
 
+	PoolSyncerInterval      time.Duration `envconfig:"pool_syncer_interval"`
 	MatchInterval           time.Duration `envconfig:"match_interval"`
 	MatchMonitorInterval    time.Duration `envconfig:"match_monitor_interval"`
 	LauncherInterval        time.Duration `envconfig:"launcher_interval"`

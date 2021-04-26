@@ -2,12 +2,13 @@ package mai3
 
 import (
 	"fmt"
+	"math/big"
+	"strings"
+
 	"github.com/mcarloai/mai-v3-broker/common/mai3/crypto"
 	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/shopspring/decimal"
-	"math/big"
-	"strings"
 )
 
 var EIP712_DOMAIN_TYPEHASH []byte
@@ -16,10 +17,6 @@ var EIP712_MAI3_ORDER_TYPE []byte
 func init() {
 	EIP712_DOMAIN_TYPEHASH = crypto.Keccak256([]byte(`EIP712Domain(string name)`))
 	EIP712_MAI3_ORDER_TYPE = crypto.Keccak256([]byte(`Order(address trader,address broker,address relayer,address referrer,address liquidityPool,int256 minTradeAmount,int256 amount,int256 limitPrice,int256 triggerPrice,uint256 chainID,uint64 expiredAt,uint32 perpetualIndex,uint32 brokerFeeLimit,uint32 flags,uint32 salt)`))
-}
-
-func addTailingZero(data string, length int) string {
-	return data + strings.Repeat("0", length-len(data))
 }
 
 func addLeadingZero(data string, length int) string {
@@ -179,7 +176,7 @@ func GetOrderHash(traderAddress, brokerAddress, relayerAddress, referrerAddress,
 }
 
 func GetGasFeeLimit(perpetualCount int) int64 {
-	return MaiV3BaseGas + MaiV3BaseGasPerTrade*int64(perpetualCount)
+	return MaiV3BaseGas + MaiV3GasForEachPerp*int64(perpetualCount)
 }
 
 func getDomainSeparator() []byte {

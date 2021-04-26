@@ -9,6 +9,6 @@ const (
 )
 
 const (
-	MaiV3BaseGas         int64 = 170000
-	MaiV3BaseGasPerTrade int64 = 100000
+	MaiV3BaseGas        int64 = 170000
+	MaiV3GasForEachPerp int64 = 100000
 )
