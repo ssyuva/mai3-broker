@@ -42,18 +42,21 @@ func (p *poolSyncer) Run() error {
 }
 
 func (p *poolSyncer) runSyncer() error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
 	for _, pool := range p.pools {
-		poolStorage, err := p.chainCli.GetLiquidityPoolStorage(p.ctx, conf.Conf.ReaderAddress, pool)
-		if poolStorage == nil || err != nil {
-			logger.Errorf("Pool Syncer: GetLiquidityPoolStorage fail! pool:%s err:%v", pool, err)
-			p.poolStorage[pool] = nil
-			continue
-		}
-		p.poolStorage[pool] = poolStorage
+		p.syncPool(pool)
 	}
 	return nil
+}
+
+func (p *poolSyncer) syncPool(pool string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	poolStorage, err := p.chainCli.GetLiquidityPoolStorage(p.ctx, conf.Conf.ReaderAddress, pool)
+	if poolStorage == nil || err != nil {
+		logger.Errorf("Pool Syncer: GetLiquidityPoolStorage fail! pool:%s err:%v", pool, err)
+		p.poolStorage[pool] = nil
+	}
+	p.poolStorage[pool] = poolStorage
 }
 
 func (p *poolSyncer) AddPool(pool string) {
