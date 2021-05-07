@@ -18,6 +18,7 @@ import (
 
 	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
 	"github.com/mcarloai/mai-v3-broker/common/model"
+	"github.com/mcarloai/mai-v3-broker/conf"
 	"github.com/pkg/errors"
 )
 
@@ -90,12 +91,6 @@ func (c *Client) call(method string, args ...interface{}) (interface{}, error) {
 		ctx, cancel := context.WithTimeout(c.ctx, c.callTimeout)
 		defer cancel()
 		switch method {
-		case "ChainID":
-			chainID, err := ethCli.ChainID(ctx)
-			if err == nil {
-				return chainID, nil
-			}
-			loopErr = err
 		case "PendingNonceAt":
 			nonce, err := ethCli.PendingNonceAt(ctx, args[0].(ethCommon.Address))
 			if err == nil {
@@ -167,7 +162,10 @@ func (c *Client) GetRelayerAccounts() []string {
 func (c *Client) AddAccount(private *ecdsa.PrivateKey) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	account := PrivateToAccount(private)
+	account, err := PrivateToAccount(private, big.NewInt(conf.Conf.ChainID))
+	if err != nil {
+		return err
+	}
 	if _, ok := c.accounts[account.Address()]; ok {
 		return errors.New("account duplicated")
 	}
@@ -185,14 +183,6 @@ func (c *Client) GetAccount(account string) (*Account, error) {
 		return nil, errors.New("account not exists")
 	}
 	return acc, nil
-}
-
-func (c *Client) GetChainID() (*big.Int, error) {
-	chainID, err := c.call("ChainID")
-	if err != nil {
-		return nil, err
-	}
-	return chainID.(*big.Int), nil
 }
 
 func (c *Client) GetLatestBlockNumber() (uint64, error) {
@@ -233,15 +223,15 @@ func (c *Client) SendTransaction(tx *model.LaunchTransaction) (string, error) {
 
 	acc, err := c.GetAccount(tx.FromAddress)
 	if err != nil {
-		return "", errors.Wrap(err, "account not availables")
+		return "", err
 	}
 	signedTx, err := acc.Signer().Signer(acc.Address(), rawTx)
 	if err != nil {
-		return "", errors.Wrap(err, "sign transaction failed")
+		return "", err
 	}
 	_, err = c.call("SendTransaction", signedTx)
 	if err != nil {
-		return "", errors.Wrap(err, "send transaction failed")
+		return "", err
 	}
 
 	return signedTx.Hash().Hex(), nil

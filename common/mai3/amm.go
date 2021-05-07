@@ -2,12 +2,95 @@ package mai3
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/shopspring/decimal"
 	logger "github.com/sirupsen/logrus"
 )
+
+func copyAccountStorage(a *model.AccountStorage) *model.AccountStorage {
+	return &model.AccountStorage{
+		TargetLeverage: a.TargetLeverage,
+		CashBalance:    a.CashBalance,
+		PositionAmount: a.PositionAmount,
+	}
+}
+
+func copyLiquidityPoolStorage(p *model.LiquidityPoolStorage) *model.LiquidityPoolStorage {
+	res := &model.LiquidityPoolStorage{
+		Perpetuals: make(map[int64]*model.PerpetualStorage),
+	}
+	res.PoolCashBalance = p.PoolCashBalance
+	res.VaultFeeRate = p.VaultFeeRate
+	for k, perp := range p.Perpetuals {
+		newPerp := &model.PerpetualStorage{
+			IsNormal:                perp.IsNormal,
+			MarkPrice:               perp.MarkPrice,
+			IndexPrice:              perp.IndexPrice,
+			UnitAccumulativeFunding: perp.UnitAccumulativeFunding,
+			InitialMarginRate:       perp.InitialMarginRate,
+			MaintenanceMarginRate:   perp.MaintenanceMarginRate,
+			OperatorFeeRate:         perp.OperatorFeeRate,
+			LpFeeRate:               perp.LpFeeRate,
+			ReferrerRebateRate:      perp.ReferrerRebateRate,
+			LiquidationPenaltyRate:  perp.LiquidationPenaltyRate,
+			KeeperGasReward:         perp.KeeperGasReward,
+			InsuranceFundRate:       perp.InsuranceFundRate,
+			OpenInterest:            perp.OpenInterest,
+			MaxOpenInterestRate:     perp.MaxOpenInterestRate,
+			HalfSpread:              perp.HalfSpread,
+			OpenSlippageFactor:      perp.OpenSlippageFactor,
+			CloseSlippageFactor:     perp.CloseSlippageFactor,
+			FundingRateFactor:       perp.FundingRateFactor,
+			FundingRateLimit:        perp.FundingRateLimit,
+			MaxLeverage:             perp.MaxLeverage,
+			MaxClosePriceDiscount:   perp.MaxClosePriceDiscount,
+			AmmCashBalance:          perp.AmmCashBalance,
+			AmmPositionAmount:       perp.AmmPositionAmount,
+		}
+		res.Perpetuals[k] = newPerp
+	}
+	return res
+}
+
+// just use for order, for using golden section search, the bounds is [0, order.amount]
+func ComputeAMMMaxTradeAmount(p *model.LiquidityPoolStorage, perpetualIndex int64, trader *model.AccountStorage, amount decimal.Decimal, isTraderBuy bool) decimal.Decimal {
+	// if AMM is unsafe, return 0
+	ammContext := initAMMTradingContext(p, perpetualIndex)
+	if ammContext == nil {
+		logger.Warnf("perpetual %d init trading context fail", perpetualIndex)
+		return _0
+	}
+	if !isAMMSafe(ammContext, ammContext.OpenSlippageFactor) {
+		if isTraderBuy && ammContext.Position1.LessThan(_0) {
+			return _0
+		}
+		if !isTraderBuy && ammContext.Position1.GreaterThan(_0) {
+			return _0
+		}
+	}
+
+	// search
+	checkTrading := func(a float64) float64 {
+		if a == 0 {
+			return 0
+		}
+		tmpTrader := copyAccountStorage(trader)
+		tmpPool := copyLiquidityPoolStorage(p)
+		amount := decimal.NewFromFloat(a)
+		accountComputed, tradeIsSafe, _, err := ComputeAMMTrade(tmpPool,
+			perpetualIndex, tmpTrader, amount)
+		if err != nil || !tradeIsSafe || accountComputed.Leverage.GreaterThan(trader.TargetLeverage) {
+			return math.Abs(a)
+		}
+		return -math.Abs(a)
+	}
+	fGuess, _ := amount.Float64()
+	res := Gss(checkTrading, 0, fGuess, 1e-8, 15)
+	return decimal.NewFromFloat(res)
+}
 
 func ComputeAMMAmountWithPrice(p *model.LiquidityPoolStorage, perpetualIndex int64, isTraderBuy bool, limitPrice decimal.Decimal) decimal.Decimal {
 	_, ok := p.Perpetuals[perpetualIndex]

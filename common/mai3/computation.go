@@ -39,20 +39,21 @@ func ComputeAccount(p *model.LiquidityPoolStorage, perpetualIndex int64, a *mode
 		AvailableCashBalance: availableCashBalance,
 		MarginBalance:        marginBalance,
 		AvailableMargin:      availableMargin,
-		MaxWithdrawable:      maxWithdrawable,
 		WithdrawableBalance:  withdrawableBalance,
-		IsSafe:               isSafe,
+		IsMMSafe:             isMMSafe,
+		IsIMSafe:             isIMSafe,
+		IsMarginSafe:         isMarginSafe,
 		Leverage:             leverage,
 	}, nil
 }
 
-func ComputeAMMTrade(p *model.LiquidityPoolStorage, perpetualIndex int64, trader *model.AccountStorage, amount decimal.Decimal) (decimal.Decimal, error) {
+func ComputeAMMTrade(p *model.LiquidityPoolStorage, perpetualIndex int64, trader *model.AccountStorage, amount decimal.Decimal) (*model.AccountComputed, bool, decimal.Decimal, error) {
 	if amount.IsZero() {
-		return _0, fmt.Errorf("bad amount")
+		return nil, false, _0, fmt.Errorf("bad amount")
 	}
 	perpetual, ok := p.Perpetuals[perpetualIndex]
 	if !ok {
-		return _0, fmt.Errorf("perpetual %d not found in the pool", perpetualIndex)
+		return nil, false, _0, fmt.Errorf("perpetual %d not found in the pool", perpetualIndex)
 	}
 
 	oldOpenInterest := perpetual.OpenInterest
@@ -62,24 +63,25 @@ func ComputeAMMTrade(p *model.LiquidityPoolStorage, perpetualIndex int64, trader
 	_, deltaAMMAmount, tradingPrice, err := ComputeAMMPrice(p, perpetualIndex, amount)
 	if err != nil {
 		logger.Errorf("ComputeAMMPrice error:%s", err)
-		return _0, err
+		return nil, false, _0, err
 	}
 	if !deltaAMMAmount.Neg().Equal(amount) {
 		logger.Errorf("trading amount mismatched %s != %s", deltaAMMAmount, amount)
-		return _0, fmt.Errorf("trading amount mismatched")
+		return nil, false, _0, fmt.Errorf("trading amount mismatched")
 	}
 
 	// fee
 	lpFee, err := ComputeFee(tradingPrice, deltaAMMAmount, perpetual.LpFeeRate)
 	if err != nil {
-		return _0, err
+		return nil, false, _0, err
 	}
 
 	// trader
-	if err = ComputeTradeWithPrice(p, perpetualIndex, trader, tradingPrice, deltaAMMAmount.Neg(),
-		perpetual.LpFeeRate.Add(p.VaultFeeRate).Add(perpetual.OperatorFeeRate)); err != nil {
+	afterTrade, tradeIsSafe, err := ComputeTradeWithPrice(p, perpetualIndex, trader, tradingPrice, deltaAMMAmount.Neg(),
+		perpetual.LpFeeRate.Add(p.VaultFeeRate).Add(perpetual.OperatorFeeRate))
+	if err != nil {
 		logger.Errorf("ComputeTradeWithPrice trader err:%s", err)
-		return _0, err
+		return nil, false, _0, err
 	}
 
 	newOpenInterest = computeOpenInterest(newOpenInterest, trader.PositionAmount, deltaAMMAmount.Neg())
@@ -87,11 +89,13 @@ func ComputeAMMTrade(p *model.LiquidityPoolStorage, perpetualIndex int64, trader
 	// new AMM
 	fakeAMMAccount := &model.AccountStorage{
 		CashBalance:    p.PoolCashBalance,
+		WalletBalance:  decimal.Zero,
 		PositionAmount: perpetual.AmmPositionAmount,
 	}
-	if err = ComputeTradeWithPrice(p, perpetualIndex, fakeAMMAccount, tradingPrice, deltaAMMAmount, _0); err != nil {
+	_, _, err = ComputeTradeWithPrice(p, perpetualIndex, fakeAMMAccount, tradingPrice, deltaAMMAmount, _0)
+	if err != nil {
 		logger.Errorf("ComputeAMMTrade fakeAMMAccount err:%s", err)
-		return _0, err
+		return nil, false, _0, err
 	}
 	fakeAMMAccount.CashBalance = fakeAMMAccount.CashBalance.Add(lpFee)
 	newOpenInterest = computeOpenInterest(newOpenInterest, perpetual.AmmPositionAmount, deltaAMMAmount)
@@ -106,15 +110,15 @@ func ComputeAMMTrade(p *model.LiquidityPoolStorage, perpetualIndex int64, trader
 		err = computeAMMPoolMargin(context, context.OpenSlippageFactor, true)
 		if err != nil {
 			logger.Errorf("ComputeAMMTrade computeAMMPoolMargin err:%s", err)
-			return _0, err
+			return nil, false, _0, err
 		}
 		limit := context.PoolMargin.Mul(perpetual.MaxOpenInterestRate).Div(perpetual.IndexPrice)
 		if newOpenInterest.GreaterThan(limit) {
-			return _0, fmt.Errorf("ComputeAMMTrade open interest exceeds limit: %s > %s", newOpenInterest, limit)
+			return nil, false, _0, fmt.Errorf("ComputeAMMTrade open interest exceeds limit: %s > %s", newOpenInterest, limit)
 		}
 	}
 
-	return tradingPrice, nil
+	return afterTrade, tradeIsSafe, tradingPrice, nil
 }
 
 // > 0 if more collateral required
@@ -145,30 +149,65 @@ func ComputeAMMPrice(p *model.LiquidityPoolStorage, perpetualIndex int64, amount
 	return
 }
 
-func ComputeTradeWithPrice(p *model.LiquidityPoolStorage, perpetualIndex int64, a *model.AccountStorage, price, amount, feeRate decimal.Decimal) error {
+func ComputeTradeWithPrice(p *model.LiquidityPoolStorage, perpetualIndex int64, a *model.AccountStorage, price, amount, feeRate decimal.Decimal) (*model.AccountComputed, bool, error) {
 	if price.LessThanOrEqual(_0) || amount.IsZero() {
-		return fmt.Errorf("bad price %s or amount %s", price, amount)
+		return nil, false, fmt.Errorf("bad price %s or amount %s", price, amount)
 	}
 
 	close, open := utils.SplitAmount(a.PositionAmount, amount)
 	if !close.IsZero() {
 		if err := ComputeDecreasePosition(p, perpetualIndex, a, price, close); err != nil {
-			return err
+			return nil, false, err
 		}
 	}
 
 	if !open.IsZero() {
 		if err := ComputeIncreasePosition(p, perpetualIndex, a, price, open); err != nil {
-			return err
+			return nil, false, err
 		}
 	}
 
 	fee, err := ComputeFee(price, amount, feeRate)
 	if err != nil {
-		return err
+		return nil, false, err
 	}
+
+	adjustMargin = adjustMarginLeverage(pe)
+
 	a.CashBalance = a.CashBalance.Sub(fee)
-	return nil
+
+	// open position requires margin > IM. close position requires !bankrupt
+	afterTrade, err := ComputeAccount(p, perpetualIndex, a)
+	if err != nil {
+		return nil, false, err
+	}
+
+	tradeSafe := afterTrade.IsMarginSafe
+	if !open.IsZero() {
+		tradeSafe = afterTrade.IsIMSafe
+	}
+
+	return afterTrade, tradeSafe, nil
+}
+
+
+func adjustMarginLeverage(perp *model.PerpetualStorage, trader *model.AccountComputed, deltaPosition, deltaCash, totalFee decimal.Decimal) decimal.Decimal {
+	adjustCollateral := _0
+	close, open := utils.SplitAmount(trader.PositionAmount.Sub(deltaPosition), deltaPosition)
+	if !close.IsZero() && open.IsZero() {
+
+	}
+}
+
+func adjustClosedMargin(perp *model.PerpetualStorage, trader *model.AccountStorage, closed, deltaCash, totalFee decimal.Decimal) decimal.Decimal {
+	// when close, keep the effective leverage
+	// -withdraw == (availableCash2 * close - deltaCash * position2) / position1 + fee
+	adjustCollateral := trader.CashBalance.Sub(trader.PositionAmount.Mul(perp.UnitAccumulativeFunding)).Mul(closed)
+	adjustCollateral = adjustCollateral.Sub(deltaCash.Mul(trader.PositionAmount))
+	adjustCollateral = adjustCollateral.Div(trader.PositionAmount.Sub(closed))
+	adjustCollateral = adjustCollateral.Add(totalFee)
+	// withdraw only when IM is satisfied
+	limit := totalFee.Sub(perp.)
 }
 
 func ComputeDecreasePosition(p *model.LiquidityPoolStorage, perpetualIndex int64, a *model.AccountStorage, price, amount decimal.Decimal) error {

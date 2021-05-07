@@ -24,7 +24,6 @@ type ChainClient interface {
 
 	IsNotFoundError(err error) bool
 	GetGasBalance(ctx context.Context, brokerAddress string, address string) (decimal.Decimal, error)
-	GetChainID() (*big.Int, error)
 	GetLatestBlockNumber() (uint64, error)
 	PendingNonceAt(account string) (uint64, error)
 	TransactionByHash(txHash string) (bool, error)

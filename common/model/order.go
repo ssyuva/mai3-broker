@@ -12,11 +12,10 @@ type CancelReasonType string
 
 const (
 	CancelReasonExpired           CancelReasonType = "EXPIRED"
-	CancelReasonAdminCancel       CancelReasonType = "CANCELED_BY_ADMIN"
+	CancelReasonCloseOnly         CancelReasonType = "CANCELED_BY_CLOSE_ONLY"
 	CancelReasonUserCancel        CancelReasonType = "CANCELED_BY_USER"
 	CancelReasonTransactionFail   CancelReasonType = "TRANSACTION_FAIL"
 	CancelReasonRemainTooSmall    CancelReasonType = "REMAIN_TOO_SMALL"
-	CancelReasonInternalError     CancelReasonType = "INTERNAL_ERROR"
 	CancelReasonInsufficientFunds CancelReasonType = "INSUFFICIENT_FUNDS"
 	CancelReasonGasNotEnough      CancelReasonType = "GAS_NOT_ENOUGH"
 	CancelReasonContractSettled   CancelReasonType = "CONTRACT_SETTLED"
@@ -34,13 +33,14 @@ const (
 type OrderType int
 
 const (
-	MASK_CLOSE_ONLY                  = 0x80000000
-	MASK_MARKET_ORDER                = 0x40000000
-	MASK_STOP_LOSS_ORDER             = 0x20000000
-	MASK_TAKE_PROFIT_ORDER           = 0x10000000
-	LimitOrder             OrderType = 1
-	StopLimitOrder         OrderType = 2
-	TakeProfitOrder        OrderType = 3
+	MASK_CLOSE_ONLY                    = 0x80000000
+	MASK_MARKET_ORDER                  = 0x40000000
+	MASK_STOP_LOSS_ORDER               = 0x20000000
+	MASK_TAKE_PROFIT_ORDER             = 0x10000000
+	MASK_USE_TARGET_LEVERAGE           = 0x08000000
+	LimitOrder               OrderType = 1
+	StopLimitOrder           OrderType = 2
+	TakeProfitOrder          OrderType = 3
 )
 
 type OrderStatus string

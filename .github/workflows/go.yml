@@ -14,10 +14,10 @@ jobs:
     - name: Get the version
       id: get_version
       run: echo ::set-output name=VERSION::$(echo $GITHUB_REF | cut -d / -f 3)
-    - name: Set up Go 1.13
+    - name: Set up Go 1.16.3
       uses: actions/setup-go@v1
       with:
-        go-version: 1.13
+        go-version: 1.16.3
       id: go
     - name: Go env
       run: |

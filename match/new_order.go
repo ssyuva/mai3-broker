@@ -20,6 +20,16 @@ func (m *match) NewOrder(order *model.Order) string {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	activeOrders, err := m.dao.QueryOrder(order.TraderAddress, order.LiquidityPoolAddress, order.PerpetualIndex, []model.OrderStatus{model.OrderPending}, 0, 0, 0)
+	if err != nil {
+		logger.Errorf("new order: QueryOrder err:%s", err)
+		return model.MatchInternalErrorID
+	}
+
+	if len(activeOrders) >= MAX_ORDER_NUM {
+		return model.MatchMaxOrderNumReachID
+	}
+
 	now := time.Now()
 	account, err := m.chainCli.GetAccountStorage(m.ctx, conf.Conf.ReaderAddress, m.perpetual.PerpetualIndex, m.perpetual.LiquidityPoolAddress, order.TraderAddress)
 	if account == nil || err != nil {
@@ -29,7 +39,7 @@ func (m *match) NewOrder(order *model.Order) string {
 
 	logger.Infof("GetAccountStorage 1111111: used:%d", time.Since(now).Milliseconds())
 
-	if !m.CheckCloseOnly(account, order) {
+	if !m.CheckCloseOnly(account, order).Equal(_0) {
 		return model.MatchCloseOnlyErrorID
 	}
 
@@ -47,21 +57,6 @@ func (m *match) NewOrder(order *model.Order) string {
 		return model.MatchInternalErrorID
 	}
 
-	now = time.Now()
-	if !m.CheckOrderMargin(poolStorage, account, order, order.AvailableAmount) {
-		return model.MatchInsufficientBalanceErrorID
-	}
-
-	activeOrders, err := m.dao.QueryOrder(order.TraderAddress, order.LiquidityPoolAddress, order.PerpetualIndex, []model.OrderStatus{model.OrderPending}, 0, 0, 0)
-	if err != nil {
-		logger.Errorf("new order: QueryOrder err:%s", err)
-		return model.MatchInternalErrorID
-	}
-
-	if len(activeOrders) >= MAX_ORDER_NUM {
-		return model.MatchMaxOrderNumReachID
-	}
-
 	// check gas
 	order.GasFeeLimit = mai3.GetGasFeeLimit(len(poolStorage.Perpetuals))
 	if conf.Conf.GasEnable {
@@ -70,7 +65,7 @@ func (m *match) NewOrder(order *model.Order) string {
 			logger.Errorf("new order: checkUserPendingOrders:%w", err)
 			return model.MatchInternalErrorID
 		}
-		gasReward := m.gasMonitor.GetGasPriceDecimal().Mul(decimal.NewFromInt(order.GasFeeLimit))
+		gasReward := m.gasMonitor.GasPriceGwei().Mul(decimal.NewFromInt(order.GasFeeLimit))
 		ordersGasReword := gasReward.Mul(decimal.NewFromInt(int64(len(activeOrders) + 1)))
 		if gasBalance.LessThan(ordersGasReword) {
 			return model.MatchGasNotEnoughErrorID
@@ -79,6 +74,12 @@ func (m *match) NewOrder(order *model.Order) string {
 		if decimal.NewFromInt(order.BrokerFeeLimit).LessThan(utils.ToGwei(gasReward)) {
 			return model.MatchGasNotEnoughErrorID
 		}
+	}
+
+	activeOrders = append(activeOrders, order)
+	// avaliable balance less than 0
+	if m.ComputeOrderAvailable(poolStorage, account, activeOrders).LessThan(_0) {
+		return model.MatchInsufficientBalanceErrorID
 	}
 
 	// create order and insert to db and orderbook

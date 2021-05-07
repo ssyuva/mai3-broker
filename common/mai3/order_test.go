@@ -1,11 +1,12 @@
 package mai3
 
 import (
+	"testing"
+
 	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestStopLimitOrderFlags(t *testing.T) {
@@ -14,7 +15,7 @@ func TestStopLimitOrderFlags(t *testing.T) {
 		isCloseOnly = true
 	)
 	flags := GenerateOrderFlags(orderType, isCloseOnly)
-	assert.Equal(t, 0x0a0000000, flags)
+	assert.Equal(t, 0x0a8000000, flags)
 }
 
 func TestLimitOrderFlags(t *testing.T) {
@@ -23,7 +24,7 @@ func TestLimitOrderFlags(t *testing.T) {
 		isCloseOnly = false
 	)
 	flags := GenerateOrderFlags(orderType, isCloseOnly)
-	assert.Equal(t, 0x000000000, flags)
+	assert.Equal(t, 0x008000000, flags)
 }
 
 func TestTakeProfitOrderFlags(t *testing.T) {
@@ -32,7 +33,7 @@ func TestTakeProfitOrderFlags(t *testing.T) {
 		isCloseOnly = true
 	)
 	flags := GenerateOrderFlags(orderType, isCloseOnly)
-	assert.Equal(t, 0x090000000, flags)
+	assert.Equal(t, 0x098000000, flags)
 }
 
 func TestGenerateOrderData(t *testing.T) {

@@ -36,7 +36,7 @@ var perpetual1 = &model.PerpetualStorage{
 	MaintenanceMarginRate:  decimal.NewFromFloat(0.05),
 	OperatorFeeRate:        decimal.NewFromFloat(0.0001),
 	LpFeeRate:              decimal.NewFromFloat(0.0007),
-	ReferrerRebateRate:     decimal.NewFromFloat(0.0000),
+	ReferrerRebateRate:     decimal.NewFromFloat(0),
 	LiquidationPenaltyRate: decimal.NewFromFloat(0.005),
 	KeeperGasReward:        decimal.NewFromFloat(1),
 	InsuranceFundRate:      decimal.NewFromFloat(0.0001),
@@ -111,6 +111,7 @@ var perpetual2 = &model.PerpetualStorage{
 var accountStorage1 = &model.AccountStorage{
 	CashBalance:    decimal.NewFromFloat(7698.86),
 	PositionAmount: decimal.NewFromFloat(2.3),
+	TargetLeverage: _1,
 }
 
 const TEST_PERPETUAL_INDEX0 = 0
@@ -160,7 +161,7 @@ func TestComputeAMMAmountWithPrice3(t *testing.T) {
 	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX0] = perpetual1
 	amount := ComputeAMMAmountWithPrice(poolStorage, TEST_PERPETUAL_INDEX0, true, limitPrice)
 	Approximate(t, decimal.NewFromFloat(2.0046), amount)
-	tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
+	_, _, tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
 	assert.Equal(t, true, tradingPrice.LessThanOrEqual(limitPrice))
 }
 
@@ -175,7 +176,7 @@ func TestComputeAMMAmountWithPrice4(t *testing.T) {
 	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX0] = perpetual1
 	amount := ComputeAMMAmountWithPrice(poolStorage, TEST_PERPETUAL_INDEX0, true, limitPrice)
 	Approximate(t, decimal.NewFromFloat(90.795503235030246126178607648), amount)
-	tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
+	_, _, tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
 	assert.Equal(t, true, tradingPrice.LessThan(limitPrice))
 }
 
@@ -190,7 +191,7 @@ func TestComputeAMMAmountWithPrice5(t *testing.T) {
 	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX0] = perpetual1
 	amount := ComputeAMMAmountWithPrice(poolStorage, TEST_PERPETUAL_INDEX0, true, limitPrice)
 	Approximate(t, decimal.NewFromFloat(52.542857142857142857), amount)
-	tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
+	_, _, tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
 	Approximate(t, limitPrice, tradingPrice)
 }
 
@@ -218,7 +219,7 @@ func TestComputeAMMAmountWithPrice7(t *testing.T) {
 	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX0] = perpetual1
 	amount := ComputeAMMAmountWithPrice(poolStorage, TEST_PERPETUAL_INDEX0, false, limitPrice)
 	Approximate(t, decimal.NewFromFloat(-2.3), amount)
-	tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
+	_, _, tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
 	assert.Equal(t, true, tradingPrice.LessThanOrEqual(limitPrice))
 }
 
@@ -233,7 +234,7 @@ func TestComputeAMMAmountWithPrice8(t *testing.T) {
 	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX0] = perpetual1
 	amount := ComputeAMMAmountWithPrice(poolStorage, TEST_PERPETUAL_INDEX0, false, limitPrice)
 	Approximate(t, decimal.NewFromFloat(-3.248643177964958208), amount)
-	tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
+	_, _, tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
 	assert.Equal(t, true, tradingPrice.GreaterThanOrEqual(limitPrice))
 }
 
@@ -248,7 +249,7 @@ func TestComputeAMMAmountWithPrice9(t *testing.T) {
 	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX0] = perpetual1
 	amount := ComputeAMMAmountWithPrice(poolStorage, TEST_PERPETUAL_INDEX0, false, limitPrice)
 	Approximate(t, decimal.NewFromFloat(-2.54339106672133532007243536012), amount)
-	tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
+	_, _, tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
 	Approximate(t, limitPrice, tradingPrice)
 }
 
@@ -276,7 +277,7 @@ func TestComputeAMMAmountWithPrice11(t *testing.T) {
 	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX0] = perpetual1
 	amount := ComputeAMMAmountWithPrice(poolStorage, TEST_PERPETUAL_INDEX0, false, limitPrice)
 	Approximate(t, decimal.NewFromFloat(-2.226863373523786822), amount)
-	tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
+	_, _, tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
 	Approximate(t, limitPrice, tradingPrice)
 }
 
@@ -291,7 +292,7 @@ func TestComputeAMMAmountWithPrice12(t *testing.T) {
 	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX0] = perpetual1
 	amount := ComputeAMMAmountWithPrice(poolStorage, TEST_PERPETUAL_INDEX0, false, limitPrice)
 	Approximate(t, decimal.NewFromFloat(-2.250750147989139645), amount)
-	tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
+	_, _, tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
 	Approximate(t, limitPrice, tradingPrice)
 }
 
@@ -306,7 +307,7 @@ func TestComputeAMMAmountWithPrice13(t *testing.T) {
 	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX0] = perpetual1
 	amount := ComputeAMMAmountWithPrice(poolStorage, TEST_PERPETUAL_INDEX0, false, limitPrice)
 	Approximate(t, decimal.NewFromFloat(-2.688951590780905289), amount)
-	tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
+	_, _, tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
 	Approximate(t, limitPrice, tradingPrice)
 }
 
@@ -334,7 +335,7 @@ func TestComputeAMMAmountWithPrice15(t *testing.T) {
 	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX0] = perpetual1
 	amount := ComputeAMMAmountWithPrice(poolStorage, TEST_PERPETUAL_INDEX0, true, limitPrice)
 	Approximate(t, decimal.NewFromFloat(2.3), amount)
-	tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
+	_, _, tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
 	Approximate(t, limitPrice, tradingPrice)
 }
 
@@ -349,7 +350,7 @@ func TestComputeAMMAmountWithPrice16(t *testing.T) {
 	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX0] = perpetual1
 	amount := ComputeAMMAmountWithPrice(poolStorage, TEST_PERPETUAL_INDEX0, true, limitPrice)
 	Approximate(t, decimal.NewFromFloat(4.534292077640725907), amount)
-	tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
+	_, _, tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
 	assert.Equal(t, true, tradingPrice.LessThanOrEqual(limitPrice))
 }
 
@@ -364,7 +365,7 @@ func TestComputeAMMAmountWithPrice17(t *testing.T) {
 	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX0] = perpetual1
 	amount := ComputeAMMAmountWithPrice(poolStorage, TEST_PERPETUAL_INDEX0, true, limitPrice)
 	Approximate(t, decimal.NewFromFloat(2.68369217482083603940884140606), amount)
-	tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
+	_, _, tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
 	Approximate(t, limitPrice, tradingPrice)
 }
 
@@ -392,7 +393,7 @@ func TestComputeAMMAmountWithPrice19(t *testing.T) {
 	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX0] = perpetual1
 	amount := ComputeAMMAmountWithPrice(poolStorage, TEST_PERPETUAL_INDEX0, true, limitPrice)
 	Approximate(t, decimal.NewFromFloat(2.217663373523786822), amount)
-	tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
+	_, _, tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
 	Approximate(t, limitPrice, tradingPrice)
 }
 
@@ -407,7 +408,7 @@ func TestComputeAMMAmountWithPrice20(t *testing.T) {
 	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX0] = perpetual1
 	amount := ComputeAMMAmountWithPrice(poolStorage, TEST_PERPETUAL_INDEX0, true, limitPrice)
 	Approximate(t, decimal.NewFromFloat(2.282496767610908028), amount)
-	tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
+	_, _, tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
 	Approximate(t, limitPrice, tradingPrice)
 }
 
@@ -422,7 +423,7 @@ func TestComputeAMMAmountWithPrice21(t *testing.T) {
 	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX0] = perpetual1
 	amount := ComputeAMMAmountWithPrice(poolStorage, TEST_PERPETUAL_INDEX0, true, limitPrice)
 	Approximate(t, decimal.NewFromFloat(2.688951590780905289), amount)
-	tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
+	_, _, tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
 	Approximate(t, limitPrice, tradingPrice)
 }
 
@@ -463,7 +464,7 @@ func TestComputeAMMAmountWithPrice24(t *testing.T) {
 	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX0] = perpetual1
 	amount := ComputeAMMAmountWithPrice(poolStorage, TEST_PERPETUAL_INDEX0, false, limitPrice)
 	Approximate(t, decimal.NewFromFloat(-1.9954), amount)
-	tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
+	_, _, tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
 	assert.Equal(t, tradingPrice.LessThanOrEqual(limitPrice), true)
 }
 
@@ -478,7 +479,7 @@ func TestComputeAMMAmountWithPrice25(t *testing.T) {
 	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX0] = perpetual1
 	amount := ComputeAMMAmountWithPrice(poolStorage, TEST_PERPETUAL_INDEX0, false, limitPrice)
 	Approximate(t, decimal.NewFromFloat(-90.795503235030246126178607648), amount)
-	tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
+	_, _, tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
 	assert.Equal(t, tradingPrice.GreaterThanOrEqual(limitPrice), true)
 }
 
@@ -493,7 +494,7 @@ func TestComputeAMMAmountWithPrice26(t *testing.T) {
 	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX0] = perpetual1
 	amount := ComputeAMMAmountWithPrice(poolStorage, TEST_PERPETUAL_INDEX0, false, limitPrice)
 	Approximate(t, decimal.NewFromFloat(-52.542857142857142857), amount)
-	tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
+	_, _, tradingPrice, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, amount)
 	Approximate(t, limitPrice, tradingPrice)
 }
 
@@ -597,4 +598,62 @@ func TestComputeBestAskBidPrice7(t *testing.T) {
 
 	bestPrice := ComputeBestAskBidPrice(poolStorage, TEST_PERPETUAL_INDEX0, false)
 	Approximate(t, decimal.NewFromFloat(100), bestPrice)
+}
+
+// safe trader + safe amm, trader buy
+func TestComputeAMMMaxTradeAmount1(t *testing.T) {
+	poolStorage := defaultPool
+	poolStorage.PoolCashBalance = decimal.NewFromFloat(83941.29865625)
+	perpetual1.AmmPositionAmount = decimal.NewFromFloat(2.3)
+	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX0] = perpetual1
+
+	amount := ComputeAMMMaxTradeAmount(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, decimal.NewFromFloat(1.1), true) // 1.1
+	account := copyAccountStorage(accountStorage1)
+	accountComputed, tradeIsSafe, _, err := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, account, amount)
+	fmt.Println(err)
+	fmt.Println(accountComputed.Leverage)
+	assert.Equal(t, true, tradeIsSafe)
+	assert.Equal(t, true, amount.GreaterThan(decimal.NewFromFloat(1)))
+	assert.Equal(t, true, amount.LessThan(decimal.NewFromFloat(1.2)))
+	assert.Equal(t, true, accountComputed.Leverage.GreaterThan(decimal.NewFromFloat(0.99)))
+	assert.Equal(t, true, accountComputed.Leverage.LessThan(decimal.NewFromFloat(1.01)))
+}
+
+// safe trader + safe amm, trader sell
+func TestComputeAMMMaxTradeAmount2(t *testing.T) {
+	poolStorage := defaultPool
+	poolStorage.PoolCashBalance = decimal.NewFromFloat(83941.29865625)
+	perpetual1.AmmPositionAmount = decimal.NewFromFloat(2.3)
+	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX0] = perpetual1
+
+	amount := ComputeAMMMaxTradeAmount(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, decimal.NewFromFloat(-6), false) // -5.6
+	account := copyAccountStorage(accountStorage1)
+	accountComputed, tradeIsSafe, _, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, account, amount)
+	assert.Equal(t, true, tradeIsSafe)
+	assert.Equal(t, true, amount.LessThan(decimal.NewFromFloat(-5)))
+	assert.Equal(t, true, amount.GreaterThan(decimal.NewFromFloat(-6)))
+	assert.Equal(t, true, accountComputed.Leverage.GreaterThan(decimal.NewFromFloat(0.99)))
+	assert.Equal(t, true, accountComputed.Leverage.LessThan(decimal.NewFromFloat(1.01)))
+}
+
+// safe trader + unsafe amm(holds short), trader buy
+func TestComputeAMMMaxTradeAmount3(t *testing.T) {
+	poolStorage := defaultPool
+	poolStorage.PoolCashBalance = decimal.NewFromFloat(17096.21634375)
+	perpetual1.AmmPositionAmount = decimal.NewFromFloat(-2.3)
+	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX0] = perpetual1
+
+	amount := ComputeAMMMaxTradeAmount(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, decimal.NewFromFloat(1.2), true)
+	assert.Equal(t, true, amount.IsZero())
+}
+
+// safe trader + unsafe amm(holds long), trader sell
+func TestComputeAMMMaxTradeAmount4(t *testing.T) {
+	poolStorage := defaultPool
+	poolStorage.PoolCashBalance = decimal.NewFromFloat(-13677.21634375)
+	perpetual1.AmmPositionAmount = decimal.NewFromFloat(2.3)
+	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX0] = perpetual1
+
+	amount := ComputeAMMMaxTradeAmount(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, decimal.NewFromFloat(1.2), false)
+	assert.Equal(t, true, amount.IsZero())
 }

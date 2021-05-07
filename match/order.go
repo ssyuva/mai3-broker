@@ -1,6 +1,8 @@
 package match
 
 import (
+	"sort"
+
 	"github.com/mcarloai/mai-v3-broker/common/mai3"
 	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
 	"github.com/mcarloai/mai-v3-broker/common/model"
@@ -11,50 +13,93 @@ import (
 )
 
 var TradeAmountRelaxFactor = decimal.NewFromFloat(0.99)
+var _0 = decimal.Zero
+var _1 = decimal.NewFromInt(1)
 
 const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000"
 
-func (m *match) CheckOrderMargin(poolStorage *model.LiquidityPoolStorage, account *model.AccountStorage, order *model.Order, amount decimal.Decimal) bool {
-	perpetual, ok := poolStorage.Perpetuals[m.perpetual.PerpetualIndex]
-	if !ok {
-		return false
-	}
-	computedAccount, err := mai3.ComputeAccount(poolStorage, m.perpetual.PerpetualIndex, account)
-	if err != nil || !computedAccount.IsSafe {
-		return false
-	}
-
-	// position after trade
-	position := account.PositionAmount.Add(amount)
-
-	// mark price * Abs(position + amount) / (currentMarginBalance - mark price * Abs(amount) * fee)
-	feeRate := perpetual.LpFeeRate.Add(poolStorage.VaultFeeRate).Add(perpetual.OperatorFeeRate)
-	if order.ReferrerAddress != "" && order.ReferrerAddress != ADDRESS_ZERO {
-		feeRate = feeRate.Add(perpetual.ReferrerRebateRate)
-	}
-	tradeFee := perpetual.MarkPrice.Mul(amount.Abs()).Mul(feeRate)
-	if computedAccount.MarginBalance.Sub(tradeFee).LessThanOrEqual(decimal.Zero) {
-		return false
-	}
-	lev := position.Abs().Mul(perpetual.MarkPrice).Div(computedAccount.MarginBalance.Sub(tradeFee))
-	maxLev := decimal.NewFromInt(1).Div(perpetual.InitialMarginRate)
-	if lev.LessThan(decimal.Zero) || lev.GreaterThan(maxLev) {
-		logger.Warnf("trader: %s amount: %s lev: %s greater than MaxLeverage: %s", order.TraderAddress, amount, lev, maxLev)
-		return false
-	}
-
-	return true
-}
-
-func (m *match) CheckCloseOnly(account *model.AccountStorage, order *model.Order) bool {
-	if order.IsCloseOnly {
-		if account.PositionAmount.IsZero() {
-			return false
-		} else if !account.PositionAmount.IsZero() && utils.HasTheSameSign(account.PositionAmount, order.Amount) {
-			return false
+func splitActiveOrders(orders []*model.Order) (buys, sells []*model.Order) {
+	for _, order := range orders {
+		amount := order.AvailableAmount.Add(order.PendingAmount)
+		if amount.LessThan(decimal.Zero) {
+			// sell
+			sells = append(sells, order)
+		} else if amount.GreaterThan(decimal.Zero) {
+			// buy
+			buys = append(buys, order)
 		}
 	}
-	return true
+	sort.Slice(buys, func(i, j int) bool {
+		return buys[i].Price.GreaterThan(buys[j].Price)
+	})
+	sort.Slice(sells, func(i, j int) bool {
+		return sells[i].Price.LessThan(sells[j].Price)
+	})
+	return
+}
+
+func (m *match) openOrderCost(pool *model.LiquidityPoolStorage, order *model.Order, leverage decimal.Decimal) decimal.Decimal {
+	perp, ok := pool.Perpetuals[m.perpetual.PerpetualIndex]
+	if !ok {
+		return _0
+	}
+	feeRate := pool.VaultFeeRate.Add(perp.LpFeeRate).Add(perp.OperatorFeeRate)
+	if order.ReferrerAddress != ADDRESS_ZERO {
+		feeRate = feeRate.Add(perp.ReferrerRebateRate)
+	}
+	potentialLoss := _0
+	if order.AvailableAmount.GreaterThan(_0) && perp.MarkPrice.LessThan(order.Price) {
+		potentialLoss = order.Price.Sub(perp.MarkPrice).Mul(order.AvailableAmount)
+	} else if order.AvailableAmount.LessThan(_0) && perp.MarkPrice.GreaterThan(order.Price) {
+		potentialLoss = perp.MarkPrice.Sub(order.Price).Mul(order.AvailableAmount.Abs())
+	}
+	return order.Price.Mul(order.AvailableAmount).Mul(_1.Div(leverage).Add(feeRate)).Add(potentialLoss)
+}
+
+func (m *match) sideAvailable(poolStorage *model.LiquidityPoolStorage, account *model.AccountStorage, orders []*model.Order) (cancels []*model.Order, available decimal.Decimal) {
+	cancels = make([]*model.Order, 0)
+	remainPosition := account.PositionAmount
+	remainMargin := account.MarginBalance
+	available = account.CashBalance
+
+	return
+}
+
+func (m *match) ComputeOrderAvailable(poolStorage *model.LiquidityPoolStorage, account *model.AccountStorage, orders []*model.Order) decimal.Decimal {
+	buyOrders, sellOrders := splitActiveOrders(orders)
+	_, buySideAvailable := m.sideAvailable(poolStorage, account, buyOrders)
+	_, sellSideAvailable := m.sideAvailable(poolStorage, account, sellOrders)
+	return decimal.Min(buySideAvailable, sellSideAvailable)
+}
+
+func (m *match) ComputeOrderCost(poolStorage *model.LiquidityPoolStorage, account *model.AccountStorage, order *model.Order, activeOrders []*model.Order) decimal.Decimal {
+	oldAvailable := m.ComputeOrderAvailable(poolStorage, account, activeOrders)
+	newOrders := append(activeOrders, order)
+	newAvailable := m.ComputeOrderAvailable(poolStorage, account, newOrders)
+	if newAvailable.LessThan(oldAvailable) {
+		return oldAvailable.Sub(newAvailable)
+	}
+	return _0
+}
+
+func (m *match) CheckCloseOnly(account *model.AccountStorage, order *model.Order) decimal.Decimal {
+	if order.IsCloseOnly {
+		if account.PositionAmount.IsZero() {
+			// position is 0, cancel all
+			return order.AvailableAmount
+		} else {
+			// open amount has same sign with position, cancel all
+			if utils.HasTheSameSign(account.PositionAmount, order.Amount) {
+				return order.AvailableAmount
+			}
+
+			// closed amount greater than position, cancel some
+			if order.AvailableAmount.Abs().GreaterThan(account.PositionAmount.Abs()) {
+				return order.AvailableAmount.Add(account.PositionAmount)
+			}
+		}
+	}
+	return _0
 }
 
 type MatchItem struct {
@@ -185,11 +230,12 @@ func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice
 				MatchedAmount:      order.Amount,
 			}
 			logger.Infof("matchedAmount: %s orderAmount:%s", order.Amount, order.Amount)
-			_, err = mai3.ComputeAMMTrade(poolStorage, m.perpetual.PerpetualIndex, account, order.Amount)
-			if err != nil {
-				logger.Errorf("matchOneSide: ComputeAMMTrade fail. err:%s", err)
+			_, tradeIsSafe, _, err := mai3.ComputeAMMTrade(poolStorage, m.perpetual.PerpetualIndex, account, order.Amount)
+			if err != nil || !tradeIsSafe {
+				logger.Errorf("matchOneSide: ComputeAMMTrade fail or unsafe after trade. err:%s", err)
 				return result, true
 			}
+
 			result = append(result, matchItem)
 			maxTradeAmount = maxTradeAmount.Sub(order.Amount)
 		} else {
@@ -202,9 +248,9 @@ func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice
 				MatchedAmount:      matchedAmount,
 			}
 			logger.Infof("matchedAmount: %s orderAmount:%s", matchedAmount, order.Amount)
-			_, err = mai3.ComputeAMMTrade(poolStorage, m.perpetual.PerpetualIndex, account, matchedAmount)
-			if err != nil {
-				logger.Errorf("matchOneSide: ComputeAMMTrade fail. err:%s", err)
+			_, tradeIsSafe, _, err := mai3.ComputeAMMTrade(poolStorage, m.perpetual.PerpetualIndex, account, matchedAmount)
+			if err != nil || !tradeIsSafe {
+				logger.Errorf("matchOneSide: ComputeAMMTrade fail or unsafe after trade. err:%v", err)
 				return result, true
 			}
 			if order.Amount.Sub(matchedAmount).Abs().LessThan(order.MinTradeAmount.Abs()) {

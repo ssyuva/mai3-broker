@@ -62,7 +62,7 @@ func (m *match) Run() error {
 	group, ctx := errgroup.WithContext(m.ctx)
 	// go monitor check user margin gas
 	group.Go(func() error {
-		return m.checkOrdersMargin(ctx)
+		return m.checkActiveOrders(ctx)
 	})
 
 	// go match order

@@ -22,7 +22,7 @@ type OrderCancel struct {
 	Reason    model.CancelReasonType
 }
 
-func (m *match) checkOrdersMargin(ctx context.Context) error {
+func (m *match) checkActiveOrders(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
@@ -40,11 +40,12 @@ func (m *match) checkPerpUserOrders() {
 		return
 	}
 
-	// update active orders count
+	// update active orders count in metrics
 	activeOrderCount.WithLabelValues(fmt.Sprintf("%s-%d", m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex)).Set(float64(len(orders)))
 	if len(orders) == 0 {
 		return
 	}
+
 	users, err := m.dao.GetPendingOrderUsers(m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex, []model.OrderStatus{model.OrderPending})
 	if err != nil {
 		logger.Errorf("monitor: GetPendingOrderUsers %s", err)
@@ -81,15 +82,7 @@ func (m *match) checkPerpUserOrders() {
 
 func (m *match) checkUserPendingOrders(poolStorage *model.LiquidityPoolStorage, user string) []*OrderCancel {
 	cancels := make([]*OrderCancel, 0)
-	account, err := m.chainCli.GetAccountStorage(m.ctx, conf.Conf.ReaderAddress, m.perpetual.PerpetualIndex, m.perpetual.LiquidityPoolAddress, user)
-	if account == nil || err != nil {
-		return cancels
-	}
-	gasBalance, err := m.chainCli.GetGasBalance(m.ctx, conf.Conf.BrokerAddress, user)
-	if err != nil {
-		logger.Errorf("checkUserPendingOrders:%w", err)
-		return cancels
-	}
+
 	// check order margin and close Only order
 	orders, err := m.dao.QueryOrder(user, m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex, []model.OrderStatus{model.OrderPending}, 0, 0, 0)
 	if err != nil {
@@ -112,7 +105,17 @@ func (m *match) checkUserPendingOrders(poolStorage *model.LiquidityPoolStorage, 
 		return cancels
 	}
 
-	gasPrice := m.gasMonitor.GetGasPriceDecimal()
+	account, err := m.chainCli.GetAccountStorage(m.ctx, conf.Conf.ReaderAddress, m.perpetual.PerpetualIndex, m.perpetual.LiquidityPoolAddress, user)
+	if account == nil || err != nil {
+		return cancels
+	}
+	gasBalance, err := m.chainCli.GetGasBalance(m.ctx, conf.Conf.BrokerAddress, user)
+	if err != nil {
+		logger.Errorf("checkUserPendingOrders:%w", err)
+		return cancels
+	}
+
+	gasPrice := m.gasMonitor.GasPriceGwei()
 	gasReward := decimal.Zero
 	for _, order := range orders {
 		if conf.Conf.GasEnable {
@@ -141,23 +144,25 @@ func (m *match) checkUserPendingOrders(poolStorage *model.LiquidityPoolStorage, 
 			}
 		}
 
+		// because broker address was signed, if it is changed, orders need be canceled
 		if order.OrderParam.BrokerAddress != strings.ToLower(conf.Conf.BrokerAddress) {
 			cancel := &OrderCancel{
 				OrderHash: order.OrderHash,
 				Status:    order.Status,
 				ToCancel:  order.AvailableAmount,
-				Reason:    model.CancelReasonAdminCancel,
+				Reason:    model.CancelReasonTransactionFail,
 			}
 			cancels = append(cancels, cancel)
 			continue
 		}
 
-		if !m.CheckCloseOnly(account, order) {
+		cancelAmount := m.CheckCloseOnly(account, order)
+		if !cancelAmount.Equal(_0) {
 			cancel := &OrderCancel{
 				OrderHash: order.OrderHash,
 				Status:    order.Status,
-				ToCancel:  order.AvailableAmount,
-				Reason:    model.CancelReasonAdminCancel,
+				ToCancel:  cancelAmount,
+				Reason:    model.CancelReasonCloseOnly,
 			}
 			cancels = append(cancels, cancel)
 			continue
@@ -176,25 +181,4 @@ func (m *match) checkUserPendingOrders(poolStorage *model.LiquidityPoolStorage, 
 	}
 
 	return cancels
-}
-
-func (m *match) cancelPartialForOrderCheck(poolStorage *model.LiquidityPoolStorage, account *model.AccountStorage, order *model.Order) (ok bool, canceled decimal.Decimal) {
-	availableAmount := order.AvailableAmount
-	relaxAmount := availableAmount.Mul(OrderAmountRelaxFactor)
-	canceled = decimal.Zero
-	for {
-		ok = m.CheckOrderMargin(poolStorage, account, order, availableAmount)
-		if ok {
-			break
-		} else {
-			// relax 10% amount
-			availableAmount = availableAmount.Sub(relaxAmount)
-			canceled = canceled.Add(relaxAmount)
-			if availableAmount.Equal(decimal.Zero) || availableAmount.Abs().LessThan(order.MinTradeAmount.Abs()) {
-				canceled = canceled.Add(availableAmount)
-				break
-			}
-		}
-	}
-	return
 }

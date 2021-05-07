@@ -223,8 +223,7 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 	}
 
 	// check ChainID
-	chainID, err := s.chainCli.GetChainID()
-	if err != nil || chainID.Int64() != params.ChainID {
+	if conf.Conf.ChainID != params.ChainID {
 		return nil, ChainIDError(params.ChainID)
 	}
 

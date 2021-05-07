@@ -3,12 +3,13 @@ package ethereum
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/pborman/uuid"
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
 
@@ -49,13 +50,17 @@ func wrapMessage(data []byte) []byte {
 }
 
 // PrivateToAccount imports an account from given private key
-func PrivateToAccount(p *ecdsa.PrivateKey) *Account {
+func PrivateToAccount(p *ecdsa.PrivateKey, chainID *big.Int) (*Account, error) {
 	addr := crypto.PubkeyToAddress(p.PublicKey).Hex()
+	signer, err := bind.NewKeyedTransactorWithChainID(p, chainID)
+	if err != nil {
+		return nil, err
+	}
 	return &Account{
 		address: common.HexToAddress(addr),
-		signer:  bind.NewKeyedTransactor(p),
+		signer:  signer,
 		private: p,
-	}
+	}, nil
 }
 
 func (c *Client) HexToPrivate(pk string) (*ecdsa.PrivateKey, string, error) {
@@ -68,8 +73,13 @@ func (c *Client) HexToPrivate(pk string) (*ecdsa.PrivateKey, string, error) {
 }
 
 func (c *Client) EncryptKey(pk *ecdsa.PrivateKey, password string) ([]byte, error) {
+	id, err := uuid.NewRandom()
+	if err != nil {
+		return nil, err
+	}
+
 	key := &keystore.Key{
-		Id:         uuid.NewRandom(),
+		Id:         id,
 		Address:    crypto.PubkeyToAddress(pk.PublicKey),
 		PrivateKey: pk,
 	}

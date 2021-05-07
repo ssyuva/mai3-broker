@@ -44,6 +44,8 @@ type PerpetualStorage struct {
 }
 
 type AccountStorage struct {
+	TargetLeverage decimal.Decimal
+	WalletBalance  decimal.Decimal
 	CashBalance    decimal.Decimal
 	PositionAmount decimal.Decimal
 	// EntryFundingLoss decimal.Decimal
@@ -56,9 +58,10 @@ type AccountComputed struct {
 	AvailableCashBalance decimal.Decimal
 	MarginBalance        decimal.Decimal
 	AvailableMargin      decimal.Decimal
-	MaxWithdrawable      decimal.Decimal
 	WithdrawableBalance  decimal.Decimal
-	IsSafe               bool
+	IsMMSafe             bool // use this if check liquidation
+	IsIMSafe             bool // use this if open positions
+	IsMarginSafe         bool // use this if close positions. also known as bankrupt
 	Leverage             decimal.Decimal
 }
 

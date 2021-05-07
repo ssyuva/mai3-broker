@@ -32,6 +32,7 @@ type Config struct {
 	GasEnable bool   `envconfig:"gas_enable"`
 
 	ChainType    string            `envconfig:"chain_type"`
+	ChainID      int64             `envconfig:"chain_id"`
 	RetryTimes   int               `envconfig:"retry_times"`
 	ChainTimeout time.Duration     `envconfig:"chain_timeout"`
 	ProvidersURL []string          `envconfig:"providers_url"`
