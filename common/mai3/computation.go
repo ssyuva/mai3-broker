@@ -169,7 +169,6 @@ func ComputeTradeWithPrice(p *model.LiquidityPoolStorage, perpetualIndex int64, 
 	if err != nil {
 		return nil, false, _0, err
 	}
-	// TODO: consider order referrer fee rate
 	fee, err := ComputeFee(!open.IsZero(), price, amount, feeRate, afterTrade)
 	if err != nil {
 		return nil, false, _0, err

@@ -81,9 +81,6 @@ func (m *match) sideAvailable(pool *model.LiquidityPoolStorage, account *model.A
 			newPositionMargin := perpetual.MarkPrice.Mul(newPosition.Abs()).Mul(perpetual.InitialMarginRate)
 			pnl := perpetual.MarkPrice.Sub(order.Price).Mul(close)
 			afterMargin := remainMargin.Add(pnl)
-			if order.ReferrerAddress != ADDRESS_ZERO {
-				feeRate = feeRate.Add(perpetual.ReferrerRebateRate)
-			}
 			fee := decimal.Min(decimal.Max(afterMargin.Sub(newPositionMargin), _0), order.Price.Mul(close.Abs()).Mul(feeRate))
 			afterMargin = afterMargin.Sub(fee)
 			if afterMargin.LessThan(_0) {
