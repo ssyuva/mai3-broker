@@ -107,8 +107,7 @@ func (m *match) sideAvailable(pool *model.LiquidityPoolStorage, account *model.A
 				// TODO: consider min trade amount
 				if !newOrderAmount.IsZero() {
 					// update order amount just for checking below, can not save order in db
-					order.AvailableAmount = newOrderAmount
-					order.PendingAmount = _0
+					order.AvailableAmount = newOrderAmount.Sub(order.PendingAmount)
 					remainOrders = append(remainOrders, order)
 				}
 			}
