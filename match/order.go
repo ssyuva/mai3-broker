@@ -81,9 +81,15 @@ func (m *match) sideAvailable(pool *model.LiquidityPoolStorage, account *model.A
 		if !close.IsZero() {
 			newPosition := remainPosition.Add(close)
 			newPositionMargin := perpetual.MarkPrice.Mul(newPosition.Abs()).Mul(perpetual.InitialMarginRate)
-			pnl := perpetual.MarkPrice.Sub(order.Price).Mul(close)
-			afterMargin := remainMargin.Add(pnl)
-			fee := decimal.Min(decimal.Max(afterMargin.Sub(newPositionMargin), _0), order.Price.Mul(close.Abs()).Mul(feeRate))
+			potentialPNL := perpetual.MarkPrice.Sub(order.Price).Mul(close)
+			// loss = pnl if pnl < 0 else 0
+			potentialLoss := decimal.Min(potentialPNL, _0)
+			afterMargin := remainMargin.Add(potentialLoss)
+			fee := decimal.Min(
+				// marginBalance + pnl - mark * | newPosition | * imRate
+				decimal.Max(afterMargin.Sub(newPositionMargin), _0),
+				order.Price.Mul(close.Abs()).Mul(feeRate),
+			)
 			afterMargin = afterMargin.Sub(fee)
 			if afterMargin.LessThan(_0) {
 				// bankrupt when close. pretend all orders as open orders
@@ -96,7 +102,7 @@ func (m *match) sideAvailable(pool *model.LiquidityPoolStorage, account *model.A
 				if afterMargin.GreaterThanOrEqual(newPositionMargin) {
 					// withdraw = afterMargin - remainMargin * (1 - | close / remainPosition |)
 					withdraw = close.Div(remainPosition).Abs()
-					withdraw = _1.Mul(withdraw).Mul(remainMargin)
+					withdraw = _1.Sub(withdraw).Mul(remainMargin)
 					withdraw = afterMargin.Sub(withdraw)
 					withdraw = decimal.Max(_0, withdraw)
 				}
@@ -104,7 +110,6 @@ func (m *match) sideAvailable(pool *model.LiquidityPoolStorage, account *model.A
 				available = available.Add(withdraw)
 				remainPosition = remainPosition.Add(close)
 				newOrderAmount := amount.Sub(close)
-				// TODO: consider min trade amount
 				if !newOrderAmount.IsZero() {
 					// update order amount just for checking below, can not save order in db
 					order.AvailableAmount = newOrderAmount.Sub(order.PendingAmount)
@@ -119,6 +124,7 @@ func (m *match) sideAvailable(pool *model.LiquidityPoolStorage, account *model.A
 	// if close = 0 && position = 0 && margin > 0
 	if remainPosition.IsZero() {
 		available = available.Add(remainMargin)
+		remainMargin = _0
 	}
 
 	// open position
