@@ -109,6 +109,15 @@ func (m *match) checkUserPendingOrders(poolStorage *model.LiquidityPoolStorage, 
 	if account == nil || err != nil {
 		return cancels
 	}
+	balance, err := m.chainCli.BalanceOf(m.ctx, m.perpetual.CollateralAddress, user, m.perpetual.CollateralDecimals)
+	if err != nil {
+		return cancels
+	}
+	allowance, err := m.chainCli.Allowance(m.ctx, m.perpetual.CollateralAddress, user, m.perpetual.LiquidityPoolAddress, m.perpetual.CollateralDecimals)
+	if err != nil {
+		return cancels
+	}
+	account.WalletBalance = decimal.Min(balance, allowance)
 	gasBalance, err := m.chainCli.GetGasBalance(m.ctx, conf.Conf.BrokerAddress, user)
 	if err != nil {
 		logger.Errorf("checkUserPendingOrders:%w", err)
@@ -117,6 +126,7 @@ func (m *match) checkUserPendingOrders(poolStorage *model.LiquidityPoolStorage, 
 
 	gasPrice := m.gasMonitor.GasPriceGwei()
 	gasReward := decimal.Zero
+	remainOrders := make([]*model.Order, 0)
 	for _, order := range orders {
 		if conf.Conf.GasEnable {
 			// gas check
@@ -168,17 +178,12 @@ func (m *match) checkUserPendingOrders(poolStorage *model.LiquidityPoolStorage, 
 			continue
 		}
 
-		ok, canceled := m.cancelPartialForOrderCheck(poolStorage, account, order)
-		if !ok {
-			cancel := &OrderCancel{
-				OrderHash: order.OrderHash,
-				Status:    order.Status,
-				ToCancel:  canceled,
-				Reason:    model.CancelReasonInsufficientFunds,
-			}
-			cancels = append(cancels, cancel)
-		}
+		remainOrders = append(remainOrders, order)
+
 	}
 
+	// check remain orders available margin
+	cancelsInsufficientFunds, _ := m.ComputeOrderAvailable(poolStorage, account, remainOrders)
+	cancels = append(cancels, cancelsInsufficientFunds...)
 	return cancels
 }

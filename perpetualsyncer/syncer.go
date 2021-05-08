@@ -94,11 +94,12 @@ func (p *PerpetualSyncer) syncPerpetual() {
 	var response struct {
 		Data struct {
 			Perpetuals []struct {
-				Index           string `json:"index"`
-				Symbol          string `json:"symbol"`
-				CollateralName  string `json:"collateralName"`
-				OperatorAddress string `json:"operatorAddress"`
-				LiquidityPool   struct {
+				Index             string `json:"index"`
+				Symbol            string `json:"symbol"`
+				CollateralName    string `json:"collateralName"`
+				CollateralAddress string `json:"collateralAddress"`
+				OperatorAddress   string `json:"operatorAddress"`
+				LiquidityPool     struct {
 					ID                 string `json:"id"`
 					CollateralDecimals string `json:"collateralDecimals"`
 				}
@@ -134,6 +135,7 @@ func (p *PerpetualSyncer) syncPerpetual() {
 			LiquidityPoolAddress: perp.LiquidityPool.ID,
 			Symbol:               perp.Symbol,
 			CollateralSymbol:     perp.CollateralName,
+			CollateralAddress:    perp.CollateralAddress,
 			CollateralDecimals:   int32(collateralDecimals),
 			OperatorAddress:      perp.OperatorAddress,
 			IsPublished:          true,

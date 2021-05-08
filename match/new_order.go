@@ -37,6 +37,18 @@ func (m *match) NewOrder(order *model.Order) string {
 		return model.MatchInternalErrorID
 	}
 
+	balance, err := m.chainCli.BalanceOf(m.ctx, m.perpetual.CollateralAddress, order.TraderAddress, m.perpetual.CollateralDecimals)
+	if err != nil {
+		logger.Errorf("new order:BalanceOf err:%v", err)
+		return model.MatchInternalErrorID
+	}
+	allowance, err := m.chainCli.Allowance(m.ctx, m.perpetual.CollateralAddress, order.TraderAddress, m.perpetual.LiquidityPoolAddress, m.perpetual.CollateralDecimals)
+	if err != nil {
+		logger.Errorf("new order:Allowance err:%v", err)
+		return model.MatchInternalErrorID
+	}
+	account.WalletBalance = decimal.Min(balance, allowance)
+
 	logger.Infof("GetAccountStorage 1111111: used:%d", time.Since(now).Milliseconds())
 
 	if !m.CheckCloseOnly(account, order).Equal(_0) {
@@ -77,8 +89,10 @@ func (m *match) NewOrder(order *model.Order) string {
 	}
 
 	activeOrders = append(activeOrders, order)
-	// avaliable balance less than 0
-	if m.ComputeOrderAvailable(poolStorage, account, activeOrders).LessThan(_0) {
+	// available balance less than 0
+	// TODO: consider cancel orders
+	_, available := m.ComputeOrderAvailable(poolStorage, account, activeOrders)
+	if available.LessThan(_0) {
 		return model.MatchInsufficientBalanceErrorID
 	}
 

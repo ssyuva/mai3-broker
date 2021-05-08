@@ -18,19 +18,16 @@ func ComputeAccount(p *model.LiquidityPoolStorage, perpetualIndex int64, a *mode
 	positionMargin := positionValue.Mul(perpetual.InitialMarginRate)
 	maintenanceMargin := positionValue.Mul(perpetual.MaintenanceMarginRate)
 	reservedCash := _0
-	if a.PositionAmount.IsZero() {
+	if !a.PositionAmount.IsZero() {
 		reservedCash = perpetual.KeeperGasReward
 	}
 	availableCashBalance := a.CashBalance.Sub(a.PositionAmount.Mul(perpetual.UnitAccumulativeFunding))
 	marginBalance := availableCashBalance.Add(perpetual.MarkPrice.Mul(a.PositionAmount))
-	maxWithdrawable := decimal.Max(_0, marginBalance.Sub(positionMargin).Sub(reservedCash))
-	withdrawableBalance := maxWithdrawable
-	availableMargin := decimal.Max(_0, maxWithdrawable)
-	isSafe := maintenanceMargin.LessThanOrEqual(marginBalance)
-	leverage := _0
-	if marginBalance.GreaterThan(_0) {
-		leverage = positionValue.Div(marginBalance)
-	}
+	availableMargin := marginBalance.Sub(decimal.Max(reservedCash, positionMargin))
+	withdrawableBalance := decimal.Max(_0, availableMargin)
+	isMMSafe := marginBalance.GreaterThanOrEqual(decimal.Max(reservedCash, maintenanceMargin))
+	isIMSafe := marginBalance.GreaterThanOrEqual(decimal.Max(reservedCash, positionMargin))
+	isMarginSafe := marginBalance.GreaterThanOrEqual(reservedCash)
 
 	return &model.AccountComputed{
 		PositionValue:        positionValue,
@@ -43,7 +40,6 @@ func ComputeAccount(p *model.LiquidityPoolStorage, perpetualIndex int64, a *mode
 		IsMMSafe:             isMMSafe,
 		IsIMSafe:             isIMSafe,
 		IsMarginSafe:         isMarginSafe,
-		Leverage:             leverage,
 	}, nil
 }
 
@@ -167,6 +163,7 @@ func ComputeTradeWithPrice(p *model.LiquidityPoolStorage, perpetualIndex int64, 
 		}
 	}
 
+	// TODO: consider order referrer fee rate
 	fee, err := ComputeFee(price, amount, feeRate)
 	if err != nil {
 		return nil, false, err
@@ -190,24 +187,36 @@ func ComputeTradeWithPrice(p *model.LiquidityPoolStorage, perpetualIndex int64, 
 	return afterTrade, tradeSafe, nil
 }
 
-
-func adjustMarginLeverage(perp *model.PerpetualStorage, trader *model.AccountComputed, deltaPosition, deltaCash, totalFee decimal.Decimal) decimal.Decimal {
+func adjustMarginLeverage(p *model.LiquidityPoolStorage, perpetualIndex int64, trader *model.AccountComputed, deltaPosition, deltaCash, totalFee decimal.Decimal) (decimal.Decimal, error) {
+	perpetual, ok := p.Perpetuals[perpetualIndex]
+	if !ok {
+		return _0, fmt.Errorf("perpetual %d not found in the pool", perpetualIndex)
+	}
 	adjustCollateral := _0
-	close, open := utils.SplitAmount(trader.PositionAmount.Sub(deltaPosition), deltaPosition)
-	if !close.IsZero() && open.IsZero() {
-
+	closed, opened := utils.SplitAmount(trader.PositionAmount.Sub(deltaPosition), deltaPosition)
+	if !closed.IsZero() && opened.IsZero() {
+		adjustCollateral = adjustClosedMargin(perpetual, trader, closed, deltaCash, totalFee)
+	} else if !open.IsZero() {
+		adjustCollateral := adjustOpenedMargin(perpetual, trader, closed, deltaCash, totalFee)
 	}
 }
 
 func adjustClosedMargin(perp *model.PerpetualStorage, trader *model.AccountStorage, closed, deltaCash, totalFee decimal.Decimal) decimal.Decimal {
+	adjustCollateral := _0
 	// when close, keep the effective leverage
 	// -withdraw == (availableCash2 * close - deltaCash * position2) / position1 + fee
-	adjustCollateral := trader.CashBalance.Sub(trader.PositionAmount.Mul(perp.UnitAccumulativeFunding)).Mul(closed)
+	adjustCollateral = trader.CashBalance.Sub(trader.PositionAmount.Mul(perp.UnitAccumulativeFunding)).Mul(closed)
 	adjustCollateral = adjustCollateral.Sub(deltaCash.Mul(trader.PositionAmount))
 	adjustCollateral = adjustCollateral.Div(trader.PositionAmount.Sub(closed))
 	adjustCollateral = adjustCollateral.Add(totalFee)
 	// withdraw only when IM is satisfied
-	limit := totalFee.Sub(perp.)
+	// limit := totalFee.Sub(perp.)
+	return adjustCollateral
+}
+
+func adjustOpenedMargin(perp *model.PerpetualStorage, trader *model.AccountStorage, deltaPosition, closed, opened, totalFee decimal.Decimal) decimal.Decimal {
+	adjustCollateral := _0
+	return adjustCollateral
 }
 
 func ComputeDecreasePosition(p *model.LiquidityPoolStorage, perpetualIndex int64, a *model.AccountStorage, price, amount decimal.Decimal) error {
