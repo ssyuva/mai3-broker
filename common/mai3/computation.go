@@ -180,7 +180,12 @@ func ComputeTradeWithPrice(p *model.LiquidityPoolStorage, perpetualIndex int64, 
 		return nil, false, _0, err
 	}
 
+	if adjustMargin.GreaterThan(a.WalletBalance) {
+		return nil, false, _0, fmt.Errorf("wallet balance not enough for trading")
+	}
+
 	a.CashBalance = a.CashBalance.Add(adjustMargin).Sub(fee)
+	a.WalletBalance = a.WalletBalance.Sub(adjustMargin)
 
 	// open position requires margin > IM. close position requires !bankrupt
 	afterTrade, err = ComputeAccount(p, perpetualIndex, a)
