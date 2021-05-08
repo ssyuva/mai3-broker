@@ -73,7 +73,7 @@ func ComputeAMMTrade(p *model.LiquidityPoolStorage, perpetualIndex int64, trader
 
 	// trader
 	afterTrade, tradeIsSafe, totalFee, err := ComputeTradeWithPrice(p, perpetualIndex, trader, tradingPrice, deltaAMMAmount.Neg(),
-		perpetual.LpFeeRate.Add(p.VaultFeeRate).Add(perpetual.OperatorFeeRate))
+		perpetual.LpFeeRate.Add(p.VaultFeeRate).Add(perpetual.OperatorFeeRate), false)
 	if err != nil {
 		logger.Errorf("ComputeTradeWithPrice trader err:%s", err)
 		return nil, false, _0, err
@@ -90,7 +90,7 @@ func ComputeAMMTrade(p *model.LiquidityPoolStorage, perpetualIndex int64, trader
 		WalletBalance:  decimal.Zero,
 		PositionAmount: perpetual.AmmPositionAmount,
 	}
-	_, _, _, err = ComputeTradeWithPrice(p, perpetualIndex, fakeAMMAccount, tradingPrice, deltaAMMAmount, _0)
+	_, _, _, err = ComputeTradeWithPrice(p, perpetualIndex, fakeAMMAccount, tradingPrice, deltaAMMAmount, _0, true)
 	if err != nil {
 		logger.Errorf("ComputeAMMTrade fakeAMMAccount err:%s", err)
 		return nil, false, _0, err
@@ -147,7 +147,7 @@ func ComputeAMMPrice(p *model.LiquidityPoolStorage, perpetualIndex int64, amount
 	return
 }
 
-func ComputeTradeWithPrice(p *model.LiquidityPoolStorage, perpetualIndex int64, a *model.AccountStorage, price, amount, feeRate decimal.Decimal) (*model.AccountComputed, bool, decimal.Decimal, error) {
+func ComputeTradeWithPrice(p *model.LiquidityPoolStorage, perpetualIndex int64, a *model.AccountStorage, price, amount, feeRate decimal.Decimal, isAMM bool) (*model.AccountComputed, bool, decimal.Decimal, error) {
 	if price.LessThanOrEqual(_0) || amount.IsZero() {
 		return nil, false, _0, fmt.Errorf("bad price %s or amount %s", price, amount)
 	}
@@ -175,17 +175,20 @@ func ComputeTradeWithPrice(p *model.LiquidityPoolStorage, perpetualIndex int64, 
 	}
 
 	// ajust margin
-	adjustMargin, err := adjustMarginLeverage(p, perpetualIndex, afterTrade, a, price, close, open, fee)
-	if err != nil {
-		return nil, false, _0, err
+	if !isAMM {
+		adjustMargin, err := adjustMarginLeverage(p, perpetualIndex, afterTrade, a, price, close, open, fee)
+		if err != nil {
+			return nil, false, _0, err
+		}
+
+		if adjustMargin.GreaterThan(a.WalletBalance) {
+			return nil, false, _0, fmt.Errorf("wallet balance not enough for trading")
+		}
+		a.CashBalance = a.CashBalance.Add(adjustMargin)
+		a.WalletBalance = a.WalletBalance.Sub(adjustMargin)
 	}
 
-	if adjustMargin.GreaterThan(a.WalletBalance) {
-		return nil, false, _0, fmt.Errorf("wallet balance not enough for trading")
-	}
-
-	a.CashBalance = a.CashBalance.Add(adjustMargin).Sub(fee)
-	a.WalletBalance = a.WalletBalance.Sub(adjustMargin)
+	a.CashBalance = a.CashBalance.Sub(fee)
 
 	// open position requires margin > IM. close position requires !bankrupt
 	afterTrade, err = ComputeAccount(p, perpetualIndex, a)
