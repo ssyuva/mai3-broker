@@ -76,6 +76,7 @@ func (p *PerpetualSyncer) syncPerpetual() {
 			index
 			symbol
 			collateralName
+			collateralAddress
 			operatorAddress
 			liquidityPool {
 				id
