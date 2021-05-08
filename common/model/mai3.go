@@ -62,6 +62,7 @@ type AccountComputed struct {
 	IsMMSafe             bool // use this if check liquidation
 	IsIMSafe             bool // use this if open positions
 	IsMarginSafe         bool // use this if close positions. also known as bankrupt
+	Leverage             decimal.Decimal
 }
 
 type AMMTradingContext struct {

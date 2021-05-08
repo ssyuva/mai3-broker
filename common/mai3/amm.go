@@ -80,9 +80,9 @@ func ComputeAMMMaxTradeAmount(p *model.LiquidityPoolStorage, perpetualIndex int6
 		tmpTrader := copyAccountStorage(trader)
 		tmpPool := copyLiquidityPoolStorage(p)
 		amount := decimal.NewFromFloat(a)
-		accountComputed, tradeIsSafe, _, err := ComputeAMMTrade(tmpPool,
+		_, tradeIsSafe, _, err := ComputeAMMTrade(tmpPool,
 			perpetualIndex, tmpTrader, amount)
-		if err != nil || !tradeIsSafe || accountComputed.Leverage.GreaterThan(trader.TargetLeverage) {
+		if err != nil || !tradeIsSafe {
 			return math.Abs(a)
 		}
 		return -math.Abs(a)
