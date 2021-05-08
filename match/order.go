@@ -132,8 +132,7 @@ func (m *match) sideAvailable(pool *model.LiquidityPoolStorage, account *model.A
 				ToCancel:  order.AvailableAmount,
 				Reason:    model.CancelReasonInsufficientFunds,
 			}
-			// because order sort by price, cancel order reserved
-			cancels = append([]*OrderCancel{cancel}, cancels...)
+			cancels = append(cancels, cancel)
 		}
 	}
 
