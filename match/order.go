@@ -43,17 +43,18 @@ func (m *match) openOrderCost(pool *model.LiquidityPoolStorage, order *model.Ord
 	if !ok {
 		return _0
 	}
+	amount := order.AvailableAmount.Add(order.PendingAmount)
 	feeRate := pool.VaultFeeRate.Add(perp.LpFeeRate).Add(perp.OperatorFeeRate)
 	if order.ReferrerAddress != ADDRESS_ZERO {
 		feeRate = feeRate.Add(perp.ReferrerRebateRate)
 	}
 	potentialLoss := _0
-	if order.AvailableAmount.GreaterThan(_0) && perp.MarkPrice.LessThan(order.Price) {
-		potentialLoss = order.Price.Sub(perp.MarkPrice).Mul(order.AvailableAmount)
-	} else if order.AvailableAmount.LessThan(_0) && perp.MarkPrice.GreaterThan(order.Price) {
-		potentialLoss = perp.MarkPrice.Sub(order.Price).Mul(order.AvailableAmount.Abs())
+	if amount.GreaterThan(_0) && perp.MarkPrice.LessThan(order.Price) {
+		potentialLoss = order.Price.Sub(perp.MarkPrice).Mul(amount)
+	} else if amount.LessThan(_0) && perp.MarkPrice.GreaterThan(order.Price) {
+		potentialLoss = perp.MarkPrice.Sub(order.Price).Mul(amount.Abs())
 	}
-	return order.Price.Mul(order.AvailableAmount).Mul(_1.Div(leverage).Add(feeRate)).Add(potentialLoss)
+	return order.Price.Mul(amount).Mul(_1.Div(leverage).Add(feeRate)).Add(potentialLoss)
 }
 
 func (m *match) sideAvailable(pool *model.LiquidityPoolStorage, account *model.AccountStorage, orders []*model.Order) (cancels []*OrderCancel, available decimal.Decimal) {
@@ -75,7 +76,8 @@ func (m *match) sideAvailable(pool *model.LiquidityPoolStorage, account *model.A
 	remainMargin := computedAccount.MarginBalance
 	remainOrders := make([]*model.Order, 0)
 	for _, order := range orders {
-		close, _ := utils.SplitAmount(remainPosition, order.AvailableAmount)
+		amount := order.AvailableAmount.Add(order.PendingAmount)
+		close, _ := utils.SplitAmount(remainPosition, amount)
 		if !close.IsZero() {
 			newPosition := remainPosition.Add(close)
 			newPositionMargin := perpetual.MarkPrice.Mul(newPosition.Abs()).Mul(perpetual.InitialMarginRate)
@@ -101,10 +103,12 @@ func (m *match) sideAvailable(pool *model.LiquidityPoolStorage, account *model.A
 				remainMargin = afterMargin.Sub(withdraw)
 				available = available.Add(withdraw)
 				remainPosition = remainPosition.Add(close)
-				newOrderAmount := order.AvailableAmount.Sub(close)
+				newOrderAmount := amount.Sub(close)
 				// TODO: consider min trade amount
 				if !newOrderAmount.IsZero() {
+					// update order amount just for checking below, can not save order in db
 					order.AvailableAmount = newOrderAmount
+					order.PendingAmount = _0
 					remainOrders = append(remainOrders, order)
 				}
 			}
@@ -129,7 +133,8 @@ func (m *match) sideAvailable(pool *model.LiquidityPoolStorage, account *model.A
 				ToCancel:  order.AvailableAmount,
 				Reason:    model.CancelReasonInsufficientFunds,
 			}
-			cancels = append(cancels, cancel)
+			// because order sort by price, cancel order reserved
+			cancels = append([]*OrderCancel{cancel}, cancels...)
 		}
 	}
 
