@@ -322,8 +322,24 @@ func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice
 			logger.Infof("matchedAmount: %s orderAmount:%s", order.Amount, order.Amount)
 			_, tradeIsSafe, _, err := mai3.ComputeAMMTrade(poolStorage, m.perpetual.PerpetualIndex, account, order.Amount)
 			if err != nil || !tradeIsSafe {
-				logger.Errorf("matchOneSide: ComputeAMMTrade fail or unsafe after trade. err:%s", err)
-				return result, true
+				logger.Infof("matchOneSide: ComputeAMMTrade fail or unsafe after trade. err:%s", err)
+				// unsafe after trade, try to get max trade amount
+				amount := mai3.ComputeAMMMaxTradeAmount(poolStorage, m.perpetual.PerpetualIndex, account, order.Amount, isBuy)
+				if amount.IsZero() || amount.Abs().LessThan(order.MinTradeAmount) {
+					continue
+				}
+				_, tradeIsSafe, _, err := mai3.ComputeAMMTrade(poolStorage, m.perpetual.PerpetualIndex, account, amount)
+				if err != nil || !tradeIsSafe {
+					continue
+				}
+				matchItem.MatchedAmount = amount
+				// check remain amount bigger than min trade amount
+				if order.Amount.Sub(amount).Abs().LessThan(order.MinTradeAmount.Abs()) {
+					logger.Infof("OrderCancelAmount: %s", order.Amount.Sub(amount))
+					matchItem.OrderCancelAmounts = append(matchItem.OrderCancelAmounts, order.Amount.Sub(amount))
+					matchItem.OrderCancelReasons = append(matchItem.OrderCancelReasons, model.CancelReasonRemainTooSmall)
+					matchItem.OrderTotalCancel = order.Amount.Sub(amount)
+				}
 			}
 
 			result = append(result, matchItem)
@@ -340,8 +356,17 @@ func (m *match) matchOneSide(poolStorage *model.LiquidityPoolStorage, tradePrice
 			logger.Infof("matchedAmount: %s orderAmount:%s", matchedAmount, order.Amount)
 			_, tradeIsSafe, _, err := mai3.ComputeAMMTrade(poolStorage, m.perpetual.PerpetualIndex, account, matchedAmount)
 			if err != nil || !tradeIsSafe {
-				logger.Errorf("matchOneSide: ComputeAMMTrade fail or unsafe after trade. err:%v", err)
-				return result, true
+				logger.Infof("matchOneSide: ComputeAMMTrade fail or unsafe after trade. err:%v", err)
+				// unsafe after trade, try to get max trade amount
+				amount := mai3.ComputeAMMMaxTradeAmount(poolStorage, m.perpetual.PerpetualIndex, account, order.Amount, isBuy)
+				if amount.IsZero() || amount.Abs().LessThan(order.MinTradeAmount) {
+					continue
+				}
+				_, tradeIsSafe, _, err := mai3.ComputeAMMTrade(poolStorage, m.perpetual.PerpetualIndex, account, amount)
+				if err != nil || !tradeIsSafe {
+					continue
+				}
+				matchItem.MatchedAmount = amount
 			}
 			if order.Amount.Sub(matchedAmount).Abs().LessThan(order.MinTradeAmount.Abs()) {
 				logger.Infof("OrderCancelAmount: %s", order.Amount.Sub(matchedAmount))
