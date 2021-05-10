@@ -39,7 +39,7 @@ jobs:
     - name: Build
       run: |
         mkdir -p dist
-        go build -v -o dist ./cli/mai3-l2-relayer ./cli/mai3-order-relayer
+        go build -v -o dist ./cli/mai3-order-relayer
     - name: Upload to aliyun
       run: |
         ls -l dist
