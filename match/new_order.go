@@ -56,10 +56,15 @@ func (m *match) NewOrder(order *model.Order) string {
 	}
 
 	now = time.Now()
+	// get from cache
 	poolStorage := m.poolSyncer.GetPoolStorage(m.perpetual.LiquidityPoolAddress)
 	if poolStorage == nil {
-		logger.Errorf("new order: GetLiquidityPoolStorage fail!")
-		return model.MatchInternalErrorID
+		// get from chain
+		poolStorage, err = m.chainCli.GetLiquidityPoolStorage(m.ctx, conf.Conf.ReaderAddress, m.perpetual.LiquidityPoolAddress)
+		if poolStorage == nil || err != nil {
+			logger.Errorf("new order: GetLiquidityPoolStorage fail! err:%v", err)
+			return model.MatchInternalErrorID
+		}
 	}
 	logger.Infof("GetLiquidityPoolStorage 1111111: used:%d", time.Since(now).Milliseconds())
 
