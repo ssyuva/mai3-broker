@@ -86,7 +86,7 @@ func (m *match) checkUserPendingOrders(poolStorage *model.LiquidityPoolStorage, 
 	// check order margin and close Only order
 	orders, err := m.dao.QueryOrder(user, m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex, []model.OrderStatus{model.OrderPending}, 0, 0, 0)
 	if err != nil {
-		logger.Errorf("checkUserPendingOrders:%w", err)
+		logger.Errorf("checkUserPendingOrders:%v", err)
 		return cancels
 	}
 
@@ -120,7 +120,7 @@ func (m *match) checkUserPendingOrders(poolStorage *model.LiquidityPoolStorage, 
 	account.WalletBalance = decimal.Min(balance, allowance)
 	gasBalance, err := m.chainCli.GetGasBalance(m.ctx, conf.Conf.BrokerAddress, user)
 	if err != nil {
-		logger.Errorf("checkUserPendingOrders:%w", err)
+		logger.Errorf("checkUserPendingOrders:%v", err)
 		return cancels
 	}
 

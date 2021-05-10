@@ -10,15 +10,16 @@ import (
 	logger "github.com/sirupsen/logrus"
 )
 
-func copyAccountStorage(a *model.AccountStorage) *model.AccountStorage {
+func CopyAccountStorage(a *model.AccountStorage) *model.AccountStorage {
 	return &model.AccountStorage{
 		TargetLeverage: a.TargetLeverage,
 		CashBalance:    a.CashBalance,
 		PositionAmount: a.PositionAmount,
+		WalletBalance:  a.WalletBalance,
 	}
 }
 
-func copyLiquidityPoolStorage(p *model.LiquidityPoolStorage) *model.LiquidityPoolStorage {
+func CopyLiquidityPoolStorage(p *model.LiquidityPoolStorage) *model.LiquidityPoolStorage {
 	res := &model.LiquidityPoolStorage{
 		Perpetuals: make(map[int64]*model.PerpetualStorage),
 	}
@@ -77,8 +78,8 @@ func ComputeAMMMaxTradeAmount(p *model.LiquidityPoolStorage, perpetualIndex int6
 		if a == 0 {
 			return 0
 		}
-		tmpTrader := copyAccountStorage(trader)
-		tmpPool := copyLiquidityPoolStorage(p)
+		tmpTrader := CopyAccountStorage(trader)
+		tmpPool := CopyLiquidityPoolStorage(p)
 		amount := decimal.NewFromFloat(a)
 		_, tradeIsSafe, _, err := ComputeAMMTrade(tmpPool,
 			perpetualIndex, tmpTrader, amount)

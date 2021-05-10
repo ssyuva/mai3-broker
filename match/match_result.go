@@ -186,7 +186,7 @@ func (m *match) rollbackOrderbook(oldAmount, delta decimal.Decimal, order *model
 	if oldAmount.IsZero() {
 		memoryOrder := m.getMemoryOrder(order)
 		if err := m.orderbook.InsertOrder(memoryOrder); err != nil {
-			logger.Errorf("insert order to orderbook:%w", err)
+			logger.Errorf("insert order to orderbook:%v", err)
 			return err
 		}
 		return nil
@@ -195,7 +195,7 @@ func (m *match) rollbackOrderbook(oldAmount, delta decimal.Decimal, order *model
 	bookOrder, ok := m.orderbook.GetOrder(order.OrderHash, order.Amount.IsNegative(), order.Price)
 	if ok {
 		if err := m.orderbook.ChangeOrder(bookOrder, delta); err != nil {
-			logger.Errorf("change order in orderbook:%w", err)
+			logger.Errorf("change order in orderbook:%v", err)
 			return err
 		}
 		return nil
@@ -268,7 +268,7 @@ func (m *match) rollbackOrdersOnTransactionFail(dao dao.DAO, matchTx *model.Matc
 
 	orders, err := dao.GetOrderByHashs(orderHashes)
 	if err != nil {
-		logger.Errorf("rollbackOrdersOnTransactionFail:%w", err)
+		logger.Errorf("rollbackOrdersOnTransactionFail:%v", err)
 		return ordersToNotify, err
 	}
 	for _, order := range orders {
@@ -277,12 +277,12 @@ func (m *match) rollbackOrdersOnTransactionFail(dao dao.DAO, matchTx *model.Matc
 		order.PendingAmount = order.ConfirmedAmount.Sub(amount)
 		order.AvailableAmount = order.AvailableAmount.Add(amount)
 		if err := dao.UpdateOrder(order); err != nil {
-			logger.Errorf("rollbackOrdersOnTransactionFail:%w", err)
+			logger.Errorf("rollbackOrdersOnTransactionFail:%v", err)
 			return ordersToNotify, err
 		}
 
 		if err := m.rollbackOrderbook(oldAmount, amount, order); err != nil {
-			logger.Errorf("rollbackOrdersOnTransactionFail:%w", err)
+			logger.Errorf("rollbackOrdersOnTransactionFail:%v", err)
 			return ordersToNotify, err
 		}
 		ordersToNotify = append(ordersToNotify, order)

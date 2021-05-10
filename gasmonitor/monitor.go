@@ -45,7 +45,7 @@ func (p *GasMonitor) run() {
 		case <-time.After(10 * time.Second):
 			gasPrice, err := p.getPriceInfo()
 			if err != nil {
-				logger.Errorf("fail to retrieve lastest gas price info:%w", err)
+				logger.Errorf("fail to retrieve lastest gas price info:%s", err)
 			} else {
 				p.gasPrice = gasPrice
 			}

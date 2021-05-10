@@ -79,7 +79,7 @@ func (m *match) NewOrder(order *model.Order) string {
 	if conf.Conf.GasEnable {
 		gasBalance, err := m.chainCli.GetGasBalance(m.ctx, conf.Conf.BrokerAddress, order.TraderAddress)
 		if err != nil {
-			logger.Errorf("new order: checkUserPendingOrders:%w", err)
+			logger.Errorf("new order: checkUserPendingOrders:%v", err)
 			return model.MatchInternalErrorID
 		}
 		gasReward := m.gasMonitor.GasPriceGwei().Mul(decimal.NewFromInt(order.GasFeeLimit))

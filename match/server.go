@@ -47,7 +47,7 @@ func (s *Server) Start() error {
 	logger.Infof("Match Server Start")
 	perpetuals, err := s.dao.QueryPerpetuals(true)
 	if err != nil {
-		logger.Errorf("New Match Server QueryPerpetuals:%w", err)
+		logger.Errorf("New Match Server QueryPerpetuals:%v", err)
 		return err
 	}
 
@@ -59,7 +59,7 @@ func (s *Server) Start() error {
 	for _, perpetual := range perpetuals {
 		match, err := s.newMatch(perpetual)
 		if err != nil {
-			logger.Errorf("New SubMatch Server newMatch:%w", err)
+			logger.Errorf("New SubMatch Server newMatch:%v", err)
 			return err
 		}
 		s.group.Go(func() error {
