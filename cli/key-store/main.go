@@ -3,11 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
+
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/google/uuid"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/mcarloai/mai-v3-broker/dao"
-	"github.com/pborman/uuid"
 )
 
 var privateKey string
@@ -33,8 +34,12 @@ func main() {
 	}
 	addr := crypto.PubkeyToAddress(private.PublicKey).Hex()
 
+	id, err := uuid.NewRandom()
+	if err != nil {
+		return
+	}
 	key := &keystore.Key{
-		Id:         uuid.NewRandom(),
+		Id:         id,
 		Address:    crypto.PubkeyToAddress(private.PublicKey),
 		PrivateKey: private,
 	}
@@ -59,6 +64,4 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
-
-	return
 }
