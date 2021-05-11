@@ -600,14 +600,15 @@ func TestComputeBestAskBidPrice7(t *testing.T) {
 	Approximate(t, decimal.NewFromFloat(100), bestPrice)
 }
 
-// safe trader + safe amm, trader buy
+// safe trader + safe amm, trader buy. open positions only
 func TestComputeAMMMaxTradeAmount1(t *testing.T) {
 	poolStorage := defaultPool
 	poolStorage.PoolCashBalance = decimal.NewFromFloat(83941.29865625)
 	perpetual1.AmmPositionAmount = decimal.NewFromFloat(2.3)
 	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX0] = perpetual1
+	accountStorage1.WalletBalance = decimal.NewFromFloat(7000)
 
-	amount := ComputeAMMMaxTradeAmount(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, decimal.NewFromFloat(1.1), true) // 1.1
+	amount := ComputeAMMMaxTradeAmount(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, decimal.NewFromFloat(1.), true) // 1.1
 	account := CopyAccountStorage(accountStorage1)
 	accountComputed, tradeIsSafe, _, err := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, account, amount)
 	fmt.Println(err)
@@ -615,8 +616,6 @@ func TestComputeAMMMaxTradeAmount1(t *testing.T) {
 	assert.Equal(t, true, tradeIsSafe)
 	assert.Equal(t, true, amount.GreaterThan(decimal.NewFromFloat(1)))
 	assert.Equal(t, true, amount.LessThan(decimal.NewFromFloat(1.2)))
-	assert.Equal(t, true, accountComputed.Leverage.GreaterThan(decimal.NewFromFloat(0.99)))
-	assert.Equal(t, true, accountComputed.Leverage.LessThan(decimal.NewFromFloat(1.01)))
 }
 
 // safe trader + safe amm, trader sell

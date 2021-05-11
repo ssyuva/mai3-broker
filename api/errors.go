@@ -150,7 +150,7 @@ func BrokerAddressError(address string) *ApiError {
 }
 
 func ChainIDError(chainID int64) *ApiError {
-	return &ApiError{Code: -20, Desc: fmt.Sprintf("not in same chain. chainID [%d]", chainID)}
+	return &ApiError{Code: -20, Desc: fmt.Sprintf("not in the same chain. chainID [%d]", chainID)}
 }
 
 func OrderExpired() *ApiError {

@@ -80,11 +80,19 @@ func (m *match) sideAvailable(pool *model.LiquidityPoolStorage, marginBalance, p
 			// loss = pnl if pnl < 0 else 0
 			potentialLoss := decimal.Min(potentialPNL, _0)
 			afterMargin := remainMargin.Add(potentialLoss)
-			fee := decimal.Min(
-				// marginBalance + pnl - mark * | newPosition | * imRate
-				decimal.Max(afterMargin.Sub(newPositionMargin), _0),
-				order.Price.Mul(close.Abs()).Mul(feeRate),
-			)
+			fee := _0
+			if close.Equal(amount) {
+				// close only
+				fee = decimal.Min(
+					// marginBalance + pnl - mark * | newPosition | * imRate
+					decimal.Max(afterMargin.Sub(newPositionMargin), _0),
+					order.Price.Mul(close.Abs()).Mul(feeRate),
+				)
+			} else {
+				// close + open
+				fee = order.Price.Mul(close.Abs()).Mul(feeRate)
+			}
+
 			afterMargin = afterMargin.Sub(fee)
 			if afterMargin.LessThan(_0) {
 				// bankrupt when close. pretend all orders as open orders
@@ -92,9 +100,11 @@ func (m *match) sideAvailable(pool *model.LiquidityPoolStorage, marginBalance, p
 				remainMargin = _0
 				remainOrders = append(remainOrders, order)
 			} else {
-				// withdraw only if marginBalance >= IM
+				// !bankrupt
 				withdraw := _0
 				if afterMargin.GreaterThanOrEqual(newPositionMargin) {
+					// withdraw only if marginBalance >= IM
+
 					// withdraw = afterMargin - remainMargin * (1 - | close / remainPosition |)
 					withdraw = close.Div(remainPosition).Abs()
 					withdraw = _1.Sub(withdraw).Mul(remainMargin)

@@ -85,21 +85,13 @@ func ComputeAMMTrade(p *model.LiquidityPoolStorage, perpetualIndex int64, trader
 	newOpenInterest = computeOpenInterest(newOpenInterest, trader.PositionAmount, deltaAMMAmount.Neg())
 
 	// new AMM
-	fakeAMMAccount := &model.AccountStorage{
-		CashBalance:    p.PoolCashBalance,
-		WalletBalance:  decimal.Zero,
-		PositionAmount: perpetual.AmmPositionAmount,
-	}
-	_, _, _, err = ComputeTradeWithPrice(p, perpetualIndex, fakeAMMAccount, tradingPrice, deltaAMMAmount, _0, true)
-	if err != nil {
-		logger.Errorf("ComputeAMMTrade fakeAMMAccount err:%s", err)
-		return nil, false, _0, err
-	}
-	fakeAMMAccount.CashBalance = fakeAMMAccount.CashBalance.Add(lpFee)
+	newPoolCashBalance := p.PoolCashBalance.Sub(deltaAMMAmount.Mul(tradingPrice)).
+		Add(perpetual.UnitAccumulativeFunding.Mul(deltaAMMAmount)).
+		Add(lpFee)
 	newOpenInterest = computeOpenInterest(newOpenInterest, perpetual.AmmPositionAmount, deltaAMMAmount)
 
-	p.PoolCashBalance = fakeAMMAccount.CashBalance
-	perpetual.AmmPositionAmount = fakeAMMAccount.PositionAmount
+	p.PoolCashBalance = newPoolCashBalance
+	perpetual.AmmPositionAmount = perpetual.AmmPositionAmount.Add(deltaAMMAmount)
 	perpetual.OpenInterest = newOpenInterest
 
 	// check open interest limit

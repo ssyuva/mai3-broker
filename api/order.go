@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mcarloai/mai-v3-broker/common/auth"
 	"github.com/mcarloai/mai-v3-broker/common/mai3"
 	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
 	"github.com/mcarloai/mai-v3-broker/common/model"
@@ -237,13 +236,13 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 	errID := s.match.NewOrder(order)
 	switch errID {
 	case model.MatchOK:
-		jwt, err := auth.SignJwt(order.TraderAddress)
-		if err != nil {
-			logger.Warnf("fail to sign jwt for '%s' when place order:%s", order.TraderAddress, err.Error())
-			return &PlaceOrderResp{}, nil
-		}
-		expires := auth.JwtExpiration / time.Second * 1000
-		return &PlaceOrderResp{Jwt: jwt, Expires: expires}, nil
+		// jwt, err := auth.SignJwt(order.TraderAddress)
+		// if err != nil {
+		// 	logger.Warnf("fail to sign jwt for '%s' when place order:%s", order.TraderAddress, err.Error())
+		// 	return &PlaceOrderResp{}, nil
+		// }
+		// expires := auth.JwtExpiration / time.Second * 1000
+		return &PlaceOrderResp{Order: order}, nil
 	case model.MatchInternalErrorID:
 		return nil, InternalError(errors.New("match new order error"))
 	case model.MatchMaxOrderNumReachID:
