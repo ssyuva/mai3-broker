@@ -183,7 +183,7 @@ func (m *match) checkUserPendingOrders(poolStorage *model.LiquidityPoolStorage, 
 	}
 
 	// check remain orders available margin
-	cancelsInsufficientFunds, _ := m.ComputeOrderAvailable(poolStorage, account, remainOrders)
+	cancelsInsufficientFunds, _ := ComputeOrderAvailable(poolStorage, m.perpetual.PerpetualIndex, account, remainOrders)
 	cancels = append(cancels, cancelsInsufficientFunds...)
 	return cancels
 }

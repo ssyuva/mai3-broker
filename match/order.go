@@ -1,6 +1,7 @@
 package match
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/mcarloai/mai-v3-broker/common/mai3"
@@ -15,8 +16,6 @@ import (
 var TradeAmountRelaxFactor = decimal.NewFromFloat(0.99)
 var _0 = decimal.Zero
 var _1 = decimal.NewFromInt(1)
-
-const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000"
 
 func splitActiveOrders(orders []*model.Order) (buys, sells []*model.Order) {
 	for _, order := range orders {
@@ -38,8 +37,8 @@ func splitActiveOrders(orders []*model.Order) (buys, sells []*model.Order) {
 	return
 }
 
-func (m *match) openOrderCost(pool *model.LiquidityPoolStorage, order *model.Order, leverage decimal.Decimal) decimal.Decimal {
-	perp, ok := pool.Perpetuals[m.perpetual.PerpetualIndex]
+func openOrderCost(pool *model.LiquidityPoolStorage, perpetualIndex int64, order *model.Order, leverage decimal.Decimal) decimal.Decimal {
+	perp, ok := pool.Perpetuals[perpetualIndex]
 	if !ok {
 		return _0
 	}
@@ -55,13 +54,13 @@ func (m *match) openOrderCost(pool *model.LiquidityPoolStorage, order *model.Ord
 		Sub(potentialLoss)
 }
 
-func (m *match) sideAvailable(pool *model.LiquidityPoolStorage, marginBalance, position, targetLeverage, walletBalance decimal.Decimal, orders []*model.Order) (cancels []*OrderCancel, remainWalletBalance decimal.Decimal) {
+func sideAvailable(pool *model.LiquidityPoolStorage, perpetualIndex int64, marginBalance, position, targetLeverage, walletBalance decimal.Decimal, orders []*model.Order) (cancels []*OrderCancel, remainWalletBalance decimal.Decimal) {
 	cancels = make([]*OrderCancel, 0)
 	remainWalletBalance = walletBalance
 	if len(orders) == 0 {
 		return
 	}
-	perpetual, ok := pool.Perpetuals[m.perpetual.PerpetualIndex]
+	perpetual, ok := pool.Perpetuals[perpetualIndex]
 	if !ok {
 		return
 	}
@@ -134,7 +133,7 @@ func (m *match) sideAvailable(pool *model.LiquidityPoolStorage, marginBalance, p
 
 	// open position
 	for _, order := range remainOrders {
-		cost := m.openOrderCost(pool, order, targetLeverage)
+		cost := openOrderCost(pool, perpetualIndex, order, targetLeverage)
 		remainWalletBalance = remainWalletBalance.Sub(cost)
 		if remainWalletBalance.LessThan(_0) {
 			cancel := &OrderCancel{
@@ -150,28 +149,21 @@ func (m *match) sideAvailable(pool *model.LiquidityPoolStorage, marginBalance, p
 	return
 }
 
-func (m *match) ComputeOrderAvailable(poolStorage *model.LiquidityPoolStorage, account *model.AccountStorage, orders []*model.Order) ([]*OrderCancel, decimal.Decimal) {
+func ComputeOrderAvailable(poolStorage *model.LiquidityPoolStorage, perpetualIndex int64, account *model.AccountStorage, orders []*model.Order) ([]*OrderCancel, decimal.Decimal) {
 	cancels := make([]*OrderCancel, 0)
 	buyOrders, sellOrders := splitActiveOrders(orders)
-	computedAccount, err := mai3.ComputeAccount(poolStorage, m.perpetual.PerpetualIndex, account)
+	computedAccount, err := mai3.ComputeAccount(poolStorage, perpetualIndex, account)
 	if err != nil {
 		return cancels, _0
 	}
 
-	buyCancels, buySideAvailable := m.sideAvailable(poolStorage, computedAccount.MarginBalance, account.PositionAmount, account.TargetLeverage, account.WalletBalance, buyOrders)
+	buyCancels, buySideAvailable := sideAvailable(poolStorage, perpetualIndex, computedAccount.MarginBalance, account.PositionAmount, account.TargetLeverage, account.WalletBalance, buyOrders)
 	cancels = append(cancels, buyCancels...)
-	sellCancels, sellSideAvailable := m.sideAvailable(poolStorage, computedAccount.MarginBalance, account.PositionAmount, account.TargetLeverage, account.WalletBalance, sellOrders)
+	sellCancels, sellSideAvailable := sideAvailable(poolStorage, perpetualIndex, computedAccount.MarginBalance, account.PositionAmount, account.TargetLeverage, account.WalletBalance, sellOrders)
 
 	cancels = append(cancels, sellCancels...)
 
 	return cancels, decimal.Min(buySideAvailable, sellSideAvailable)
-}
-
-func (m *match) ComputeOrderCost(poolStorage *model.LiquidityPoolStorage, account *model.AccountStorage, order *model.Order, activeOrders []*model.Order) decimal.Decimal {
-	_, oldAvailable := m.ComputeOrderAvailable(poolStorage, account, activeOrders)
-	newOrders := append(activeOrders, order)
-	_, newAvailable := m.ComputeOrderAvailable(poolStorage, account, newOrders)
-	return decimal.Max(_0, oldAvailable.Sub(newAvailable))
 }
 
 func (m *match) CheckCloseOnly(account *model.AccountStorage, order *model.Order) decimal.Decimal {
@@ -192,6 +184,57 @@ func (m *match) CheckCloseOnly(account *model.AccountStorage, order *model.Order
 		}
 	}
 	return _0
+}
+
+type OrdersEachPerp struct {
+	LiquidityPoolAddress string
+	PerpetualIndex       int64
+	PoolStorage          *model.LiquidityPoolStorage
+	Orders               []*model.Order
+}
+
+func (m *match) splitActiveOrdersInMultiPerpetuals(orders []*model.Order) (map[string]*OrdersEachPerp, error) {
+	res := make(map[string]*OrdersEachPerp)
+	for _, order := range orders {
+		perpetualID := fmt.Sprintf("%s-%d", order.LiquidityPoolAddress, order.PerpetualIndex)
+		ordersEachPerp, ok := res[perpetualID]
+		if ok {
+			ordersEachPerp.Orders = append(ordersEachPerp.Orders, order)
+		} else {
+			// in the same perpetual
+			if order.LiquidityPoolAddress == m.perpetual.LiquidityPoolAddress && order.PerpetualIndex == m.perpetual.PerpetualIndex {
+				poolStorage := m.poolSyncer.GetPoolStorage(order.LiquidityPoolAddress)
+				if poolStorage == nil {
+					return res, fmt.Errorf("get pool storage error")
+				}
+				res[perpetualID] = &OrdersEachPerp{
+					PerpetualIndex: order.PerpetualIndex,
+					PoolStorage:    poolStorage,
+					Orders:         []*model.Order{order},
+				}
+			} else {
+				perpetual, err := m.dao.GetPerpetualByPoolAddressAndIndex(order.LiquidityPoolAddress, order.PerpetualIndex, true)
+				if err != nil {
+					return res, err
+				}
+				// in different perpetual, but use the same collateral
+				if perpetual.CollateralAddress == m.perpetual.CollateralAddress {
+					poolStorage := m.poolSyncer.GetPoolStorage(order.LiquidityPoolAddress)
+					if poolStorage == nil {
+						return res, fmt.Errorf("get pool storage error")
+					}
+					res[perpetualID] = &OrdersEachPerp{
+						LiquidityPoolAddress: order.LiquidityPoolAddress,
+						PerpetualIndex:       order.PerpetualIndex,
+						PoolStorage:          poolStorage,
+						Orders:               []*model.Order{order},
+					}
+				}
+			}
+		}
+	}
+
+	return res, nil
 }
 
 type MatchItem struct {

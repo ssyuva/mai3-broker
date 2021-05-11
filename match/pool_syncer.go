@@ -107,7 +107,13 @@ func (p *poolSyncer) GetPoolStorage(pool string) *model.LiquidityPoolStorage {
 	if info.isDirty {
 		// update latestGet, syncer will update PoolStorage in next round
 		info.latestGet = time.Now()
-		return nil
+
+		// get from chain
+		poolStorage, err := p.chainCli.GetLiquidityPoolStorage(p.ctx, conf.Conf.ReaderAddress, pool)
+		if poolStorage == nil || err != nil {
+			return nil
+		}
+		return poolStorage
 	}
 	return info.storage
 }

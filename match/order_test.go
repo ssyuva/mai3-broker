@@ -74,18 +74,12 @@ func TestComputeOrderAvailable1(t *testing.T) {
 		AvailableAmount: decimal.NewFromFloat(-1),
 	}
 	order.Price = decimal.NewFromFloat(6900)
-	m := &match{
-		perpetual: &model.Perpetual{
-			PerpetualIndex: TEST_MARKET_INDEX0,
-		},
-	}
-
 	poolStorage := defaultPool
 	perpetual1.AmmCashBalance = decimal.NewFromFloat(2.3)
 	poolStorage.PoolCashBalance = decimal.NewFromFloat(83941.29865625)
 	poolStorage.Perpetuals[TEST_MARKET_INDEX0] = perpetual1
 
-	_, available := m.ComputeOrderAvailable(poolStorage, accountStorage1, []*model.Order{order})
+	_, available := ComputeOrderAvailable(poolStorage, TEST_MARKET_INDEX0, accountStorage1, []*model.Order{order})
 	fmt.Println(available)
 	Approximate(t, decimal.NewFromFloat(0), available)
 }
@@ -96,18 +90,12 @@ func TestComputeOrderAvailable2(t *testing.T) {
 		AvailableAmount: decimal.NewFromFloat(-3.3),
 	}
 	order.Price = decimal.NewFromFloat(6900)
-	m := &match{
-		perpetual: &model.Perpetual{
-			PerpetualIndex: TEST_MARKET_INDEX0,
-		},
-	}
-
 	poolStorage := defaultPool
 	perpetual1.AmmCashBalance = decimal.NewFromFloat(2.3)
 	poolStorage.PoolCashBalance = decimal.NewFromFloat(83941.29865625)
 	poolStorage.Perpetuals[TEST_MARKET_INDEX0] = perpetual1
 
-	_, available := m.ComputeOrderAvailable(poolStorage, accountStorage1, []*model.Order{order})
+	_, available := ComputeOrderAvailable(poolStorage, TEST_MARKET_INDEX0, accountStorage1, []*model.Order{order})
 	Approximate(t, decimal.NewFromFloat(0), available)
 }
 
@@ -117,11 +105,6 @@ func TestComputeOrderAvailable3(t *testing.T) {
 		AvailableAmount: decimal.NewFromFloat(-10),
 	}
 	order.Price = decimal.NewFromFloat(6900)
-	m := &match{
-		perpetual: &model.Perpetual{
-			PerpetualIndex: TEST_MARKET_INDEX0,
-		},
-	}
 
 	poolStorage := defaultPool
 	perpetual1.AmmCashBalance = decimal.NewFromFloat(2.3)
@@ -132,7 +115,7 @@ func TestComputeOrderAvailable3(t *testing.T) {
 	// withdraw = 23695.57634375 - (6965 - 6900)*2.3 - 6900*2.3*0.001 = 23530.20634375
 	// deposit = (10 - 2.3)*6900*(1/2 + 0.001) + (6965 - 6900)*(10 - 2.3) = 27118.6
 	// cost = deposit - withdraw = 3588.42
-	_, available := m.ComputeOrderAvailable(poolStorage, accountStorage1, []*model.Order{order})
+	_, available := ComputeOrderAvailable(poolStorage, TEST_MARKET_INDEX0, accountStorage1, []*model.Order{order})
 	Approximate(t, decimal.NewFromFloat(-3588.42365625), available)
 }
 
@@ -142,11 +125,6 @@ func TestComputeOrderAvailable4(t *testing.T) {
 		AvailableAmount: decimal.NewFromFloat(-10),
 	}
 	order.Price = decimal.NewFromFloat(6900)
-	m := &match{
-		perpetual: &model.Perpetual{
-			PerpetualIndex: TEST_MARKET_INDEX0,
-		},
-	}
 
 	poolStorage := defaultPool
 	perpetual1.AmmCashBalance = decimal.NewFromFloat(2.3)
@@ -155,8 +133,6 @@ func TestComputeOrderAvailable4(t *testing.T) {
 
 	// deposit = 10*6900*(1/2 + 0.001) + (6965 - 6900)*10 = 35219
 	// cost = deposit - 1000 = 34219
-	_, available := m.ComputeOrderAvailable(poolStorage, accountStorage0, []*model.Order{order})
+	_, available := ComputeOrderAvailable(poolStorage, TEST_MARKET_INDEX0, accountStorage0, []*model.Order{order})
 	Approximate(t, decimal.NewFromFloat(-34219), available)
-	cost := m.ComputeOrderCost(poolStorage, accountStorage0, order, []*model.Order{})
-	Approximate(t, decimal.NewFromFloat(34219), cost)
 }

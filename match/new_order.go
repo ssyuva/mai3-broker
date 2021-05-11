@@ -2,7 +2,6 @@ package match
 
 import (
 	"context"
-	"time"
 
 	"github.com/mcarloai/mai-v3-broker/common/mai3"
 	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
@@ -20,7 +19,8 @@ func (m *match) NewOrder(order *model.Order) string {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	activeOrders, err := m.dao.QueryOrder(order.TraderAddress, order.LiquidityPoolAddress, order.PerpetualIndex, []model.OrderStatus{model.OrderPending}, 0, 0, 0)
+	// get all pending orders (multiple perpetuals maybe)
+	activeOrders, err := m.dao.QueryOrder(order.TraderAddress, "", 0, []model.OrderStatus{model.OrderPending}, 0, 0, 0)
 	if err != nil {
 		logger.Errorf("new order: QueryOrder err:%s", err)
 		return model.MatchInternalErrorID
@@ -30,7 +30,6 @@ func (m *match) NewOrder(order *model.Order) string {
 		return model.MatchMaxOrderNumReachID
 	}
 
-	now := time.Now()
 	account, err := m.chainCli.GetAccountStorage(m.ctx, conf.Conf.ReaderAddress, m.perpetual.PerpetualIndex, m.perpetual.LiquidityPoolAddress, order.TraderAddress)
 	if account == nil || err != nil {
 		logger.Errorf("new order:GetAccountStorage err:%v", err)
@@ -47,26 +46,18 @@ func (m *match) NewOrder(order *model.Order) string {
 		logger.Errorf("new order:Allowance err:%v", err)
 		return model.MatchInternalErrorID
 	}
-	account.WalletBalance = decimal.Min(balance, allowance)
-
-	logger.Infof("GetAccountStorage 1111111: used:%d", time.Since(now).Milliseconds())
+	walletBalance := decimal.Min(balance, allowance)
 
 	if !m.CheckCloseOnly(account, order).Equal(_0) {
 		return model.MatchCloseOnlyErrorID
 	}
 
-	now = time.Now()
 	// get from cache
 	poolStorage := m.poolSyncer.GetPoolStorage(m.perpetual.LiquidityPoolAddress)
 	if poolStorage == nil {
-		// get from chain
-		poolStorage, err = m.chainCli.GetLiquidityPoolStorage(m.ctx, conf.Conf.ReaderAddress, m.perpetual.LiquidityPoolAddress)
-		if poolStorage == nil || err != nil {
-			logger.Errorf("new order: GetLiquidityPoolStorage fail! err:%v", err)
-			return model.MatchInternalErrorID
-		}
+		logger.Errorf("new order: GetLiquidityPoolStorage fail! err:%v", err)
+		return model.MatchInternalErrorID
 	}
-	logger.Infof("GetLiquidityPoolStorage 1111111: used:%d", time.Since(now).Milliseconds())
 
 	perpetual, ok := poolStorage.Perpetuals[m.perpetual.PerpetualIndex]
 	if !ok || !perpetual.IsNormal {
@@ -94,11 +85,31 @@ func (m *match) NewOrder(order *model.Order) string {
 	}
 
 	activeOrders = append(activeOrders, order)
-	// available balance less than 0
-	// TODO: consider cancel orders
-	_, available := m.ComputeOrderAvailable(poolStorage, account, activeOrders)
-	if available.LessThan(_0) {
-		return model.MatchInsufficientBalanceErrorID
+	orderMaps, err := m.splitActiveOrdersInMultiPerpetuals(activeOrders)
+	if err != nil {
+		return model.MatchInternalErrorID
+	}
+
+	for _, v := range orderMaps {
+		var a *model.AccountStorage
+		// get account storage
+		if v.LiquidityPoolAddress == m.perpetual.LiquidityPoolAddress && v.PerpetualIndex == m.perpetual.PerpetualIndex {
+			a = account
+		} else {
+			a, err = m.chainCli.GetAccountStorage(m.ctx, conf.Conf.ReaderAddress, v.PerpetualIndex, v.LiquidityPoolAddress, order.TraderAddress)
+			if account == nil || err != nil {
+				logger.Errorf("new order:GetAccountStorage err:%v", err)
+				return model.MatchInternalErrorID
+			}
+		}
+		a.WalletBalance = walletBalance
+		// TODO: consider cancel orders
+		_, available := ComputeOrderAvailable(v.PoolStorage, v.PerpetualIndex, a, v.Orders)
+		// available balance less than 0, InsufficientBalance
+		if available.LessThan(_0) {
+			return model.MatchInsufficientBalanceErrorID
+		}
+		walletBalance = available
 	}
 
 	// create order and insert to db and orderbook

@@ -608,11 +608,9 @@ func TestComputeAMMMaxTradeAmount1(t *testing.T) {
 	poolStorage.Perpetuals[TEST_PERPETUAL_INDEX0] = perpetual1
 	accountStorage1.WalletBalance = decimal.NewFromFloat(7000)
 
-	amount := ComputeAMMMaxTradeAmount(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, decimal.NewFromFloat(1.), true) // 1.1
+	amount := ComputeAMMMaxTradeAmount(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, decimal.NewFromFloat(1.1), true) // 1.1
 	account := CopyAccountStorage(accountStorage1)
-	accountComputed, tradeIsSafe, _, err := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, account, amount)
-	fmt.Println(err)
-	fmt.Println(accountComputed.Leverage)
+	_, tradeIsSafe, _, _ := ComputeAMMTrade(poolStorage, TEST_PERPETUAL_INDEX0, account, amount)
 	assert.Equal(t, true, tradeIsSafe)
 	assert.Equal(t, true, amount.GreaterThan(decimal.NewFromFloat(1)))
 	assert.Equal(t, true, amount.LessThan(decimal.NewFromFloat(1.2)))
