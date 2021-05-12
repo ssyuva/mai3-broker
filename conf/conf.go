@@ -18,6 +18,7 @@ type Config struct {
 	WhiteList     []string `envconfig:"white_list"`
 	EnableMetrics bool     `envconfig:"enable_metrics"`
 	MetricsAddr   string   `envconfig:"metrics_addr"`
+	MaxOrderNum   int      `envconfig:"max_order_num"`
 
 	PoolSyncerInterval      time.Duration `envconfig:"pool_syncer_interval"`
 	MatchInterval           time.Duration `envconfig:"match_interval"`

@@ -166,7 +166,7 @@ func ComputeOrderAvailable(poolStorage *model.LiquidityPoolStorage, perpetualInd
 	return cancels, decimal.Min(buySideAvailable, sellSideAvailable)
 }
 
-func (m *match) CheckCloseOnly(account *model.AccountStorage, order *model.Order) decimal.Decimal {
+func CheckCloseOnly(account *model.AccountStorage, order *model.Order) decimal.Decimal {
 	if order.IsCloseOnly {
 		if account.PositionAmount.IsZero() {
 			// position is 0, cancel all

@@ -174,7 +174,7 @@ func ComputeTradeWithPrice(p *model.LiquidityPoolStorage, perpetualIndex int64, 
 		return nil, false, _0, err
 	}
 
-	// ajust margin
+	// adjust margin
 	adjustMargin, err := adjustMarginLeverage(p, perpetualIndex, afterTrade, a, price, close, open, totalFee)
 	if err != nil {
 		return nil, false, _0, err
@@ -228,17 +228,21 @@ func adjustMarginLeverage(p *model.LiquidityPoolStorage, perpetualIndex int64, a
 		if trader.TargetLeverage.LessThanOrEqual(_0) {
 			return _0, fmt.Errorf("target leverage <= 0")
 		}
-		openPositionMargin := open.Abs().Mul(perpetual.MarkPrice).Div(trader.TargetLeverage)
+		newMargin := open.Abs().Mul(perpetual.MarkPrice).Div(trader.TargetLeverage)
 		if position2.Sub(deltaPosition).IsZero() || !close.IsZero() {
 			// strategy: let new margin balance = openPositionMargin
-			adjustCollateral = openPositionMargin.Sub(a.MarginBalance)
 		} else {
 			// strategy: always append positionMargin of openPosition
-			adjustCollateral = openPositionMargin
+			// newMargin = oldMargin + openPositionMargin + pnl + fee
+			newMargin = newMargin.Add(a.MarginBalance)
+			newMargin = newMargin.Add(price.Sub(perpetual.MarkPrice).Mul(open))
+			newMargin = newMargin.Add(totalFee)
+			// at least IM after adjust
+			newMargin = decimal.Max(newMargin, a.PositionMargin)
 		}
-		// margin + adjustCollateral >= keeperGasReward
-		adjustCollateral = decimal.Max(adjustCollateral, perpetual.KeeperGasReward.Sub(a.MarginBalance))
-		return adjustCollateral, nil
+		// at least keeperGasReward
+		newMargin = decimal.Max(newMargin, perpetual.KeeperGasReward)
+		return newMargin.Sub(a.MarginBalance), nil
 	}
 }
 

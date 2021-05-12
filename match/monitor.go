@@ -13,8 +13,6 @@ import (
 	logger "github.com/sirupsen/logrus"
 )
 
-var OrderAmountRelaxFactor = decimal.NewFromFloat(0.1)
-
 type OrderCancel struct {
 	OrderHash string
 	Status    model.OrderStatus
@@ -166,7 +164,7 @@ func (m *match) checkUserPendingOrders(poolStorage *model.LiquidityPoolStorage, 
 			continue
 		}
 
-		cancelAmount := m.CheckCloseOnly(account, order)
+		cancelAmount := CheckCloseOnly(account, order)
 		if !cancelAmount.Equal(_0) {
 			cancel := &OrderCancel{
 				OrderHash: order.OrderHash,

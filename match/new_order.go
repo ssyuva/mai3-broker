@@ -13,8 +13,6 @@ import (
 	logger "github.com/sirupsen/logrus"
 )
 
-const MAX_ORDER_NUM = 10
-
 func (m *match) NewOrder(order *model.Order) string {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -26,7 +24,7 @@ func (m *match) NewOrder(order *model.Order) string {
 		return model.MatchInternalErrorID
 	}
 
-	if len(activeOrders) >= MAX_ORDER_NUM {
+	if len(activeOrders) >= conf.Conf.MaxOrderNum {
 		return model.MatchMaxOrderNumReachID
 	}
 
@@ -48,7 +46,7 @@ func (m *match) NewOrder(order *model.Order) string {
 	}
 	walletBalance := decimal.Min(balance, allowance)
 
-	if !m.CheckCloseOnly(account, order).Equal(_0) {
+	if CheckCloseOnly(account, order).Equal(_0) {
 		return model.MatchCloseOnlyErrorID
 	}
 
