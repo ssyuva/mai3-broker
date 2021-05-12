@@ -46,7 +46,7 @@ func (m *match) NewOrder(order *model.Order) string {
 	}
 	walletBalance := decimal.Min(balance, allowance)
 
-	if CheckCloseOnly(account, order).Equal(_0) {
+	if !CheckCloseOnly(account, order).Equal(_0) {
 		return model.MatchCloseOnlyErrorID
 	}
 
