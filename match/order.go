@@ -208,9 +208,10 @@ func (m *match) splitActiveOrdersInMultiPerpetuals(orders []*model.Order) (map[s
 					return res, fmt.Errorf("get pool storage error")
 				}
 				res[perpetualID] = &OrdersEachPerp{
-					PerpetualIndex: order.PerpetualIndex,
-					PoolStorage:    poolStorage,
-					Orders:         []*model.Order{order},
+					PerpetualIndex:       order.PerpetualIndex,
+					LiquidityPoolAddress: order.LiquidityPoolAddress,
+					PoolStorage:          poolStorage,
+					Orders:               []*model.Order{order},
 				}
 			} else {
 				perpetual, err := m.dao.GetPerpetualByPoolAddressAndIndex(order.LiquidityPoolAddress, order.PerpetualIndex, true)
