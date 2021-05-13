@@ -1,7 +1,6 @@
 package match
 
 import (
-	"fmt"
 	"sort"
 
 	"github.com/mcarloai/mai-v3-broker/common/mai3"
@@ -137,10 +136,12 @@ func sideAvailable(pool *model.LiquidityPoolStorage, perpetualIndex int64, margi
 		remainWalletBalance = remainWalletBalance.Sub(cost)
 		if remainWalletBalance.LessThan(_0) {
 			cancel := &OrderCancel{
-				OrderHash: order.OrderHash,
-				Status:    order.Status,
-				ToCancel:  order.AvailableAmount,
-				Reason:    model.CancelReasonInsufficientFunds,
+				LiquidityPoolAddress: order.LiquidityPoolAddress,
+				PerpetualIndex:       order.PerpetualIndex,
+				OrderHash:            order.OrderHash,
+				Status:               order.Status,
+				ToCancel:             order.AvailableAmount,
+				Reason:               model.CancelReasonInsufficientFunds,
 			}
 			cancels = append(cancels, cancel)
 		}
@@ -184,58 +185,6 @@ func CheckCloseOnly(account *model.AccountStorage, order *model.Order) decimal.D
 		}
 	}
 	return _0
-}
-
-type OrdersEachPerp struct {
-	LiquidityPoolAddress string
-	PerpetualIndex       int64
-	PoolStorage          *model.LiquidityPoolStorage
-	Orders               []*model.Order
-}
-
-func (m *match) splitActiveOrdersInMultiPerpetuals(orders []*model.Order) (map[string]*OrdersEachPerp, error) {
-	res := make(map[string]*OrdersEachPerp)
-	for _, order := range orders {
-		perpetualID := fmt.Sprintf("%s-%d", order.LiquidityPoolAddress, order.PerpetualIndex)
-		ordersEachPerp, ok := res[perpetualID]
-		if ok {
-			ordersEachPerp.Orders = append(ordersEachPerp.Orders, order)
-		} else {
-			// in the same perpetual
-			if order.LiquidityPoolAddress == m.perpetual.LiquidityPoolAddress && order.PerpetualIndex == m.perpetual.PerpetualIndex {
-				poolStorage := m.poolSyncer.GetPoolStorage(order.LiquidityPoolAddress)
-				if poolStorage == nil {
-					return res, fmt.Errorf("get pool storage error")
-				}
-				res[perpetualID] = &OrdersEachPerp{
-					PerpetualIndex:       order.PerpetualIndex,
-					LiquidityPoolAddress: order.LiquidityPoolAddress,
-					PoolStorage:          poolStorage,
-					Orders:               []*model.Order{order},
-				}
-			} else {
-				perpetual, err := m.dao.GetPerpetualByPoolAddressAndIndex(order.LiquidityPoolAddress, order.PerpetualIndex, true)
-				if err != nil {
-					return res, err
-				}
-				// in different perpetual, but use the same collateral
-				if perpetual.CollateralAddress == m.perpetual.CollateralAddress {
-					poolStorage := m.poolSyncer.GetPoolStorage(order.LiquidityPoolAddress)
-					if poolStorage == nil {
-						return res, fmt.Errorf("get pool storage error")
-					}
-					res[perpetualID] = &OrdersEachPerp{
-						LiquidityPoolAddress: order.LiquidityPoolAddress,
-						PerpetualIndex:       order.PerpetualIndex,
-						PoolStorage:          poolStorage,
-						Orders:               []*model.Order{order},
-					}
-				}
-			}
-		}
-	}
-
-	return res, nil
 }
 
 type MatchItem struct {

@@ -81,18 +81,19 @@ type OrderParam struct {
 
 type Order struct {
 	OrderParam
-	ID              int64                `json:"-" db:"id" primaryKey:"true" gorm:"primary_key"`
-	OrderHash       string               `json:"orderHash" db:"order_hash"`
-	OldStatus       OrderStatus          `json:"oldStatus" sql:"-"`
-	Status          OrderStatus          `json:"status" db:"status"`
-	AvailableAmount decimal.Decimal      `json:"availableAmount" db:"available_amount"`
-	ConfirmedAmount decimal.Decimal      `json:"confirmedAmount" db:"confirmed_amount"`
-	CanceledAmount  decimal.Decimal      `json:"canceledAmount" db:"canceled_amount"`
-	PendingAmount   decimal.Decimal      `json:"pendingAmount" db:"pending_amount"`
-	GasFeeLimit     int64                `json:"gasFeeLimit" db:"gas_fee_limit"`
-	CreatedAt       time.Time            `json:"createdAt" db:"created_at"`
-	UpdatedAt       time.Time            `json:"updatedAt" db:"updated_at"`
-	CancelReasons   []*OrderCancelReason `json:"cancelReasons" sql:"-"`
+	ID                int64                `json:"-" db:"id" primaryKey:"true" gorm:"primary_key"`
+	OrderHash         string               `json:"orderHash" db:"order_hash"`
+	OldStatus         OrderStatus          `json:"oldStatus" sql:"-"`
+	Status            OrderStatus          `json:"status" db:"status"`
+	CollateralAddress string               `json:"collateralAddress" db:"collateral_address"`
+	AvailableAmount   decimal.Decimal      `json:"availableAmount" db:"available_amount"`
+	ConfirmedAmount   decimal.Decimal      `json:"confirmedAmount" db:"confirmed_amount"`
+	CanceledAmount    decimal.Decimal      `json:"canceledAmount" db:"canceled_amount"`
+	PendingAmount     decimal.Decimal      `json:"pendingAmount" db:"pending_amount"`
+	GasFeeLimit       int64                `json:"gasFeeLimit" db:"gas_fee_limit"`
+	CreatedAt         time.Time            `json:"createdAt" db:"created_at"`
+	UpdatedAt         time.Time            `json:"updatedAt" db:"updated_at"`
+	CancelReasons     []*OrderCancelReason `json:"cancelReasons" sql:"-"`
 }
 
 //OrderCancelReason records of cancel

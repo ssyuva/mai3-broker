@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
 	"github.com/mcarloai/mai-v3-broker/common/model"
 	"github.com/mcarloai/mai-v3-broker/conf"
 	"github.com/shopspring/decimal"
@@ -14,37 +13,29 @@ import (
 )
 
 type OrderCancel struct {
-	OrderHash string
-	Status    model.OrderStatus
-	ToCancel  decimal.Decimal
-	Reason    model.CancelReasonType
+	LiquidityPoolAddress string
+	PerpetualIndex       int64
+	OrderHash            string
+	Status               model.OrderStatus
+	ToCancel             decimal.Decimal
+	Reason               model.CancelReasonType
 }
 
-func (m *match) checkActiveOrders(ctx context.Context) error {
+func (s *Server) checkActiveOrders(ctx context.Context) error {
+	logger.Infof("match monitor start")
 	for {
 		select {
 		case <-ctx.Done():
-			logger.Infof("match perpetual:%s-%d monitor end", m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex)
+			logger.Infof("match monitor end")
 			return nil
 		case <-time.After(conf.Conf.MatchMonitorInterval):
-			m.checkPerpUserOrders()
+			s.checkPerpUserOrders()
 		}
 	}
 }
 
-func (m *match) checkPerpUserOrders() {
-	orders, err := m.dao.QueryOrder("", m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex, []model.OrderStatus{model.OrderPending}, 0, 0, 0)
-	if err != nil {
-		return
-	}
-
-	// update active orders count in metrics
-	activeOrderCount.WithLabelValues(fmt.Sprintf("%s-%d", m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex)).Set(float64(len(orders)))
-	if len(orders) == 0 {
-		return
-	}
-
-	users, err := m.dao.GetPendingOrderUsers(m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex, []model.OrderStatus{model.OrderPending})
+func (s *Server) checkPerpUserOrders() {
+	users, err := s.dao.GetPendingOrderUsers("", 0, []model.OrderStatus{model.OrderPending})
 	if err != nil {
 		logger.Errorf("monitor: GetPendingOrderUsers %s", err)
 		return
@@ -52,136 +43,205 @@ func (m *match) checkPerpUserOrders() {
 	if len(users) == 0 {
 		return
 	}
-	poolStorage := m.poolSyncer.GetPoolStorage(m.perpetual.LiquidityPoolAddress)
-	if poolStorage == nil {
-		logger.Errorf("monitor: GetLiquidityPoolStorage fail!")
-		return
-	}
-
-	// close perpetual if perpetual status is not normal
-	perpetual, ok := poolStorage.Perpetuals[m.perpetual.PerpetualIndex]
-	if !ok || !perpetual.IsNormal {
-		m.perpetual.IsPublished = false
-		if err := m.dao.UpdatePerpetual(m.perpetual); err != nil {
-			logger.Errorf("closePerpetual error:%s", err)
-		}
-	}
 
 	for _, user := range users {
-		cancels := m.checkUserPendingOrders(poolStorage, user)
+		cancels := s.checkUserPendingOrders(user)
 		for _, cancel := range cancels {
-			err := m.CancelOrder(cancel.OrderHash, cancel.Reason, true, cancel.ToCancel)
-			if err != nil {
-				logger.Errorf("cancel Order fail! err:%s", err)
+			handler := s.getMatchHandler(cancel.LiquidityPoolAddress, cancel.PerpetualIndex)
+			if handler != nil {
+				err := handler.CancelOrder(cancel.OrderHash, cancel.Reason, true, cancel.ToCancel)
+				if err != nil {
+					logger.Errorf("cancel Order fail! err:%s", err)
+				}
 			}
 		}
 	}
 }
 
-func (m *match) checkUserPendingOrders(poolStorage *model.LiquidityPoolStorage, user string) []*OrderCancel {
-	cancels := make([]*OrderCancel, 0)
+type OrdersCollateral struct {
+	WalletBalance decimal.Decimal
+	OrderMap      map[string]*OrdersPerpMap
+}
 
-	// check order margin and close Only order
-	orders, err := m.dao.QueryOrder(user, m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex, []model.OrderStatus{model.OrderPending}, 0, 0, 0)
-	if err != nil {
-		logger.Errorf("checkUserPendingOrders:%v", err)
-		return cancels
-	}
+type OrdersPerpMap struct {
+	LiquidityPoolAddress string
+	PerpetualIndex       int64
+	Account              *model.AccountStorage
+	PoolStorage          *model.LiquidityPoolStorage
+	Orders               []*model.Order
+}
 
-	// close orders if perpetual status is not normal
-	perpetual, ok := poolStorage.Perpetuals[m.perpetual.PerpetualIndex]
-	if !ok || !perpetual.IsNormal {
-		for _, order := range orders {
-			cancel := &OrderCancel{
-				OrderHash: order.OrderHash,
-				Status:    order.Status,
-				ToCancel:  order.AvailableAmount,
-				Reason:    model.CancelReasonContractSettled,
-			}
-			cancels = append(cancels, cancel)
+func (s *Server) singleOrderCheck(order *model.Order, poolStorage *model.LiquidityPoolStorage, account *model.AccountStorage) *OrderCancel {
+	// because broker address was signed, if it is changed, orders need be canceled
+	if order.OrderParam.BrokerAddress != strings.ToLower(conf.Conf.BrokerAddress) {
+		return &OrderCancel{
+			LiquidityPoolAddress: order.LiquidityPoolAddress,
+			PerpetualIndex:       order.PerpetualIndex,
+			OrderHash:            order.OrderHash,
+			Status:               order.Status,
+			ToCancel:             order.AvailableAmount,
+			Reason:               model.CancelReasonTransactionFail,
 		}
-		return cancels
 	}
 
-	account, err := m.chainCli.GetAccountStorage(m.ctx, conf.Conf.ReaderAddress, m.perpetual.PerpetualIndex, m.perpetual.LiquidityPoolAddress, user)
-	if account == nil || err != nil {
-		return cancels
-	}
-	balance, err := m.chainCli.BalanceOf(m.ctx, m.perpetual.CollateralAddress, user, m.perpetual.CollateralDecimals)
-	if err != nil {
-		return cancels
-	}
-	allowance, err := m.chainCli.Allowance(m.ctx, m.perpetual.CollateralAddress, user, m.perpetual.LiquidityPoolAddress, m.perpetual.CollateralDecimals)
-	if err != nil {
-		return cancels
-	}
-	account.WalletBalance = decimal.Min(balance, allowance)
-	gasBalance, err := m.chainCli.GetGasBalance(m.ctx, conf.Conf.BrokerAddress, user)
-	if err != nil {
-		logger.Errorf("checkUserPendingOrders:%v", err)
-		return cancels
+	// cancel order if perpetual status is not normal
+	perpetual, ok := poolStorage.Perpetuals[order.PerpetualIndex]
+	if !ok || !perpetual.IsNormal {
+		return &OrderCancel{
+			LiquidityPoolAddress: order.LiquidityPoolAddress,
+			PerpetualIndex:       order.PerpetualIndex,
+			OrderHash:            order.OrderHash,
+			Status:               order.Status,
+			ToCancel:             order.AvailableAmount,
+			Reason:               model.CancelReasonContractSettled,
+		}
 	}
 
-	gasPrice := m.gasMonitor.GasPriceGwei()
-	gasReward := decimal.Zero
-	remainOrders := make([]*model.Order, 0)
+	// close only check
+	cancelAmount := CheckCloseOnly(account, order)
+	if !cancelAmount.IsZero() {
+		return &OrderCancel{
+			LiquidityPoolAddress: order.LiquidityPoolAddress,
+			PerpetualIndex:       order.PerpetualIndex,
+			OrderHash:            order.OrderHash,
+			Status:               order.Status,
+			ToCancel:             cancelAmount,
+			Reason:               model.CancelReasonCloseOnly,
+		}
+	}
+	return nil
+}
+
+func (s *Server) splitActiveOrdersInEachPerpetual(orders []*model.Order) (map[string]*OrdersCollateral, []*OrderCancel, error) {
+	res := make(map[string]*OrdersCollateral)
+	cancels := make([]*OrderCancel, 0)
 	for _, order := range orders {
-		if conf.Conf.GasEnable {
-			// gas check
-			orderGasReward := gasPrice.Mul(decimal.NewFromInt(order.GasFeeLimit))
-			if decimal.NewFromInt(order.BrokerFeeLimit).LessThan(utils.ToGwei(gasReward)) {
-				cancel := &OrderCancel{
-					OrderHash: order.OrderHash,
-					Status:    order.Status,
-					ToCancel:  order.AvailableAmount,
-					Reason:    model.CancelReasonGasNotEnough,
+		// orders split in different collateral
+		collateralMap, ok := res[order.CollateralAddress]
+		if ok {
+			// orders split in different perpetual
+			perpetualID := fmt.Sprintf("%s-%d", order.LiquidityPoolAddress, order.PerpetualIndex)
+			ordersPerp, ok := collateralMap.OrderMap[perpetualID]
+			if ok {
+				// check order
+				cancel := s.singleOrderCheck(order, ordersPerp.PoolStorage, ordersPerp.Account)
+				if cancel != nil {
+					cancels = append(cancels, cancel)
+					continue
 				}
-				cancels = append(cancels, cancel)
+				ordersPerp.Orders = append(ordersPerp.Orders, order)
+			} else {
+				poolStorage := s.poolSyncer.GetPoolStorage(order.LiquidityPoolAddress)
+				if poolStorage == nil {
+					return res, cancels, fmt.Errorf("get pool storage error")
+				}
+
+				account, err := s.chainCli.GetAccountStorage(s.ctx, conf.Conf.ReaderAddress, order.PerpetualIndex, order.LiquidityPoolAddress, order.TraderAddress)
+				if account == nil || err != nil {
+					return res, cancels, err
+				}
+
+				// check order
+				cancel := s.singleOrderCheck(order, ordersPerp.PoolStorage, ordersPerp.Account)
+				if cancel != nil {
+					cancels = append(cancels, cancel)
+					continue
+				}
+
+				collateralMap.OrderMap[perpetualID] = &OrdersPerpMap{
+					LiquidityPoolAddress: order.LiquidityPoolAddress,
+					PerpetualIndex:       order.PerpetualIndex,
+					PoolStorage:          poolStorage,
+					Orders:               []*model.Order{order},
+				}
+			}
+		} else {
+			// orders split in different perpetual
+			perpetualID := fmt.Sprintf("%s-%d", order.LiquidityPoolAddress, order.PerpetualIndex)
+			poolStorage := s.poolSyncer.GetPoolStorage(order.LiquidityPoolAddress)
+			if poolStorage == nil {
+				return res, cancels, fmt.Errorf("get pool storage error")
 			}
 
-			gasReward = gasReward.Add(orderGasReward)
-			if gasBalance.LessThan(gasReward) {
-				cancel := &OrderCancel{
-					OrderHash: order.OrderHash,
-					Status:    order.Status,
-					ToCancel:  order.AvailableAmount,
-					Reason:    model.CancelReasonGasNotEnough,
-				}
+			account, err := s.chainCli.GetAccountStorage(s.ctx, conf.Conf.ReaderAddress, order.PerpetualIndex, order.LiquidityPoolAddress, order.TraderAddress)
+			if account == nil || err != nil {
+				return res, cancels, err
+			}
+			// check order
+			cancel := s.singleOrderCheck(order, poolStorage, account)
+			if cancel != nil {
 				cancels = append(cancels, cancel)
 				continue
 			}
-		}
 
-		// because broker address was signed, if it is changed, orders need be canceled
-		if order.OrderParam.BrokerAddress != strings.ToLower(conf.Conf.BrokerAddress) {
-			cancel := &OrderCancel{
-				OrderHash: order.OrderHash,
-				Status:    order.Status,
-				ToCancel:  order.AvailableAmount,
-				Reason:    model.CancelReasonTransactionFail,
+			handler := s.getMatchHandler(order.LiquidityPoolAddress, order.PerpetualIndex)
+			if handler == nil {
+				return res, cancels, fmt.Errorf("perp not start. perpetualID: %s-%d", order.LiquidityPoolAddress, order.PerpetualIndex)
 			}
-			cancels = append(cancels, cancel)
-			continue
-		}
+			collateralDecimals := handler.GetCollateralDecimal()
 
-		cancelAmount := CheckCloseOnly(account, order)
-		if !cancelAmount.Equal(_0) {
-			cancel := &OrderCancel{
-				OrderHash: order.OrderHash,
-				Status:    order.Status,
-				ToCancel:  cancelAmount,
-				Reason:    model.CancelReasonCloseOnly,
+			// get collateral wallet balance
+			balance, err := s.chainCli.BalanceOf(s.ctx, order.CollateralAddress, order.TraderAddress, collateralDecimals)
+			if err != nil {
+				return res, cancels, err
 			}
-			cancels = append(cancels, cancel)
-			continue
+			allowance, err := s.chainCli.Allowance(s.ctx, order.CollateralAddress, order.TraderAddress, order.LiquidityPoolAddress, collateralDecimals)
+			if err != nil {
+				return res, cancels, err
+			}
+
+			walletBalance := decimal.Min(balance, allowance)
+			res[order.CollateralAddress] = &OrdersCollateral{
+				WalletBalance: walletBalance,
+				OrderMap:      make(map[string]*OrdersPerpMap),
+			}
+
+			res[order.CollateralAddress].OrderMap[perpetualID] = &OrdersPerpMap{
+				LiquidityPoolAddress: order.LiquidityPoolAddress,
+				PerpetualIndex:       order.PerpetualIndex,
+				Account:              account,
+				PoolStorage:          poolStorage,
+				Orders:               []*model.Order{order},
+			}
 		}
-
-		remainOrders = append(remainOrders, order)
-
 	}
 
+	return res, cancels, nil
+}
+
+func (s *Server) checkUserPendingOrders(user string) []*OrderCancel {
+	cancels := make([]*OrderCancel, 0)
+
+	// check order margin and close Only order
+	orders, err := s.dao.QueryOrder(user, "", 0, []model.OrderStatus{model.OrderPending}, 0, 0, 0)
+	if err != nil {
+		logger.Errorf("checkUserPendingOrders err:%v", err)
+		return cancels
+	}
+
+	orderMap, orderCancels, err := s.splitActiveOrdersInEachPerpetual(orders)
+	if err != nil {
+		logger.Errorf("splitActiveOrdersInEachPerpetual err:%v", err)
+		return cancels
+	}
+
+	cancels = append(cancels, orderCancels...)
 	// check remain orders available margin
-	cancelsInsufficientFunds, _ := ComputeOrderAvailable(poolStorage, m.perpetual.PerpetualIndex, account, remainOrders)
-	cancels = append(cancels, cancelsInsufficientFunds...)
+	for _, collateralMap := range orderMap {
+		walletBalance := collateralMap.WalletBalance
+		for _, v := range collateralMap.OrderMap {
+			// get account storage in each perp
+			account, err := s.chainCli.GetAccountStorage(s.ctx, conf.Conf.ReaderAddress, v.PerpetualIndex, v.LiquidityPoolAddress, user)
+			if account == nil || err != nil {
+				logger.Errorf("new order:GetAccountStorage err:%v", err)
+				return cancels
+			}
+
+			account.WalletBalance = walletBalance
+			cancelsInsufficientFunds, available := ComputeOrderAvailable(v.PoolStorage, v.PerpetualIndex, account, v.Orders)
+			cancels = append(cancels, cancelsInsufficientFunds...)
+			walletBalance = available
+		}
+	}
 	return cancels
 }

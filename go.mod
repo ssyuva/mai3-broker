@@ -19,7 +19,6 @@ require (
 	github.com/lib/pq v1.10.1 // indirect
 	github.com/mattn/go-isatty v0.0.12 // indirect
 	github.com/mattn/go-sqlite3 v2.0.1+incompatible // indirect
-	github.com/pborman/uuid v1.2.1
 	github.com/petar/GoLLRB v0.0.0-20190514000832-33fb24c13b99
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.10.0

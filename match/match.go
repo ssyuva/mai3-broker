@@ -14,7 +14,6 @@ import (
 	"github.com/mcarloai/mai-v3-broker/dao"
 	"github.com/mcarloai/mai-v3-broker/gasmonitor"
 	logger "github.com/sirupsen/logrus"
-	"golang.org/x/sync/errgroup"
 
 	"sync"
 	"time"
@@ -56,25 +55,6 @@ func newMatch(ctx context.Context, cli chain.ChainClient, dao dao.DAO, poolSynce
 	return m, nil
 }
 
-func (m *match) Run() error {
-	logger.Infof("Match Perpetual:%s-%d start", m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex)
-
-	group, ctx := errgroup.WithContext(m.ctx)
-	// go monitor check user margin gas
-	group.Go(func() error {
-		return m.checkActiveOrders(ctx)
-	})
-
-	// go match order
-	group.Go(func() error {
-		return m.runMatch(ctx)
-	})
-
-	err := group.Wait()
-	logger.Infof("Match Perpetual:%s-%d end", m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex)
-	return err
-}
-
 func (m *match) Close() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -82,9 +62,25 @@ func (m *match) Close() {
 	m.cancel()
 }
 
+func (m *match) GetCollateralDecimal() int32 {
+	return m.perpetual.CollateralDecimals
+}
+
 func (m *match) matchOrders() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+
+	orders, err := m.dao.QueryOrder("", m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex, []model.OrderStatus{model.OrderPending}, 0, 0, 0)
+	if err != nil {
+		return
+	}
+
+	// update active orders count in metrics
+	activeOrderCount.WithLabelValues(fmt.Sprintf("%s-%d", m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex)).Set(float64(len(orders)))
+	if len(orders) == 0 {
+		return
+	}
+
 	// transactions, err := m.dao.QueryUnconfirmedTransactionsByContract(m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex)
 	// if err != nil {
 	// 	logger.Errorf("Match: QueryUnconfirmedTransactionsByContract failed perpetual:%s-%d error:%s", m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex, err.Error())
@@ -112,7 +108,7 @@ func (m *match) matchOrders() {
 		PerpetualIndex:       m.perpetual.PerpetualIndex,
 		BrokerAddress:        conf.Conf.BrokerAddress,
 	}
-	orders := make([]*model.Order, 0)
+	ordersForNotify := make([]*model.Order, 0)
 	err = m.dao.Transaction(context.Background(), false /* readonly */, func(dao dao.DAO) error {
 		for _, item := range matchItems {
 			order, err := dao.GetOrder(item.Order.ID)
@@ -146,7 +142,7 @@ func (m *match) matchOrders() {
 			if err := m.orderbook.ChangeOrder(item.Order, item.MatchedAmount.Add(item.OrderTotalCancel).Neg()); err != nil {
 				return fmt.Errorf("order[%s] orderbook ChangeOrder failed error:%w", order.OrderHash, err)
 			}
-			orders = append(orders, order)
+			ordersForNotify = append(ordersForNotify, order)
 		}
 		if err := dao.CreateMatchTransaction(matchTransaction); err != nil {
 			return fmt.Errorf("matchTransaction create failed error:%w", err)
@@ -155,8 +151,8 @@ func (m *match) matchOrders() {
 	})
 
 	if err == nil {
-		// notice websocket for new order
-		for _, order := range orders {
+		// notice websocket for order change
+		for _, order := range ordersForNotify {
 			wsMsg := message.WebSocketMessage{
 				ChannelID: message.GetAccountChannelID(order.TraderAddress),
 				Payload: message.WebSocketOrderChangePayload{
@@ -171,7 +167,8 @@ func (m *match) matchOrders() {
 	}
 }
 
-func (m *match) runMatch(ctx context.Context) error {
+func (m *match) RunMatch(ctx context.Context) error {
+	logger.Infof("match perpetual:%s-%d matchOrders start", m.perpetual.LiquidityPoolAddress, m.perpetual.PerpetualIndex)
 	for {
 		select {
 		case <-ctx.Done():

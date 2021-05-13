@@ -52,6 +52,10 @@ func (s *Server) Start() error {
 	}
 
 	s.poolSyncer = newPoolSyncer(s.ctx, s.chainCli)
+	// go monitor check user active orders
+	s.group.Go(func() error {
+		return s.checkActiveOrders(s.ctx)
+	})
 	s.group.Go(func() error {
 		return s.poolSyncer.Run()
 	})
@@ -63,7 +67,7 @@ func (s *Server) Start() error {
 			return err
 		}
 		s.group.Go(func() error {
-			return match.Run()
+			return match.RunMatch(s.ctx)
 		})
 	}
 
@@ -100,7 +104,7 @@ func (s *Server) NewOrder(order *model.Order) string {
 			return model.MatchInternalErrorID
 		}
 		s.group.Go(func() error {
-			return handler.Run()
+			return handler.RunMatch(s.ctx)
 		})
 	}
 	return handler.NewOrder(order)

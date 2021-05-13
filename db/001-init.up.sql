@@ -30,6 +30,7 @@ create table orders
   chain_id bigint not null,
   liquidity_pool_address text not null,
   perpetual_index bigint not null,
+  collateral_address text not null,
   broker_address text not null,
   referrer_address text not null,
   relayer_address text not null,

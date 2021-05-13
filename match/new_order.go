@@ -2,6 +2,7 @@ package match
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/mcarloai/mai-v3-broker/common/mai3"
 	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
@@ -12,6 +13,41 @@ import (
 	"github.com/shopspring/decimal"
 	logger "github.com/sirupsen/logrus"
 )
+
+type OrdersEachPerp struct {
+	LiquidityPoolAddress string
+	PerpetualIndex       int64
+	PoolStorage          *model.LiquidityPoolStorage
+	Orders               []*model.Order
+}
+
+func (m *match) splitActiveOrdersWithCollateral(orders []*model.Order, collateral string) (map[string]*OrdersEachPerp, error) {
+	res := make(map[string]*OrdersEachPerp)
+	for _, order := range orders {
+		// orders split in different perpetual
+		perpetualID := fmt.Sprintf("%s-%d", order.LiquidityPoolAddress, order.PerpetualIndex)
+		ordersEachPerp, ok := res[perpetualID]
+		if ok {
+			ordersEachPerp.Orders = append(ordersEachPerp.Orders, order)
+		} else {
+			// use the same collateral
+			if order.CollateralAddress == collateral {
+				poolStorage := m.poolSyncer.GetPoolStorage(order.LiquidityPoolAddress)
+				if poolStorage == nil {
+					return res, fmt.Errorf("get pool storage error")
+				}
+				res[perpetualID] = &OrdersEachPerp{
+					LiquidityPoolAddress: order.LiquidityPoolAddress,
+					PerpetualIndex:       order.PerpetualIndex,
+					PoolStorage:          poolStorage,
+					Orders:               []*model.Order{order},
+				}
+			}
+		}
+	}
+
+	return res, nil
+}
 
 func (m *match) NewOrder(order *model.Order) string {
 	m.mu.Lock()
@@ -83,7 +119,7 @@ func (m *match) NewOrder(order *model.Order) string {
 	}
 
 	activeOrders = append(activeOrders, order)
-	orderMaps, err := m.splitActiveOrdersInMultiPerpetuals(activeOrders)
+	orderMaps, err := m.splitActiveOrdersWithCollateral(activeOrders, order.CollateralAddress)
 	if err != nil {
 		return model.MatchInternalErrorID
 	}

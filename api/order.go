@@ -213,13 +213,16 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 		return nil, err
 	}
 
-	_, err = s.dao.GetPerpetualByPoolAddressAndIndex(order.LiquidityPoolAddress, order.PerpetualIndex, true)
+	perpetual, err := s.dao.GetPerpetualByPoolAddressAndIndex(order.LiquidityPoolAddress, order.PerpetualIndex, true)
 	if err != nil {
 		if dao.IsRecordNotFound(err) {
 			return nil, PerpetualNotFoundError(order.LiquidityPoolAddress, order.PerpetualIndex)
 		}
 		return nil, InternalError(err)
 	}
+
+	// set collateral address
+	order.CollateralAddress = perpetual.CollateralAddress
 
 	// check ChainID
 	if conf.Conf.ChainID != params.ChainID {
