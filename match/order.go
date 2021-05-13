@@ -36,21 +36,28 @@ func splitActiveOrders(orders []*model.Order) (buys, sells []*model.Order) {
 	return
 }
 
-func openOrderCost(pool *model.LiquidityPoolStorage, perpetualIndex int64, order *model.Order, leverage decimal.Decimal) decimal.Decimal {
+func openOrderCost(pool *model.LiquidityPoolStorage, perpetualIndex int64, order *model.Order, leverage decimal.Decimal) (cost, fee, potentialLoss decimal.Decimal) {
 	perp, ok := pool.Perpetuals[perpetualIndex]
 	if !ok {
-		return _0
+		return
 	}
 	amount := order.AvailableAmount.Add(order.PendingAmount)
 	feeRate := pool.VaultFeeRate.Add(perp.LpFeeRate).Add(perp.OperatorFeeRate)
 	potentialPNL := perp.MarkPrice.Sub(order.Price).Mul(amount)
 	// loss = pnl if pnl < 0 else 0
-	potentialLoss := decimal.Min(_0, potentialPNL)
-	// limitPrice * | amount | * (1 / lev + feeRate) + loss
-
-	return order.Price.Mul(amount.Abs()).
-		Mul(_1.Div(leverage).Add(feeRate)).
-		Sub(potentialLoss)
+	potentialLoss = decimal.Min(_0, potentialPNL)
+	// fee = limitPrice * | amount | * feeRate
+	fee = order.Price.Mul(amount.Abs()).Mul(feeRate)
+	margin := _0
+	if amount.LessThan(_0) && order.Price.LessThan(perp.MarkPrice) {
+		// mark * | amount | / lev
+		margin = perp.MarkPrice.Mul(amount.Abs()).Div(leverage)
+	} else {
+		// limitPrice * | amount | / lev
+		margin = order.Price.Mul(amount.Abs()).Div(leverage)
+	}
+	cost = margin.Add(fee).Sub(potentialLoss)
+	return
 }
 
 func sideAvailable(pool *model.LiquidityPoolStorage, perpetualIndex int64, marginBalance, position, targetLeverage, walletBalance decimal.Decimal, orders []*model.Order) (cancels []*OrderCancel, remainWalletBalance decimal.Decimal) {
@@ -102,7 +109,6 @@ func sideAvailable(pool *model.LiquidityPoolStorage, perpetualIndex int64, margi
 				withdraw := _0
 				if afterMargin.GreaterThanOrEqual(newPositionMargin) {
 					// withdraw only if marginBalance >= IM
-
 					// withdraw = afterMargin - remainMargin * (1 - | close / remainPosition |)
 					withdraw = close.Div(remainPosition).Abs()
 					withdraw = _1.Sub(withdraw).Mul(remainMargin)
@@ -132,7 +138,17 @@ func sideAvailable(pool *model.LiquidityPoolStorage, perpetualIndex int64, margi
 
 	// open position
 	for _, order := range remainOrders {
-		cost := openOrderCost(pool, perpetualIndex, order, targetLeverage)
+		cost, fee, potentialLoss := openOrderCost(pool, perpetualIndex, order, targetLeverage)
+		remainPosition = remainPosition.Add(order.AvailableAmount.Add(order.PendingAmount))
+		remainMargin = remainMargin.Add(potentialLoss).Sub(fee)
+		// at least IM and keeperGasReward
+		im := perpetual.MarkPrice.Mul(remainPosition.Abs()).Mul(perpetual.InitialMarginRate)
+		cost = decimal.Max(
+			im.Sub(remainMargin),
+			perpetual.KeeperGasReward.Sub(remainMargin),
+			cost,
+		)
+		remainMargin = remainMargin.Add(cost)
 		remainWalletBalance = remainWalletBalance.Sub(cost)
 		if remainWalletBalance.LessThan(_0) {
 			cancel := &OrderCancel{

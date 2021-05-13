@@ -72,7 +72,7 @@ type OrdersPerpMap struct {
 }
 
 func (s *Server) singleOrderCheck(order *model.Order, poolStorage *model.LiquidityPoolStorage, account *model.AccountStorage) *OrderCancel {
-	// because broker address was signed, if it is changed, orders need be canceled
+	// because broker address was signed, if it was changed, orders need to be canceled
 	if order.OrderParam.BrokerAddress != strings.ToLower(conf.Conf.BrokerAddress) {
 		return &OrderCancel{
 			LiquidityPoolAddress: order.LiquidityPoolAddress,
@@ -98,6 +98,7 @@ func (s *Server) singleOrderCheck(order *model.Order, poolStorage *model.Liquidi
 	}
 
 	// close only check
+	// TODO: consider cancel partial
 	cancelAmount := CheckCloseOnly(account, order)
 	if !cancelAmount.IsZero() {
 		return &OrderCancel{
