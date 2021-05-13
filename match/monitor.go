@@ -142,7 +142,7 @@ func (s *Server) splitActiveOrdersInEachPerpetual(orders []*model.Order) (map[st
 				}
 
 				// check order
-				cancel := s.singleOrderCheck(order, ordersPerp.PoolStorage, ordersPerp.Account)
+				cancel := s.singleOrderCheck(order, poolStorage, account)
 				if cancel != nil {
 					cancels = append(cancels, cancel)
 					continue
@@ -151,6 +151,7 @@ func (s *Server) splitActiveOrdersInEachPerpetual(orders []*model.Order) (map[st
 				collateralMap.OrderMap[perpetualID] = &OrdersPerpMap{
 					LiquidityPoolAddress: order.LiquidityPoolAddress,
 					PerpetualIndex:       order.PerpetualIndex,
+					Account:              account,
 					PoolStorage:          poolStorage,
 					Orders:               []*model.Order{order},
 				}
