@@ -256,6 +256,8 @@ func (s *Server) PlaceOrder(p Param) (interface{}, error) {
 		return nil, GasBalanceError()
 	case model.MatchCloseOnlyErrorID:
 		return nil, CloseOnlyError()
+	case model.MatchSelfTradeID:
+		return nil, SelfTradeError()
 	default:
 		return nil, InternalError(errors.New("unknown match error"))
 	}
