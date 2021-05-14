@@ -58,7 +58,7 @@ func main() {
 	// start metrics server
 	if conf.Conf.EnableMetrics {
 		group.Go(func() error {
-			return api.StartMetricsServer()
+			return api.StartMetricsServer(ctx)
 		})
 	}
 
