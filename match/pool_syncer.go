@@ -89,6 +89,7 @@ func (p *poolSyncer) AddPool(pool string) {
 	poolStorage, err := p.chainCli.GetLiquidityPoolStorage(p.ctx, conf.Conf.ReaderAddress, pool)
 	if poolStorage == nil || err != nil {
 		logger.Errorf("Pool Syncer: GetLiquidityPoolStorage fail! pool:%s err:%v", pool, err)
+		return
 	}
 	p.poolStorage[pool] = &poolInfo{
 		latestGet: time.Now(),
@@ -101,7 +102,7 @@ func (p *poolSyncer) GetPoolStorage(pool string) *model.LiquidityPoolStorage {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 	info, ok := p.poolStorage[pool]
-	if !ok {
+	if info == nil && !ok {
 		return nil
 	}
 	if info.isDirty {
