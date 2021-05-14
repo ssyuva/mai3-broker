@@ -28,7 +28,6 @@ const (
 	MatchCloseOnlyErrorID           = "match.error.CloseOnly"
 	MatchInsufficientBalanceErrorID = "match.error.InsufficientBalance"
 	MatchMaxOrderNumReachID         = "match.error.MaxOrderNumReach"
-	MatchSelfTradeID                = "match.error.SelfTrade"
 )
 
 type OrderType int

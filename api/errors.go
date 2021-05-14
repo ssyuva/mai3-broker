@@ -172,7 +172,3 @@ func AddressNotInWhiteListError() *ApiError {
 func InvalidOrderTypeError() *ApiError {
 	return &ApiError{Code: -25, Desc: "invalid order type"}
 }
-
-func SelfTradeError() *ApiError {
-	return &ApiError{Code: -26, Desc: "self trade error"}
-}

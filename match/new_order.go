@@ -49,24 +49,6 @@ func (m *match) splitActiveOrdersWithCollateral(orders []*model.Order, collatera
 	return res, nil
 }
 
-func (m *match) isSelfTrade(activeOrders []*model.Order, newOrder *model.Order) bool {
-	for _, order := range activeOrders {
-		// in the same perpetual
-		if order.LiquidityPoolAddress == newOrder.LiquidityPoolAddress &&
-			order.PerpetualIndex == newOrder.PerpetualIndex {
-			if !utils.HasTheSameSign(order.Amount, newOrder.Amount) {
-				// new order buy, and new order price > sell order price
-				// new order sell, and new order price < buy order price
-				if (newOrder.Amount.GreaterThan(_0) && newOrder.Price.GreaterThan(order.Price)) ||
-					(newOrder.Amount.LessThan(_0) && newOrder.Price.LessThan(order.Price)) {
-					return true
-				}
-			}
-		}
-	}
-	return false
-}
-
 func (m *match) NewOrder(order *model.Order) string {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -80,10 +62,6 @@ func (m *match) NewOrder(order *model.Order) string {
 
 	if len(activeOrders) >= conf.Conf.MaxOrderNum {
 		return model.MatchMaxOrderNumReachID
-	}
-
-	if m.isSelfTrade(activeOrders, order) {
-		return model.MatchSelfTradeID
 	}
 
 	account, err := m.chainCli.GetAccountStorage(m.ctx, conf.Conf.ReaderAddress, m.perpetual.PerpetualIndex, m.perpetual.LiquidityPoolAddress, order.TraderAddress)
