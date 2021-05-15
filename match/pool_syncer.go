@@ -69,14 +69,10 @@ func (p *poolSyncer) syncPool(pool string) {
 	poolStorage, err := p.chainCli.GetLiquidityPoolStorage(p.ctx, conf.Conf.ReaderAddress, pool)
 	if poolStorage == nil || err != nil {
 		logger.Errorf("Pool Syncer: GetLiquidityPoolStorage fail! pool:%s err:%v", pool, err)
-		p.poolStorage[pool] = &poolInfo{
-			latestGet: time.Now(),
-			isDirty:   false,
-			storage:   poolStorage,
-		}
-	}
-	info.storage = poolStorage
-	if info.isDirty {
+		info.storage = nil
+		info.isDirty = true
+	} else {
+		info.storage = poolStorage
 		info.isDirty = false
 	}
 }
