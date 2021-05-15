@@ -23,7 +23,6 @@ type poolInfo struct {
 type poolSyncer struct {
 	ctx         context.Context
 	mu          sync.RWMutex
-	pools       []string
 	poolStorage map[string]*poolInfo
 	chainCli    chain.ChainClient
 }
@@ -32,7 +31,6 @@ func newPoolSyncer(ctx context.Context, cli chain.ChainClient) *poolSyncer {
 	return &poolSyncer{
 		ctx:         ctx,
 		chainCli:    cli,
-		pools:       make([]string, 0),
 		poolStorage: make(map[string]*poolInfo),
 	}
 }
@@ -50,7 +48,7 @@ func (p *poolSyncer) Run() error {
 }
 
 func (p *poolSyncer) runSyncer() error {
-	for _, pool := range p.pools {
+	for pool := range p.poolStorage {
 		p.syncPool(pool)
 	}
 	return nil
@@ -85,7 +83,6 @@ func (p *poolSyncer) AddPool(pool string) {
 	if _, ok := p.poolStorage[pool]; ok {
 		return
 	}
-	p.pools = append(p.pools, pool)
 	poolStorage, err := p.chainCli.GetLiquidityPoolStorage(p.ctx, conf.Conf.ReaderAddress, pool)
 	if poolStorage == nil || err != nil {
 		logger.Errorf("Pool Syncer: GetLiquidityPoolStorage fail! pool:%s err:%v", pool, err)
