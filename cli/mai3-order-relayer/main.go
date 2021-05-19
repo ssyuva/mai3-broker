@@ -53,7 +53,10 @@ func main() {
 	}
 
 	// gas monitor for fetch gas price
-	gasMonitor := gasmonitor.NewGasMonitor(ctx)
+	gasMonitor := gasmonitor.NewGasMonitor(ctx, chainCli)
+	group.Go(func() error {
+		return gasMonitor.Run()
+	})
 
 	// perpetual syncer for sync perpetuals from mcdex subgraph
 	perpetualSyncer, err := perpetualsyncer.NewPerpetualSyncer(ctx, dao)
