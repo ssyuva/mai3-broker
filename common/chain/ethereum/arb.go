@@ -6,7 +6,6 @@ import (
 
 	ethBind "github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/mcarloai/mai-v3-broker/common/chain/ethereum/arboscontracts"
-	"github.com/mcarloai/mai-v3-broker/common/mai3"
 	"github.com/shopspring/decimal"
 	logger "github.com/sirupsen/logrus"
 )
@@ -40,11 +39,11 @@ func (c *Client) GetGasPrice(ctx context.Context, gasAddress string) ([]decimal.
 		return res, fmt.Errorf("get margin account failed:%w", err)
 	}
 
-	res = append(res, decimal.NewFromBigInt(out0, -mai3.DECIMALS))
-	res = append(res, decimal.NewFromBigInt(out1, -mai3.DECIMALS))
-	res = append(res, decimal.NewFromBigInt(out2, -mai3.DECIMALS))
-	res = append(res, decimal.NewFromBigInt(out3, -mai3.DECIMALS))
-	res = append(res, decimal.NewFromBigInt(out4, -mai3.DECIMALS))
-	res = append(res, decimal.NewFromBigInt(out5, -mai3.DECIMALS))
+	res = append(res, decimal.NewFromBigInt(out0, 0))
+	res = append(res, decimal.NewFromBigInt(out1, 0))
+	res = append(res, decimal.NewFromBigInt(out2, 0))
+	res = append(res, decimal.NewFromBigInt(out3, 0))
+	res = append(res, decimal.NewFromBigInt(out4, 0))
+	res = append(res, decimal.NewFromBigInt(out5, 0))
 	return res, nil
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/mcarloai/mai-v3-broker/gasmonitor"
 	"github.com/mcarloai/mai-v3-broker/match"
 	"github.com/mcarloai/mai-v3-broker/runnable"
+	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 
 	"math/big"
@@ -152,7 +153,7 @@ func (l *Launcher) checkMatchTransaction() {
 func (l *Launcher) createLaunchTransaction(matchTx *model.MatchTransaction) error {
 	_, err := l.dao.GetTxByID(matchTx.ID)
 	if !dao.IsRecordNotFound(err) {
-		return fmt.Errorf("Transaction already launched ID: %s", matchTx.ID)
+		return errors.Errorf("Transaction already launched ID: %s", matchTx.ID)
 	}
 
 	orders := make([][]byte, 0)

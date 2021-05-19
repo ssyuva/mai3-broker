@@ -153,7 +153,7 @@ func (s *Executor) prepare(tx *model.LaunchTransaction) error {
 
 	limit := conf.Conf.GasLimit
 	tx.GasLimit = &limit
-	price := uint64(s.gasMonitor.GasPriceGwei().IntPart())
+	price := s.gasMonitor.GasPriceGwei().BigInt().Uint64()
 	tx.GasPrice = &price
 	return nil
 }

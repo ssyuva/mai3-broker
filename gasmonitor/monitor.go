@@ -10,6 +10,8 @@ import (
 	logger "github.com/sirupsen/logrus"
 )
 
+var GAS_FACTOR = decimal.NewFromFloat(1.01)
+
 type GasMonitor struct {
 	ctx      context.Context
 	chainCli chain.ChainClient
@@ -27,14 +29,9 @@ func NewGasMonitor(ctx context.Context, cli chain.ChainClient) *GasMonitor {
 	return gasMonitor
 }
 
-// GetGasPrice return gas in Gwei
-func (p *GasMonitor) GetGasPrice() decimal.Decimal {
-	return p.gasPrice
-}
-
-// GasPriceGwei return gas in eth decimal
+// GasPriceGwei return gas in gwei decimal
 func (p *GasMonitor) GasPriceGwei() decimal.Decimal {
-	return p.gasPrice.Mul(gwei)
+	return p.gasPrice
 }
 
 func (p *GasMonitor) Run() error {
@@ -62,8 +59,9 @@ func (p *GasMonitor) getPriceInfo() (decimal.Decimal, error) {
 		if err != nil {
 			return decimal.Zero, err
 		}
-		return res[0], nil
+		gas := res[5].Mul(GAS_FACTOR)
+		return gas, nil
 	} else {
-		return decimal.NewFromInt(int64(conf.Conf.GasPrice)), nil
+		return decimal.NewFromInt(int64(conf.Conf.GasPrice)).Div(gwei), nil
 	}
 }
