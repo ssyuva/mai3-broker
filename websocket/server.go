@@ -261,6 +261,7 @@ func (s *Server) Start() error {
 		timeoutCtx, cancel := context.WithTimeout(context.Background(), graceTime)
 		if err := s.wsServer.Shutdown(timeoutCtx); err != nil {
 			logger.Errorf("shutdown server error:%s", err.Error())
+			cancel()
 			return err
 		}
 		cancel()

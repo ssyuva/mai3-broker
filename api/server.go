@@ -11,6 +11,7 @@ import (
 	"github.com/mcarloai/mai-v3-broker/conf"
 	"github.com/mcarloai/mai-v3-broker/dao"
 	"github.com/mcarloai/mai-v3-broker/match"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	logger "github.com/sirupsen/logrus"
 )
 
@@ -101,6 +102,9 @@ func (s *Server) initRouter() {
 	s.e.Add("GET", "/jwt2", CheckJwtAuthByCookie)
 	addRoute(s.e, "GET", "/perpetuals/:perpetual", &GetPerpetualReq{}, s.GetPerpetual)
 	addRoute(s.e, "GET", "/brokerRelay", &GetBrokerRelayReq{}, s.GetBrokerRelay)
+
+	// metrics route
+	s.e.GET("/metrics", echo.WrapHandler(promhttp.Handler()))
 }
 
 func addGroupRoute(eg *echo.Group, method, url string, param Param, handler func(p Param) (interface{}, error), middlewares ...echo.MiddlewareFunc) {
