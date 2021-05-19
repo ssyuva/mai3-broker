@@ -18,8 +18,6 @@ type GasMonitor struct {
 	gasPrice decimal.Decimal
 }
 
-var gwei, _ = decimal.NewFromString("1000000000")
-
 func NewGasMonitor(ctx context.Context, cli chain.ChainClient) *GasMonitor {
 	gasMonitor := &GasMonitor{
 		ctx:      ctx,
@@ -62,6 +60,6 @@ func (p *GasMonitor) getPriceInfo() (decimal.Decimal, error) {
 		gas := res[5].Mul(GAS_FACTOR)
 		return gas, nil
 	} else {
-		return decimal.NewFromInt(int64(conf.Conf.GasPrice)).Div(gwei), nil
+		return decimal.NewFromInt(int64(conf.Conf.GasPrice)), nil
 	}
 }
