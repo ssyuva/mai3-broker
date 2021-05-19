@@ -23,10 +23,10 @@ func ComputeAccount(p *model.LiquidityPoolStorage, perpetualIndex int64, a *mode
 	}
 	availableCashBalance := a.CashBalance.Sub(a.PositionAmount.Mul(perpetual.UnitAccumulativeFunding))
 	marginBalance := availableCashBalance.Add(perpetual.MarkPrice.Mul(a.PositionAmount))
-	availableMargin := marginBalance.Sub(decimal.Max(reservedCash, positionMargin))
+	availableMargin := marginBalance.Sub(positionMargin).Sub(reservedCash)
 	withdrawableBalance := decimal.Max(_0, availableMargin)
-	isMMSafe := marginBalance.GreaterThanOrEqual(decimal.Max(reservedCash, maintenanceMargin))
-	isIMSafe := marginBalance.GreaterThanOrEqual(decimal.Max(reservedCash, positionMargin))
+	isIMSafe := availableMargin.GreaterThanOrEqual(_0)
+	isMMSafe := marginBalance.Sub(maintenanceMargin).Sub(reservedCash).GreaterThanOrEqual(_0)
 	isMarginSafe := marginBalance.GreaterThanOrEqual(reservedCash)
 	leverage := _0
 	if positionValue.GreaterThan(_0) && marginBalance.GreaterThan(_0) {
@@ -228,21 +228,21 @@ func adjustMarginLeverage(p *model.LiquidityPoolStorage, perpetualIndex int64, a
 		if trader.TargetLeverage.LessThanOrEqual(_0) {
 			return _0, fmt.Errorf("target leverage <= 0")
 		}
-		newMargin := open.Abs().Mul(perpetual.MarkPrice).Div(trader.TargetLeverage)
+		openPositionMargin := open.Abs().Mul(perpetual.MarkPrice).Div(trader.TargetLeverage)
 		if position2.Sub(deltaPosition).IsZero() || !close.IsZero() {
 			// strategy: let new margin balance = openPositionMargin
+			adjustCollateral = openPositionMargin.Sub(a.MarginBalance)
 		} else {
 			// strategy: always append positionMargin of openPosition
-			// newMargin = oldMargin + openPositionMargin + pnl + fee
-			newMargin = newMargin.Add(a.MarginBalance)
-			newMargin = newMargin.Add(price.Sub(perpetual.MarkPrice).Mul(open))
-			newMargin = newMargin.Add(totalFee)
-			// at least IM after adjust
-			newMargin = decimal.Max(newMargin, a.PositionMargin)
+			// adjustCollateral = openPositionMargin + pnl + fee
+			adjustCollateral = openPositionMargin.Sub(perpetual.MarkPrice.Mul(open))
+			adjustCollateral = adjustCollateral.Sub(deltaCash)
+			adjustCollateral = adjustCollateral.Add(totalFee)
 		}
-		// at least keeperGasReward
-		newMargin = decimal.Max(newMargin, perpetual.KeeperGasReward)
-		return newMargin.Sub(a.MarginBalance), nil
+		// at least IM after adjust
+
+		adjustCollateral = decimal.Max(adjustCollateral, a.AvailableMargin.Neg())
+		return adjustCollateral, nil
 	}
 }
 

@@ -195,13 +195,13 @@ func TestComputeAMMTrade3(t *testing.T) {
 	assert.Equal(t, true, afterTrade.IsIMSafe)
 	afterTrade, tradeIsSafe, tradingPrice, _ := ComputeAMMTrade(poolStorage, 0, account, decimal.NewFromFloat(-1))
 	// amm deltaCash = -515.541132467602916841
-	// newMargin = newCash + 505 * 2 = 505 * 2 * 0.01. so cash = -999.9
-	// newCash = oldCash - withdraw + 515... - 515... * 0.003(fee). so withdraw = 13.894509070200108090477
+	// newMargin = newCash + 505 * 2 = 505 * 2 * 0.01 + 0.5. so cash = -999.4
+	// newCash = oldCash - withdraw + 515... - 515... * 0.003(fee). so withdraw = 13.394509070200108090477
 	Approximate(t, decimal.NewFromFloat(515.541132467602916841), tradingPrice)
 	assert.Equal(t, true, afterTrade.IsMMSafe)
 	assert.Equal(t, true, tradeIsSafe)
-	Approximate(t, decimal.NewFromFloat(13.894509070200108090477), account.WalletBalance)
-	Approximate(t, decimal.NewFromFloat(-999.9), account.CashBalance)
+	Approximate(t, decimal.NewFromFloat(13.394509070200108090477), account.WalletBalance)
+	Approximate(t, decimal.NewFromFloat(-999.4), account.CashBalance)
 	Approximate(t, decimal.NewFromFloat(2), account.PositionAmount)
 	Approximate(t, decimal.NewFromFloat(3938.42440866486468608), poolStorage.PoolCashBalance)
 	Approximate(t, decimal.NewFromFloat(-2), poolStorage.Perpetuals[0].AmmPositionAmount)
@@ -232,19 +232,19 @@ func TestComputeAMMTrade4(t *testing.T) {
 	// close when margin < MM, but profit is large, normal fees
 	afterTrade, tradeIsSafe, tradingPrice, _ := ComputeAMMTrade(poolStorage, 0, account, decimal.NewFromFloat(-1))
 	// amm deltaCash = -521.201994206724030199
-	// old lev = 501x, margin = 501 * 2 * 1% = cash + 501 * 2
-	// cash = oldCash + deltaCash - fee - withdraw. so withdraw = 11.618388224103858109
+	// old lev = 501x, margin = 501 * 2 * 1% = cash + 501 * 2 + 0.5
+	// cash = oldCash + deltaCash - fee - withdraw. so withdraw = 11.118388224103858109
 	Approximate(t, decimal.NewFromFloat(521.201994206724030199), tradingPrice)
 	assert.Equal(t, true, afterTrade.IsMMSafe)
 	assert.Equal(t, true, tradeIsSafe)
-	Approximate(t, decimal.NewFromFloat(11.618388224103858109), account.WalletBalance)
-	Approximate(t, decimal.NewFromFloat(-991.98), account.CashBalance)
+	Approximate(t, decimal.NewFromFloat(11.118388224103858109), account.WalletBalance)
+	Approximate(t, decimal.NewFromFloat(-991.48), account.CashBalance)
 	Approximate(t, decimal.NewFromFloat(2), account.PositionAmount)
 	Approximate(t, decimal.NewFromFloat(5004.80460207704307954), poolStorage.PoolCashBalance)
 	Approximate(t, decimal.NewFromFloat(-4), poolStorage.Perpetuals[0].AmmPositionAmount)
 }
 
-// a very small amount
+// a very small amount. long small amount from 0 position, margin = keeperGasReward
 func TestComputeAMMTrade5(t *testing.T) {
 	poolStorage := defaultPool1
 	poolStorage.Perpetuals[0] = perpetual3
@@ -252,19 +252,20 @@ func TestComputeAMMTrade5(t *testing.T) {
 	poolStorage = CopyLiquidityPoolStorage(poolStorage)
 	// deposit
 	account := CopyAccountStorage(accountStorage)
-	account.WalletBalance = decimal.NewFromFloat(0.500001303)
+	account.WalletBalance = decimal.NewFromFloat(0.500002303)
 	// long 1e-7 (open)
 	afterTrade, tradeIsSafe, tradingPrice, _ := ComputeAMMTrade(poolStorage, 0, account, decimal.NewFromFloat(1e-7))
 	// amm deltaCash = 0.000101
-	// margin = gas reward = 0.5 = cash + positionValue. so cash = 0.4999
-	// cash = deposit - 0.000101 - 0.000101 * 0.003(fee). so deposit = 0.500001303
+	// margin = 1e-7*1000*0.01 + keeperGasReward = 0.5 + 1e-6
+	// newCash = margin - mark * pos = 0.5 + 1e-6 - 1000 * 1e-7 = 0.499901
+	// deposit = newCash + deltaCash = 0.499901 + 1010 * 1e-7 + 1010 * 1e-7 * 0.003 = 0.500002303
 	Approximate(t, decimal.NewFromFloat(1010), tradingPrice)
 	assert.Equal(t, true, afterTrade.IsMMSafe)
 	assert.Equal(t, true, tradeIsSafe)
 	Approximate(t, decimal.NewFromFloat(0), account.WalletBalance)
-	Approximate(t, decimal.NewFromFloat(0.4999), account.CashBalance)
+	Approximate(t, decimal.NewFromFloat(0.499901), account.CashBalance)
 	Approximate(t, decimal.NewFromFloat(1e-7), account.PositionAmount)
-	Approximate(t, decimal.NewFromFloat(0.5), afterTrade.MarginBalance)
+	Approximate(t, decimal.NewFromFloat(0.500001), afterTrade.MarginBalance)
 
 	Approximate(t, decimal.NewFromFloat(1000.000101101), poolStorage.PoolCashBalance)
 	Approximate(t, decimal.NewFromFloat(-1e-7), poolStorage.Perpetuals[0].AmmPositionAmount)
@@ -328,21 +329,20 @@ func TestComputeAMMTrade7(t *testing.T) {
 	assert.Equal(t, false, afterTrade.IsIMSafe)
 
 	// long 1 (open)
-
-	account.WalletBalance = decimal.NewFromFloat(1206.034893526401613359)
+	account.WalletBalance = decimal.NewFromFloat(1206.534893526402413359)
 	afterTrade, tradeIsSafe, tradingPrice, _ := ComputeAMMTrade(poolStorage, 0, account, decimal.NewFromFloat(1))
 
 	// amm deltaCash = 101.729704413161927575
 	// margin = initialMargin = 4 * 100 * 0.01 = 4
 	// newCash = margin - mark * pos = 4 - 100 * 4 = -396
-	// deposit = newMargin - oldMargin - pnl + fee = 4 - (-1200) - (-1.729704413161927575) + 101.729704413161927575 * 0.003 = 1206.034893526401413359
+	// deposit = newMargin - oldMargin - pnl + fee = 4.5 - (-1200) - (-1.729704413161927575) + 101.729704413161927575 * 0.003 = 1206.534893526402413359
 	Approximate(t, decimal.NewFromFloat(101.729704413161927575), tradingPrice)
 	assert.Equal(t, true, afterTrade.IsMMSafe)
 	assert.Equal(t, true, tradeIsSafe)
 	Approximate(t, decimal.NewFromFloat(0), account.WalletBalance)
-	Approximate(t, decimal.NewFromFloat(-396), account.CashBalance)
+	Approximate(t, decimal.NewFromFloat(-395.5), account.CashBalance)
 	Approximate(t, decimal.NewFromFloat(4), account.PositionAmount)
-	Approximate(t, decimal.NewFromFloat(4), afterTrade.MarginBalance)
+	Approximate(t, decimal.NewFromFloat(4.5), afterTrade.MarginBalance)
 
 	Approximate(t, decimal.NewFromFloat(4555.281434117575089503), poolStorage.PoolCashBalance)
 	Approximate(t, decimal.NewFromFloat(-4), poolStorage.Perpetuals[0].AmmPositionAmount)
