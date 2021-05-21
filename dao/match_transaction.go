@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/jinzhu/gorm"
-	"github.com/mcarloai/mai-v3-broker/common/model"
+	"github.com/mcdexio/mai3-broker/common/model"
 )
 
 type MatchTransactionDAO interface {

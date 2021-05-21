@@ -1,6 +1,6 @@
 package websocket
 
-import "github.com/mcarloai/mai-v3-broker/common/message"
+import "github.com/mcdexio/mai3-broker/common/message"
 
 type IChannel interface {
 	GetID() string

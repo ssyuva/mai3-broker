@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/mcarloai/mai-v3-broker/common/mai3/crypto"
-	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
+	"github.com/mcdexio/mai3-broker/common/mai3/crypto"
+	"github.com/mcdexio/mai3-broker/common/mai3/utils"
 )
 
 const (

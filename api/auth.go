@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/labstack/echo"
-	"github.com/mcarloai/mai-v3-broker/common/auth"
+	"github.com/mcdexio/mai3-broker/common/auth"
 )
 
 type authenticator interface {

@@ -1,4 +1,4 @@
-module github.com/mcarloai/mai-v3-broker
+module github.com/mcdexio/mai3-broker
 
 go 1.16
 

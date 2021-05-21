@@ -8,8 +8,8 @@ import (
 	"reflect"
 
 	"github.com/labstack/echo"
-	"github.com/mcarloai/mai-v3-broker/api"
-	"github.com/mcarloai/mai-v3-broker/l2/relayer"
+	"github.com/mcdexio/mai3-broker/api"
+	"github.com/mcdexio/mai3-broker/l2/relayer"
 	v "gopkg.in/go-playground/validator.v9"
 
 	logger "github.com/sirupsen/logrus"

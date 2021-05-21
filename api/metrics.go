@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/labstack/echo"
-	"github.com/mcarloai/mai-v3-broker/conf"
+	"github.com/mcdexio/mai3-broker/conf"
 	"github.com/prometheus/client_golang/prometheus"
 )
 

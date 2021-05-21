@@ -5,7 +5,7 @@ import (
 	"crypto/ecdsa"
 	"math/big"
 
-	"github.com/mcarloai/mai-v3-broker/common/model"
+	"github.com/mcdexio/mai3-broker/common/model"
 	"github.com/shopspring/decimal"
 )
 

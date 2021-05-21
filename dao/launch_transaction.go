@@ -2,7 +2,7 @@ package dao
 
 import (
 	"fmt"
-	"github.com/mcarloai/mai-v3-broker/common/model"
+	"github.com/mcdexio/mai3-broker/common/model"
 	"time"
 
 	"github.com/jinzhu/gorm"

@@ -3,7 +3,7 @@ package crypto
 import (
 	"testing"
 
-	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
+	"github.com/mcdexio/mai3-broker/common/mai3/utils"
 	"github.com/stretchr/testify/assert"
 )
 

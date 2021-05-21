@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/mcarloai/mai-v3-broker/common/message"
-	"github.com/mcarloai/mai-v3-broker/common/model"
-	"github.com/mcarloai/mai-v3-broker/conf"
-	"github.com/mcarloai/mai-v3-broker/dao"
+	"github.com/mcdexio/mai3-broker/common/message"
+	"github.com/mcdexio/mai3-broker/common/model"
+	"github.com/mcdexio/mai3-broker/conf"
+	"github.com/mcdexio/mai3-broker/dao"
 	"github.com/shopspring/decimal"
 	"gopkg.in/guregu/null.v3"
 

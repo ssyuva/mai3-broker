@@ -7,7 +7,7 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/mcarloai/mai-v3-broker/common/chain/ethereum/broker"
+	"github.com/mcdexio/mai3-broker/common/chain/ethereum/broker"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"

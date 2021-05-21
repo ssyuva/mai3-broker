@@ -3,7 +3,7 @@ package mai3
 import (
 	"testing"
 
-	"github.com/mcarloai/mai-v3-broker/common/model"
+	"github.com/mcdexio/mai3-broker/common/model"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 )

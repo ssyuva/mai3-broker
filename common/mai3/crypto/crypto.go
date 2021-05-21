@@ -8,7 +8,7 @@ import (
 	"math/big"
 
 	"github.com/btcsuite/btcd/btcec"
-	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
+	"github.com/mcdexio/mai3-broker/common/mai3/utils"
 	"golang.org/x/crypto/sha3"
 )
 

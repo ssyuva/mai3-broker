@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/jinzhu/gorm"
-	"github.com/mcarloai/mai-v3-broker/common/postgres"
+	"github.com/mcdexio/mai3-broker/common/postgres"
 	logger "github.com/sirupsen/logrus"
 )
 

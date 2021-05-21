@@ -7,8 +7,8 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/google/uuid"
-	"github.com/mcarloai/mai-v3-broker/common/model"
-	"github.com/mcarloai/mai-v3-broker/dao"
+	"github.com/mcdexio/mai3-broker/common/model"
+	"github.com/mcdexio/mai3-broker/dao"
 )
 
 var privateKey string

@@ -1,9 +1,9 @@
 package api
 
 import (
-	"github.com/mcarloai/mai-v3-broker/common/mai3"
-	"github.com/mcarloai/mai-v3-broker/conf"
-	"github.com/mcarloai/mai-v3-broker/dao"
+	"github.com/mcdexio/mai3-broker/common/mai3"
+	"github.com/mcdexio/mai3-broker/conf"
+	"github.com/mcdexio/mai3-broker/dao"
 	"strings"
 )
 

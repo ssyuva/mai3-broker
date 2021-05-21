@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/mcarloai/mai-v3-broker/common/mai3"
-	"github.com/mcarloai/mai-v3-broker/conf"
+	"github.com/mcdexio/mai3-broker/common/mai3"
+	"github.com/mcdexio/mai3-broker/conf"
 )
 
 var (

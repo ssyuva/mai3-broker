@@ -9,9 +9,9 @@ import (
 
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
-	"github.com/mcarloai/mai-v3-broker/api"
-	"github.com/mcarloai/mai-v3-broker/conf"
-	"github.com/mcarloai/mai-v3-broker/l2/relayer"
+	"github.com/mcdexio/mai3-broker/api"
+	"github.com/mcdexio/mai3-broker/conf"
+	"github.com/mcdexio/mai3-broker/l2/relayer"
 
 	logger "github.com/sirupsen/logrus"
 )

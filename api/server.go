@@ -7,10 +7,10 @@ import (
 
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
-	"github.com/mcarloai/mai-v3-broker/common/chain"
-	"github.com/mcarloai/mai-v3-broker/conf"
-	"github.com/mcarloai/mai-v3-broker/dao"
-	"github.com/mcarloai/mai-v3-broker/match"
+	"github.com/mcdexio/mai3-broker/common/chain"
+	"github.com/mcdexio/mai3-broker/conf"
+	"github.com/mcdexio/mai3-broker/dao"
+	"github.com/mcdexio/mai3-broker/match"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	logger "github.com/sirupsen/logrus"
 )

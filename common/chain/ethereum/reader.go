@@ -8,9 +8,9 @@ import (
 	ethBind "github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/shopspring/decimal"
 
-	"github.com/mcarloai/mai-v3-broker/common/chain/ethereum/reader"
-	"github.com/mcarloai/mai-v3-broker/common/mai3"
-	"github.com/mcarloai/mai-v3-broker/common/model"
+	"github.com/mcdexio/mai3-broker/common/chain/ethereum/reader"
+	"github.com/mcdexio/mai3-broker/common/mai3"
+	"github.com/mcdexio/mai3-broker/common/model"
 	logger "github.com/sirupsen/logrus"
 )
 

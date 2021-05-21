@@ -13,9 +13,9 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/mcarloai/mai-v3-broker/common/auth"
-	"github.com/mcarloai/mai-v3-broker/common/message"
-	"github.com/mcarloai/mai-v3-broker/conf"
+	"github.com/mcdexio/mai3-broker/common/auth"
+	"github.com/mcdexio/mai3-broker/common/message"
+	"github.com/mcdexio/mai3-broker/conf"
 	logger "github.com/sirupsen/logrus"
 )
 

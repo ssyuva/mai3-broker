@@ -1,7 +1,7 @@
 package orderbook
 
 import (
-	"github.com/mcarloai/mai-v3-broker/common/model"
+	"github.com/mcdexio/mai3-broker/common/model"
 	"testing"
 
 	"github.com/shopspring/decimal"

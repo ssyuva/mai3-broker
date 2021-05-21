@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	ethBind "github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/mcarloai/mai-v3-broker/common/chain/ethereum/erc20"
+	"github.com/mcdexio/mai3-broker/common/chain/ethereum/erc20"
 
 	"github.com/shopspring/decimal"
 )

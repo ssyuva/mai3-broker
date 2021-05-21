@@ -9,10 +9,10 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/mcarloai/mai-v3-broker/common/chain/ethereum/broker"
-	"github.com/mcarloai/mai-v3-broker/common/mai3"
-	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
-	"github.com/mcarloai/mai-v3-broker/common/model"
+	"github.com/mcdexio/mai3-broker/common/chain/ethereum/broker"
+	"github.com/mcdexio/mai3-broker/common/mai3"
+	"github.com/mcdexio/mai3-broker/common/mai3/utils"
+	"github.com/mcdexio/mai3-broker/common/model"
 )
 
 func (c *Client) BatchTradeDataPack(compressedOrders [][]byte, matchAmounts []decimal.Decimal, gasRewards []*big.Int) ([]byte, error) {

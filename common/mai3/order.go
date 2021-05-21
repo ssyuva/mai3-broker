@@ -5,9 +5,9 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/mcarloai/mai-v3-broker/common/mai3/crypto"
-	"github.com/mcarloai/mai-v3-broker/common/mai3/utils"
-	"github.com/mcarloai/mai-v3-broker/common/model"
+	"github.com/mcdexio/mai3-broker/common/mai3/crypto"
+	"github.com/mcdexio/mai3-broker/common/mai3/utils"
+	"github.com/mcdexio/mai3-broker/common/model"
 	"github.com/shopspring/decimal"
 )
 

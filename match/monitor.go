@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mcarloai/mai-v3-broker/common/model"
-	"github.com/mcarloai/mai-v3-broker/conf"
+	"github.com/mcdexio/mai3-broker/common/model"
+	"github.com/mcdexio/mai3-broker/conf"
 	"github.com/shopspring/decimal"
 	logger "github.com/sirupsen/logrus"
 )

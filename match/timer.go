@@ -1,7 +1,7 @@
 package match
 
 import (
-	"github.com/mcarloai/mai-v3-broker/common/model"
+	"github.com/mcdexio/mai3-broker/common/model"
 	"github.com/shopspring/decimal"
 	logger "github.com/sirupsen/logrus"
 	"time"

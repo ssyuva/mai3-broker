@@ -8,9 +8,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/mcarloai/mai-v3-broker/conf"
-	"github.com/mcarloai/mai-v3-broker/l2/relayer"
-	"github.com/mcarloai/mai-v3-broker/l2/rpc"
+	"github.com/mcdexio/mai3-broker/conf"
+	"github.com/mcdexio/mai3-broker/l2/relayer"
+	"github.com/mcdexio/mai3-broker/l2/rpc"
 	"golang.org/x/sync/errgroup"
 
 	logger "github.com/sirupsen/logrus"

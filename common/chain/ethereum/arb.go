@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	ethBind "github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/mcarloai/mai-v3-broker/common/chain/ethereum/arboscontracts"
+	"github.com/mcdexio/mai3-broker/common/chain/ethereum/arboscontracts"
 	"github.com/shopspring/decimal"
 	logger "github.com/sirupsen/logrus"
 )
