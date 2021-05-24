@@ -172,7 +172,7 @@ func (m *match) updateOrdersByTradeEvent(dao dao.DAO, matchTx *model.MatchTransa
 				return ordersToNotify, err
 			}
 
-			if err := m.rollbackOrderbook(oldAmount, amount, order); err != nil {
+			if err := m.rollbackOrderbook(oldAmount, matchAmount, order); err != nil {
 				logger.Errorf("UpdateOrdersStatus:%s", err)
 				return ordersToNotify, err
 			}

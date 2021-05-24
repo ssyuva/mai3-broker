@@ -34,13 +34,14 @@ type Config struct {
 	GasArbAddress string `envconfig:"gas_arb_address"`
 	GasEnable     bool   `envconfig:"gas_enable"`
 
-	ChainType    string            `envconfig:"chain_type"`
-	ChainID      int64             `envconfig:"chain_id"`
-	RetryTimes   int               `envconfig:"retry_times"`
-	ChainTimeout time.Duration     `envconfig:"chain_timeout"`
-	ProvidersURL []string          `envconfig:"providers_url"`
-	Headers      map[string]string `envconfig:"headers"`
-	Password     string            `envconfig:"password"`
+	ChainType        string            `envconfig:"chain_type"`
+	ChainID          int64             `envconfig:"chain_id"`
+	RetryTimes       int               `envconfig:"retry_times"`
+	ChainTimeout     time.Duration     `envconfig:"chain_timeout"`
+	ProvidersURL     []string          `envconfig:"providers_url"`
+	Headers          map[string]string `envconfig:"headers"`
+	Password         string            `envconfig:"password"`
+	MatureBlockCount uint64            `envconfig:"mature_block_count"`
 
 	SubgraphURL string `envconfig:"subgraph_url"`
 }

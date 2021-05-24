@@ -21,8 +21,6 @@ type Monitor struct {
 	match    *match.Server
 }
 
-const MATURE_BLOCKNUM = 60
-
 func NewMonitor(ctx context.Context, dao dao.DAO, chainCli chain.ChainClient, match *match.Server) *Monitor {
 	return &Monitor{
 		ctx:      ctx,
@@ -47,7 +45,7 @@ func (s *Monitor) syncUnmatureTransaction() {
 		logger.Infof("GetLatestBlockNumber error:%s", err)
 		return
 	}
-	begin := blockNumber - MATURE_BLOCKNUM
+	begin := blockNumber - conf.Conf.MatureBlockCount
 	s.updateUnmatureTransactionStatus(&begin)
 	return
 }
@@ -81,7 +79,7 @@ func (s *Monitor) updateUnmatureTransactionStatus(blockNumber *uint64) {
 				}
 			}
 		}
-		if err != nil {
+		if receipt == nil || err != nil {
 			logger.Errorf("WaitTransactionReceipt error: %s", err)
 			continue
 		}
