@@ -72,14 +72,6 @@ func (m *match) updateOrdersByTradeEvent(dao dao.DAO, matchTx *model.MatchTransa
 	ordersToNotify := make([]*model.Order, 0)
 	ctxTimeout, ctxTimeoutCancel := context.WithTimeout(m.ctx, conf.Conf.ChainTimeout)
 	defer ctxTimeoutCancel()
-	tradeSuccess, err := m.chainCli.FilterTradeSuccess(ctxTimeout, matchTx.BrokerAddress, blockNumber, blockNumber)
-	if err != nil {
-		return ordersToNotify, err
-	}
-	TradeFailed, err := m.chainCli.FilterTradeFailed(ctxTimeout, matchTx.BrokerAddress, blockNumber, blockNumber)
-	if err != nil {
-		return ordersToNotify, err
-	}
 	// orders trade success
 	orderSuccMap := make(map[string]decimal.Decimal)
 	// orders trade failed, need to be cancel
@@ -87,34 +79,46 @@ func (m *match) updateOrdersByTradeEvent(dao dao.DAO, matchTx *model.MatchTransa
 
 	orderMatchMap := make(map[string]decimal.Decimal)
 	orderHashes := make([]string, 0)
-	for _, event := range tradeSuccess {
-		logger.Infof("Trade Success: %+v", event)
-		if event.TransactionHash != matchTx.TransactionHash.String {
-			continue
-		}
-		matchInfo := &model.MatchItem{
-			OrderHash: event.OrderHash,
-			Amount:    event.Amount,
-		}
-		matchTx.MatchResult.SuccItems = append(matchTx.MatchResult.SuccItems, matchInfo)
-		orderSuccMap[event.OrderHash] = event.Amount
-	}
 
-	for _, event := range TradeFailed {
-		logger.Infof("Trade Failed: %+v", event)
-		if event.TransactionHash != matchTx.TransactionHash.String {
-			continue
+	if matchTx.Status == model.TransactionStatusSuccess {
+		tradeSuccess, err := m.chainCli.FilterTradeSuccess(ctxTimeout, matchTx.BrokerAddress, blockNumber, blockNumber)
+		if err != nil {
+			return ordersToNotify, err
 		}
-		// trigger price or price not match in contract, will rollback to orderbook
-		if event.Reason == TriggerPriceNotReach || event.Reason == PriceExceedsLimit {
-			continue
+		TradeFailed, err := m.chainCli.FilterTradeFailed(ctxTimeout, matchTx.BrokerAddress, blockNumber, blockNumber)
+		if err != nil {
+			return ordersToNotify, err
 		}
-		matchInfo := &model.MatchItem{
-			OrderHash: event.OrderHash,
-			Amount:    event.Amount,
+
+		for _, event := range tradeSuccess {
+			logger.Infof("Trade Success: %+v", event)
+			if event.TransactionHash != matchTx.TransactionHash.String {
+				continue
+			}
+			matchInfo := &model.MatchItem{
+				OrderHash: event.OrderHash,
+				Amount:    event.Amount,
+			}
+			matchTx.MatchResult.SuccItems = append(matchTx.MatchResult.SuccItems, matchInfo)
+			orderSuccMap[event.OrderHash] = event.Amount
 		}
-		matchTx.MatchResult.FailedItems = append(matchTx.MatchResult.FailedItems, matchInfo)
-		orderFailMap[event.OrderHash] = event.Amount
+
+		for _, event := range TradeFailed {
+			logger.Infof("Trade Failed: %+v", event)
+			if event.TransactionHash != matchTx.TransactionHash.String {
+				continue
+			}
+			// trigger price or price not match in contract, will rollback to orderbook
+			if event.Reason == TriggerPriceNotReach || event.Reason == PriceExceedsLimit {
+				continue
+			}
+			matchInfo := &model.MatchItem{
+				OrderHash: event.OrderHash,
+				Amount:    event.Amount,
+			}
+			matchTx.MatchResult.FailedItems = append(matchTx.MatchResult.FailedItems, matchInfo)
+			orderFailMap[event.OrderHash] = event.Amount
+		}
 	}
 
 	for _, item := range matchTx.MatchResult.MatchItems {

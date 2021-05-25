@@ -75,7 +75,7 @@ func (l *Launcher) Start() error {
 	})
 
 	// start executor for execute launch transactions
-	executor := NewExecutor(ctx, l.dao, l.chainCli, l.gasMonitor)
+	executor := NewExecutor(ctx, l.dao, l.chainCli, l.gasMonitor, l.match)
 	l.executor = executor
 	group.Go(func() error {
 		return executor.Run()

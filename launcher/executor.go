@@ -8,6 +8,7 @@ import (
 	"github.com/mcdexio/mai3-broker/conf"
 	"github.com/mcdexio/mai3-broker/dao"
 	"github.com/mcdexio/mai3-broker/gasmonitor"
+	"github.com/mcdexio/mai3-broker/match"
 	"github.com/mcdexio/mai3-broker/runnable"
 	"github.com/pkg/errors"
 	logger "github.com/sirupsen/logrus"
@@ -19,15 +20,17 @@ type Executor struct {
 	runner     *runnable.Timed
 	chainCli   chain.ChainClient
 	gasMonitor *gasmonitor.GasMonitor
+	match      *match.Server
 }
 
-func NewExecutor(ctx context.Context, dao dao.DAO, chainCli chain.ChainClient, gm *gasmonitor.GasMonitor) *Executor {
+func NewExecutor(ctx context.Context, dao dao.DAO, chainCli chain.ChainClient, gm *gasmonitor.GasMonitor, match *match.Server) *Executor {
 	return &Executor{
 		ctx:        ctx,
 		dao:        dao,
 		runner:     runnable.NewTimed(ChannelHWM),
 		chainCli:   chainCli,
 		gasMonitor: gm,
+		match:      match,
 	}
 }
 
@@ -120,10 +123,15 @@ func (s *Executor) reset(tx *model.LaunchTransaction) error {
 			tx.Status = model.TxPending
 		}
 	}
-	if err := s.dao.UpdateTx(tx); err != nil {
-		return errors.Wrap(err, "update transaction failed")
-	}
-	return nil
+	err := s.dao.Transaction(context.Background(), false /* readonly */, func(dao dao.DAO) error {
+		if err := dao.UpdateTx(tx); err != nil {
+			return errors.Wrap(err, "update transaction failed")
+		}
+		err := s.match.UpdateOrdersStatus(tx.TxID, tx.Status.TransactionStatus(), *tx.TransactionHash, *tx.BlockHash, *tx.BlockNumber, *tx.BlockTime)
+		return err
+	})
+
+	return err
 }
 
 func (s *Executor) fastForward(addr string, start uint64, end uint64) error {
