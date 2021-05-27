@@ -169,7 +169,7 @@ func (l *Launcher) createLaunchTransaction(matchTx *model.MatchTransaction) erro
 		gasReward := big.NewInt(0)
 		if conf.Conf.GasEnable {
 			gas := l.gasMonitor.GasPriceGwei().Mul(decimal.NewFromInt(item.Order.GasFeeLimit))
-			gasReward = mai3Utils.MustDecimalToBigInt(mai3Utils.ToWad(gas))
+			gasReward = mai3Utils.MustDecimalToBigInt(gas)
 		}
 		gasRewards = append(gasRewards, gasReward)
 	}

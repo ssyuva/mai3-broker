@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/mcdexio/mai3-broker/common/chain"
+	"github.com/mcdexio/mai3-broker/common/mai3/utils"
 	"github.com/mcdexio/mai3-broker/conf"
 	"github.com/shopspring/decimal"
 	logger "github.com/sirupsen/logrus"
@@ -60,6 +61,6 @@ func (p *GasMonitor) getPriceInfo() (decimal.Decimal, error) {
 		gas := res[5].Mul(GAS_FACTOR)
 		return gas, nil
 	} else {
-		return decimal.NewFromInt(int64(conf.Conf.GasPrice)), nil
+		return utils.ToGwei(decimal.NewFromInt(int64(conf.Conf.GasPrice))), nil
 	}
 }
