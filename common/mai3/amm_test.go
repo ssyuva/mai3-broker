@@ -654,3 +654,57 @@ func TestComputeAMMMaxTradeAmount4(t *testing.T) {
 	amount := ComputeAMMMaxTradeAmount(poolStorage, TEST_PERPETUAL_INDEX0, accountStorage1, decimal.NewFromFloat(1.2), false)
 	assert.Equal(t, true, amount.IsZero())
 }
+
+func TestSlowCase20210531(t *testing.T) {
+	poolStorage := &model.LiquidityPoolStorage{
+		VaultFeeRate:    decimal.NewFromFloat(0.00015),
+		PoolCashBalance: decimal.NewFromFloat(61439594.83745874751912811),
+		Perpetuals: make(map[int64]*model.PerpetualStorage),
+	}
+	perp := &model.PerpetualStorage{
+		IsNormal: true,
+	
+		InitialMarginRate:      decimal.NewFromFloat(0.04),
+		MaintenanceMarginRate:  decimal.NewFromFloat(0.03),
+		OperatorFeeRate:        decimal.NewFromFloat(0),
+		LpFeeRate:              decimal.NewFromFloat(0.00055),
+		ReferrerRebateRate:     decimal.NewFromFloat(0.2),
+		LiquidationPenaltyRate: decimal.NewFromFloat(0.01),
+		KeeperGasReward:        decimal.NewFromFloat(30),
+		InsuranceFundRate:      decimal.NewFromFloat(0.5),
+		MaxOpenInterestRate:    decimal.NewFromFloat(3),
+	
+		HalfSpread:            decimal.NewFromFloat(0.0008),
+		OpenSlippageFactor:    decimal.NewFromFloat(0.015),
+		CloseSlippageFactor:   decimal.NewFromFloat(0.011),
+		FundingRateFactor:     decimal.NewFromFloat(0.005),
+		FundingRateLimit:      decimal.NewFromFloat(0.01),
+		MaxLeverage:           decimal.NewFromFloat(3),
+		MaxClosePriceDiscount: decimal.NewFromFloat(0.05),
+
+		MarkPrice:               _0, // assign me later
+		IndexPrice:              _0, // assign me later
+		UnitAccumulativeFunding: _0, // assign me later
+		OpenInterest:            _0, // assign me later
+		AmmCashBalance:          _0, // assign me later
+		AmmPositionAmount:       _0, // assign me later
+	}
+	poolStorage.Perpetuals[0] = CopyPerpetualStorage(perp)
+	poolStorage.Perpetuals[0].MarkPrice = decimal.NewFromFloat(2483.26)
+	poolStorage.Perpetuals[0].IndexPrice = decimal.NewFromFloat(2483.26)
+	poolStorage.Perpetuals[0].UnitAccumulativeFunding = decimal.NewFromFloat(5.251555799327968135)
+	poolStorage.Perpetuals[0].OpenInterest = decimal.NewFromFloat(29371.273105471586573539)
+	poolStorage.Perpetuals[0].AmmCashBalance = decimal.NewFromFloat(8298681.979842171583354906)
+	poolStorage.Perpetuals[0].AmmPositionAmount = decimal.NewFromFloat(-3229.051128971586573539)
+	poolStorage.Perpetuals[1] = CopyPerpetualStorage(perp)
+	poolStorage.Perpetuals[1].MarkPrice = decimal.NewFromFloat(36074.44)
+	poolStorage.Perpetuals[1].IndexPrice = decimal.NewFromFloat(36074.44)
+	poolStorage.Perpetuals[1].UnitAccumulativeFunding = decimal.NewFromFloat(19.621235681904859106)
+	poolStorage.Perpetuals[1].OpenInterest = decimal.NewFromFloat(1275.166235484256783314)
+	poolStorage.Perpetuals[1].AmmCashBalance = decimal.NewFromFloat(3914040.067954807914861364)
+	poolStorage.Perpetuals[1].AmmPositionAmount = decimal.NewFromFloat(-104.380535484256783314)
+
+	limitPrice := decimal.NewFromFloat(2399)
+	amount := ComputeAMMAmountWithPrice(poolStorage, TEST_PERPETUAL_INDEX0, false, limitPrice)
+	Approximate(t, decimal.NewFromFloat(-82085.98), amount)
+}

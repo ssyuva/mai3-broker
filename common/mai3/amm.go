@@ -26,34 +26,37 @@ func CopyLiquidityPoolStorage(p *model.LiquidityPoolStorage) *model.LiquidityPoo
 	res.PoolCashBalance = p.PoolCashBalance
 	res.VaultFeeRate = p.VaultFeeRate
 	for k, perp := range p.Perpetuals {
-		newPerp := &model.PerpetualStorage{
-			IsNormal:                perp.IsNormal,
-			MarkPrice:               perp.MarkPrice,
-			IndexPrice:              perp.IndexPrice,
-			UnitAccumulativeFunding: perp.UnitAccumulativeFunding,
-			InitialMarginRate:       perp.InitialMarginRate,
-			MaintenanceMarginRate:   perp.MaintenanceMarginRate,
-			OperatorFeeRate:         perp.OperatorFeeRate,
-			LpFeeRate:               perp.LpFeeRate,
-			ReferrerRebateRate:      perp.ReferrerRebateRate,
-			LiquidationPenaltyRate:  perp.LiquidationPenaltyRate,
-			KeeperGasReward:         perp.KeeperGasReward,
-			InsuranceFundRate:       perp.InsuranceFundRate,
-			OpenInterest:            perp.OpenInterest,
-			MaxOpenInterestRate:     perp.MaxOpenInterestRate,
-			HalfSpread:              perp.HalfSpread,
-			OpenSlippageFactor:      perp.OpenSlippageFactor,
-			CloseSlippageFactor:     perp.CloseSlippageFactor,
-			FundingRateFactor:       perp.FundingRateFactor,
-			FundingRateLimit:        perp.FundingRateLimit,
-			MaxLeverage:             perp.MaxLeverage,
-			MaxClosePriceDiscount:   perp.MaxClosePriceDiscount,
-			AmmCashBalance:          perp.AmmCashBalance,
-			AmmPositionAmount:       perp.AmmPositionAmount,
-		}
-		res.Perpetuals[k] = newPerp
+		res.Perpetuals[k] = CopyPerpetualStorage(perp)
 	}
 	return res
+}
+
+func CopyPerpetualStorage(perp *model.PerpetualStorage) *model.PerpetualStorage {
+	return &model.PerpetualStorage{
+		IsNormal:                perp.IsNormal,
+		MarkPrice:               perp.MarkPrice,
+		IndexPrice:              perp.IndexPrice,
+		UnitAccumulativeFunding: perp.UnitAccumulativeFunding,
+		InitialMarginRate:       perp.InitialMarginRate,
+		MaintenanceMarginRate:   perp.MaintenanceMarginRate,
+		OperatorFeeRate:         perp.OperatorFeeRate,
+		LpFeeRate:               perp.LpFeeRate,
+		ReferrerRebateRate:      perp.ReferrerRebateRate,
+		LiquidationPenaltyRate:  perp.LiquidationPenaltyRate,
+		KeeperGasReward:         perp.KeeperGasReward,
+		InsuranceFundRate:       perp.InsuranceFundRate,
+		OpenInterest:            perp.OpenInterest,
+		MaxOpenInterestRate:     perp.MaxOpenInterestRate,
+		HalfSpread:              perp.HalfSpread,
+		OpenSlippageFactor:      perp.OpenSlippageFactor,
+		CloseSlippageFactor:     perp.CloseSlippageFactor,
+		FundingRateFactor:       perp.FundingRateFactor,
+		FundingRateLimit:        perp.FundingRateLimit,
+		MaxLeverage:             perp.MaxLeverage,
+		MaxClosePriceDiscount:   perp.MaxClosePriceDiscount,
+		AmmCashBalance:          perp.AmmCashBalance,
+		AmmPositionAmount:       perp.AmmPositionAmount,
+	}
 }
 
 // just use for order, for using golden section search, the bounds is [0, order.amount]
